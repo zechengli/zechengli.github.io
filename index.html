@@ -14,6 +14,13 @@
         sec.style.display = 'none';
       });
 
+      // Hide the sidebar for sections other than "home"
+      if (section !== 'home') {
+        document.querySelector('.sidebar').style.display = 'none';
+      } else {
+        document.querySelector('.sidebar').style.display = 'block';
+      }
+
       // Show the selected section
       document.getElementById(section).style.display = 'block';
     }
@@ -34,6 +41,7 @@
   </nav>
   <main class="container">
     <aside class="sidebar">
+      <img src="profile.jpg" alt="Profile photo" class="profile-img">
       <h2>Zecheng Li</h2>
       <p class="title">Research Engineer</p>
       <p class="affiliation">University Of Nebraska Lincoln</p>
@@ -50,14 +58,15 @@
         <img src="profile.jpg" alt="Profile photo" class="profile-img">
         <h3>Home</h3>
         <p>Welcome to the home page content!</p>
-        <div id="education" class="section" style="display: none;">
-          <h3>Education</h3>
-          <ul>
-            <li>2013-2015: Anhui Normal University, Software Engineering, 2.9 GPA</li>
-            <li>2015-2018: University of Nebraska Lincoln, Computer Science BS, 3.42 GPA</li>
-            <li>2022-2024: University of Nebraska Lincoln, Computer Science MS, 3.89 GPA</li>
-          </ul>
-        </div>
+      </div>
+      <div id="education" class="section" style="display: none;">
+        <h3>Education</h3>
+        <ul>
+          <li>2013-2015: Anhui Normal University, Software Engineering, 2.9 GPA</li>
+          <li>2015-2018: University of Nebraska Lincoln, Computer Science BS, 3.42 GPA</li>
+          <li>2022-2024: University of Nebraska Lincoln, Computer Science MS, 3.89 GPA</li>
+        </ul>
+      </div>
       <div id="research" class="section" style="display: none;">
         <h3>Research</h3>
         <p>Details about research.</p>
