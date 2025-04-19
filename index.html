@@ -6,17 +6,30 @@
   <title>Your Name</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+  <script>
+    function showSection(section) {
+      // Hide all sections
+      var sections = document.querySelectorAll('.section');
+      sections.forEach(function(sec) {
+        sec.style.display = 'none';
+      });
+
+      // Show the selected section
+      document.getElementById(section).style.display = 'block';
+    }
+  </script>
 </head>
 <body>
   <nav class="navbar">
     <ul>
-      <li><a href="#">Home</a></li>
-      <li><a href="#"></a></li>
-      <li><a href="#">Projects</a></li>
-      <li><a href="#">Publications</a></li>
-      <li><a href="#">Teaching</a></li>
-      <li><a href="#">News</a></li>
-      <li><a href="#">Contact</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('home')">Home</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('education')">Education</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('research')">Research</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('work')">Work</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('sports')">Sports</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('podcast')">Podcast</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('gaming')">Gaming Hobbies</a></li>
+      <li><a href="javascript:void(0);" onclick="showSection('howto')">How To</a></li>
     </ul>
   </nav>
   <main class="container">
@@ -34,16 +47,38 @@
       </div>
     </aside>
     <section class="content">
-      <p>Currently a research engineer under the supervision of shubhendo bhardwaj.</p>
-      <p>You can also link to your <a href="#">publications</a>, <a href="#">teaching</a>, or <a href="#">CV</a>.</p>
-      <h3>Interests</h3>
-      <ul>
-        <li>Interest 1</li>
-        <li>Interest 2</li>
-        <li>Interest 3</li>
-      </ul>
-      <h3>Education</h3>
-      <p><i class="fas fa-graduation-cap"></i> PhD in Your Field, Year<br>Your University</p>
+      <div id="home" class="section">
+        <h3>Home</h3>
+        <p>Welcome to the home page content!</p>
+      </div>
+      <div id="education" class="section" style="display: none;">
+        <h3>Education</h3>
+        <p>Details about education.</p>
+      </div>
+      <div id="research" class="section" style="display: none;">
+        <h3>Research</h3>
+        <p>Details about research.</p>
+      </div>
+      <div id="work" class="section" style="display: none;">
+        <h3>Work</h3>
+        <p>Details about work.</p>
+      </div>
+      <div id="sports" class="section" style="display: none;">
+        <h3>Sports</h3>
+        <p>Details about sports.</p>
+      </div>
+      <div id="podcast" class="section" style="display: none;">
+        <h3>Podcast</h3>
+        <p>Details about podcast.</p>
+      </div>
+      <div id="gaming" class="section" style="display: none;">
+        <h3>Gaming Hobbies</h3>
+        <p>Details about gaming hobbies.</p>
+      </div>
+      <div id="howto" class="section" style="display: none;">
+        <h3>How To</h3>
+        <p>How to section content.</p>
+      </div>
     </section>
   </main>
 </body>
