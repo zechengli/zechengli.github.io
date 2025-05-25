@@ -3,95 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Your Name</title>
+  <title>Zecheng Li | PhD Portfolio</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
   <script>
     function showSection(section) {
       // Hide all sections
-      var sections = document.querySelectorAll('.section');
-      sections.forEach(function(sec) {
-        sec.style.display = 'none';
-      });
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(sec => sec.style.display = 'none');
 
-      // Hide the sidebar for sections other than "home"
-      if (section !== 'home') {
-        document.querySelector('.sidebar').style.display = 'none';
-      } else {
-        document.querySelector('.sidebar').style.display = 'block';
-      }
+      // Hide sidebar unless on 'home'
+      document.querySelector('.sidebar').style.display = section === 'home' ? 'block' : 'none';
 
       // Show the selected section
       document.getElementById(section).style.display = 'block';
     }
+
+    window.onload = () => showSection('home');
   </script>
 </head>
 <body>
   <nav class="navbar">
     <ul>
-      <li><a href="javascript:void(0);" onclick="showSection('home')">Home</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('education')">Education</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('research')">Research</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('work')">Work</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('sports')">Sports</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('podcast')">Podcast</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('gaming')">Gaming Hobbies</a></li>
-      <li><a href="javascript:void(0);" onclick="showSection('howto')">How To</a></li>
+      <li><a href="#" onclick="showSection('home')">Home</a></li>
+      <li><a href="#" onclick="showSection('education')">Education</a></li>
+      <li><a href="#" onclick="showSection('research')">Research</a></li>
+      <li><a href="#" onclick="showSection('work')">Work</a></li>
+      <li><a href="#" onclick="showSection('sports')">Sports</a></li>
+      <li><a href="#" onclick="showSection('podcast')">Podcast</a></li>
+      <li><a href="#" onclick="showSection('gaming')">Gaming</a></li>
+      <li><a href="#" onclick="showSection('howto')">How To</a></li>
     </ul>
   </nav>
+
   <main class="container">
     <aside class="sidebar">
-      <img src="profile.jpg" alt="Profile photo" class="profile-img">
-      <h2>Zecheng Li</h2>
+      <img src="profile.jpg" alt="Zecheng Li Profile Photo" class="profile-img">
+      <h1>Zecheng Li</h1>
       <p class="title">Research Engineer</p>
-      <p class="affiliation">University Of Nebraska Lincoln</p>
+      <p class="affiliation">University of Nebraska–Lincoln</p>
       <div class="icons">
-        <a href="#"><i class="fas fa-graduation-cap"></i></a>
-        <a href="#"><i class="fab fa-google"></i></a>
-        <a href="#"><i class="fab fa-researchgate"></i></a>
-        <a href="#"><i class="fab fa-twitter"></i></a>
-        <a href="#"><i class="fab fa-linkedin"></i></a>
+        <a href="#" title="Google Scholar"><i class="fas fa-graduation-cap"></i></a>
+        <a href="#" title="Google"><i class="fab fa-google"></i></a>
+        <a href="#" title="ResearchGate"><i class="fab fa-researchgate"></i></a>
+        <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
       </div>
     </aside>
+
     <section class="content">
-      <div id="home" class="section">
-        <img src="profile.jpg" alt="Profile photo" class="profile-img">
-        <h3>Home</h3>
-        <p>Welcome to the home page content!</p>
-      </div>
-      <div id="education" class="section" style="display: none;">
-        <h3>Education</h3>
-        <ul>
-          <li>2013-2015: Anhui Normal University, Software Engineering, 2.9 GPA</li>
-          <li>2015-2018: University of Nebraska Lincoln, Computer Science BS, 3.42 GPA</li>
-          <li>2022-2024: University of Nebraska Lincoln, Computer Science MS, 3.89 GPA</li>
-        </ul>
-      </div>
-      <div id="research" class="section" style="display: none;">
-        <h3>Research</h3>
-        <p>Details about research.</p>
-      </div>
-      <div id="work" class="section" style="display: none;">
-        <h3>Work</h3>
-        <p>Details about work.</p>
-      </div>
-      <div id="sports" class="section" style="display: none;">
-        <h3>Sports</h3>
-        <p>Details about sports.</p>
-      </div>
-      <div id="podcast" class="section" style="display: none;">
-        <h3>Podcast</h3>
-        <p>Details about podcast.</p>
-      </div>
-      <div id="gaming" class="section" style="display: none;">
-        <h3>Gaming Hobbies</h3>
-        <p>Details about gaming hobbies.</p>
-      </div>
-      <div id="howto" class="section" style="display: none;">
-        <h3>How To</h3>
-        <p>How to section content.</p>
-      </div>
-    </section>
-  </main>
-</body>
-</html>
+      <
