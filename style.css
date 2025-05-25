@@ -148,3 +148,13 @@ body {
     margin: 10px 0;
   }
 }
+
+
+.content p {
+  line-height: 1.6;
+  font-size: 1.1em;
+  margin-bottom: 1.2em;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
