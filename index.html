@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zecheng Li | Portfolio</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+  <script>
+    function showSection(section) {
+      // Hide all sections
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(sec => sec.style.display = 'none');
+
+      // Hide sidebar unless on 'home'
+      document.querySelector('.sidebar').style.display = section === 'home' ? 'block' : 'none';
+
+      // Show the selected section
+      document.getElementById(section).style.display = 'block';
+    }
+
+    window.onload = () => showSection('home');
+  </script>
+</head>
+<body>
+  <nav class="navbar">
+    <ul>
+      <li><a href="#" onclick="showSection('home')">Home</a></li>
+      <li><a href="#" onclick="showSection('education')">Education</a></li>
+      <li><a href="#" onclick="showSection('research')">Research</a></li>
+      <li><a href="#" onclick="showSection('work')">Work</a></li>
+      <li><a href="#" onclick="showSection('sports')">Sports</a></li>
+      <li><a href="#" onclick="showSection('podcast')">Podcast</a></li>
+      <li><a href="#" onclick="showSection('gaming')">Gaming</a></li>
+      <li><a href="#" onclick="showSection('howto')">How To</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <aside class="sidebar">
+      <img src="profile.jpg" alt="Zecheng Li Profile Photo" class="profile-img">
+      <h1>Zecheng Li 李泽成</h1>
+      <p class="title">Research Engineer</p>
+      <p class="affiliation">University of Nebraska–Lincoln</p>
+      <div class="icons">
+        <a href="#" title="Google Scholar"><i class="fas fa-graduation-cap"></i></a>
+        <a href="#" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+      </div>
+    </aside>
+
+    <section class="content">
+      <div id="home" class="section">
+<h2>Welcome!</h2>
+<p>
+  Or should I say — welcome, orchestrated by Laplace’s Demon.  
+  After all, nothing is truly random... right?
+</p>
+<p>
+  I’d like to take just two minutes of your time to give you a glimpse of who I am.  
+  Maybe we’ll end up spending more time together, so I want to make sure you have a comprehensive understanding of me.
+</p>
+
+        <h3>About Me</h3>
+<p>
+  I am currently a Research Engineer at the University of Nebraska–Lincoln, specializing in electromagnetic waves, antenna design, and RF engineering. I also have four years of software development experience, along with a strong background in data structures and algorithms (DSA) and a solid foundation in machine learning (ML).
+</p>
+
+
+        <h3>Latest Updates</h3>
+        <ul>
+          <li>📄 Paper accepted to IEEE-APS 2025 – <em>"Impedance Interferometry for Temperature Sensing in High-Stress, High-Temperature Applications
+"</em> Feb 2025</li>
+          <li>🏃 Finished the Lincoln Marathon within 4 hours 10 min  May 2025</li>
+        </ul>
+
+        <a class="btn" href="cv.pdf" target="_blank">📄 Download My CV</a>
+      </div>
+
+<div id="education" class="section" style="display: none;">
+  <h2>Education</h2>
+  <ul>
+    <li>
+      <strong>2013–2015:</strong> Anhui Normal University – Software Engineering (GPA: 2.9)
+      <p class="edu-note">
+        Yes, I took the GaoKao (College Entrance Exam) and was ranked about 50,000 out of 280,000 students in my province.
+      </p>
+    </li>
+    <li>
+      <strong>2015–2018:</strong> University of Nebraska–Lincoln – BSc Computer Science (GPA: 3.42)
+      <p class="edu-note">
+        I transferred from AHNU to UNL in 2015. Why UNL? Because the tuition is affordable and it seemed to be my destiny. I was also accepted to other schools like the University of New Hampshire.
+      </p>
+    </li>
+    <li>
+      <strong>2022–2024:</strong> University of Nebraska–Lincoln – MSc Computer Science (GPA: 3.89)
+      <p class="edu-note">
+        I couldn’t find a job at the time and was also accepted to Boston University. I chose UNL again because of the scholarship and I love the city of Lincoln.
+      </p>
+    </li>
+  </ul>
+</div>
+
+
+<div id="research" class="section" style="display: none;">
+  <h2>Research</h2>
+  <p>
+    I’ve had three meaningful research experiences so far, and I deeply appreciate all the professors who guided me along the way.
+  </p>
+
+  <h3>Part 1: Undergraduate Research with Dr. Sheng Wei (2017-2018)</h3>
+  <p>
+    During my undergraduate studies, I worked with <a href="https://eceweb1.rutgers.edu/~sw891/index.html" target="_blank">Dr. Sheng Wei</a>, a hardworking and down-to-earth professor who treated his students with great respect.
+    Our research focused on digital signatures — the process of signing a file using a private key and allowing the recipient to verify it with a public key.
+  </p>
+  <p>
+    Dr. Wei specialized in hardware and multimedia security. At the time, we were exploring possible vulnerabilities in Ring doorbells, particularly during the video segment signing and verification process. Though we didn’t publish a paper, this was a valuable learning experience for me.
+  </p>
+  <p>
+    Later, I attended the <a href="https://www.cse.cuhk.edu.hk/~byu/2018-DAC-SDC/" target="_blank">DAC 2018 System Design Contest</a>, which was one of my first exposures to training machine learning models. I successfully trained a model to recognize images, although I didn’t win an award. Overall, this was a fantastic experience.
+  </p>
+
+  <h3>Part 2: Master's Research with Dr. Shuai Nie (2023-2024)</h3>
+  <p>
+    I joined <a href="https://cse.unl.edu/~snie/index.html" target="_blank">Dr. Shuai Nie’s</a> group primarily seeking funding as a master’s student, but it turned into an eye-opening experience in wireless communication.
+  </p>
+  <p>
+    I built a two-ray wireless propagation model. The concept was that in a corner environment, a transmitter's signal could reflect off two walls and return to the original point. By inputting the transmitter’s position and wall coordinates, I could calculate the shortest reflective path. This was aimed at optimizing access point placement using a depth camera, especially in high-traffic areas like airports, to ensure strong Wi-Fi performance.
+  </p>
+  <p>
+    Dr. Nie is one of the smartest people I’ve worked with, and her academic rigor was inspiring. Although I didn’t publish a paper during this time, I gained substantial technical insight and confidence in my research abilities.
+  </p>
+
+  <h3>Part 3: Research with Dr. Shubhendu Bhardwaj (Master's & OPT) (2024 - Now)</h3>
+  <p>
+    I started working with <a href="https://engineering.unl.edu/person/shubhendu-bhardwaj/" target="_blank">Dr. Shubhendu Bhardwaj</a> during my master’s and OPT period. At first, I had little understanding of the work, but I kept showing up — and eventually, I got accepted as the first author on my first-ever paper, which will appear at IEEE-APS 2025.
+  </p>
+  <p>
+    Our research involves developing a wireless system to detect temperature changes inside rollers in wind turbines or trains, which often overheat. We use a bimetallic strip that changes shape with temperature. This causes a shift in the internal impedance, which affects the S11 parameter. By monitoring changes in S11, we can infer the internal temperature. I was responsible for the design and measurement, and I’m incredibly proud of this achievement.
+  </p>
+  <p>
+    Dr. Bhardwaj has been extremely patient and supportive, serving as both an excellent professor and a kind mentor. Working with him gave me the confidence to know that I can make real contributions to research.
+  </p>
+<h3>Part 4: Looking Ahead — Thoughts on a Ph.D.</h3>
+<p>
+  I’ve been thinking about this for a long time — if I were to pursue a Ph.D., what direction would I choose?
+</p>
+<p>
+  I'm a sports fanatic, and I’ve always been fascinated by the human body. I’d love to work on wearable devices or anything at the intersection of health and wireless communication. Applying engineering to improve human performance or well-being is something that truly excites me.
+</p>
+<p>
+  That said, I’m also open to exploring other directions — especially if my future advisor is genuinely passionate about their research. I believe I can tell when someone is doing research just to publish or secure funding, versus when they truly want to create meaningful innovation. I want to work with people who care deeply about what they do.
+</p>
+<p>
+  I’ve faced a lot of adversity in my life, and if there’s one thing I have more than most students, it’s grit — the courage to start again and again. I may not be the strongest candidate on paper, but I bring resilience, perseverance, and an open mind to every opportunity. I’m ready to keep learning and to keep moving forward, no matter how many times I have to start from scratch.
+</p>
+
+  
+</div>
+
+
+     <div id="work" class="section" style="display: none;">
+  <h2>Work Experience</h2>
+
+  <p><strong>Feb 2024 – Present</strong> — <em>Research Engineer, University of Nebraska–Lincoln</em><br>
+  I work with Dr. Shubhendu Bhardwaj on antenna design and RF engineering. Our collaboration has led to a publication in this area.</p>
+
+  <p><strong>Feb 2023 – Feb 2024</strong> — <em>Graduate Research Assistant, University of Nebraska–Lincoln</em><br>
+  I worked with Dr. Shuai Nie on research related to wireless communication propagation channels, depth camera technologies, and ray tracing simulations.</p>
+
+  <p><strong>Aug 2018 – Oct 2022</strong> — <em>Software Engineer, Hancock Software</em><br>
+  I joined Hancock Software full-time after interning there during my undergraduate studies. As an international student, I was fortunate to secure the internship through a family connection—my aunt is the company’s founder.<br><br>
+
+  During my four years there, I contributed across multiple areas of development and led impactful initiatives. One major project was a full data migration from an old application to a new one, which I implemented and deployed to production single-handedly after thorough testing and staging. The software served over 100 users and managed data for more than 100,000 individuals. I maintained high code quality and reliability throughout, with no critical issues requiring senior developer intervention.<br><br>
+
+  While I gained valuable experience, working for a family member came with unique challenges—recognition is hard-earned and criticism hits harder. After four years, I made the difficult decision to leave the role while on an H1B visa to pursue new opportunities.<br><br>
+
+  Tech stack: C#, AngularJS, MSSQL. I also utilized Jenkins for automated deployments. The product itself supported nonprofit organizations, such as community action agencies, in assessing and managing benefits for low-income families.</p>
+</div>
+
+
+
+      <div id="sports" class="section" style="display: none;">
+        <h2>Sports</h2>
+        <p>I enjoy various sports — both playing and watching. Stay tuned for highlights!</p>
+      </div>
+
+      <div id="podcast" class="section" style="display: none;">
+        <h2>Podcast</h2>
+        <p>I'm working on launching a podcast covering tech, academia, and personal stories.</p>
+      </div>
+
+      <div id="gaming" class="section" style="display: none;">
+        <h2>Gaming Hobbies</h2>
+        <p>Gaming is a fun part of life. I enjoy strategy games and storytelling experiences.</p>
+      </div>
+
+      <div id="howto" class="section" style="display: none;">
+        <h2>How-To Guides</h2>
+        <p>Tips and tutorials on research, coding, writing, and academic workflows will be posted here.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
