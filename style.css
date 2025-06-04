@@ -281,11 +281,12 @@ html {
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
   height: 0;
   overflow: hidden;
-  max-width: 700px;
-  margin: 1.5rem auto;
+  max-width: 800px;
+  width: 100%;
+  margin: 2rem auto;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-medium);
 }
@@ -317,6 +318,11 @@ video {
   
   .content {
     padding: 25px;
+  }
+  
+  .video-container {
+    max-width: 100%;
+    margin: 1.5rem auto;
   }
 }
 
@@ -372,6 +378,7 @@ video {
   
   .video-container {
     margin: 1rem 0;
+    max-width: 100%;
   }
   
   .content {
