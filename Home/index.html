@@ -9,19 +9,22 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🏀%3C/text%3E%3C/svg%3E">
   <style>
     .embedded-media {
-      max-width: 100%;
+      max-width: 720px;
+      width: 100%;
       height: auto;
-      margin: 1rem 0;
+      margin: 1rem auto;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: block;
     }
 
     .video-container {
       position: relative;
-      padding-bottom: 56.25%;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
       height: 0;
       overflow: hidden;
-      max-width: 480px;
+      max-width: 720px;
+      width: 100%;
       margin: 1rem auto;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -37,7 +40,7 @@
 
     video {
       width: 100%;
-      max-width: 480px;
+      max-width: 720px;
       display: block;
       margin: 1rem auto;
       border-radius: 12px;
@@ -101,7 +104,7 @@
         Here’s a sparring video from 2021 with a professional MMA fighter:
       </p>
       <video controls>
-        <source src="boxing.mp4" type="video/mp4">
+        <source src="boxing.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 
