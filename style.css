@@ -4,6 +4,7 @@
   margin: 0;
   padding: 0;
 }
+
 /* Body and Global */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,33 +12,47 @@ body {
   color: #333;
   line-height: 1.6;
 }
+
 /* Navbar */
 .navbar {
   background-color: #222;
-  padding: 1em 0;
+  /* Use viewport width for padding to be more flexible */
+  padding: 1em 2vw; 
   text-align: center;
 }
 .navbar ul {
   list-style: none;
+  /* Add Flexbox to align items even on desktop */
+  display: flex; 
+  justify-content: center;
+  flex-wrap: wrap; /* Allows links to wrap on small screens */
 }
 .navbar li {
-  display: inline;
+  /* Keep inline display for desktop */
+  display: inline; 
   margin: 0 15px;
 }
 .navbar a {
   color: #fff;
   text-decoration: none;
   font-weight: bold;
+  padding: 5px 0; /* Add padding to make links easier to tap */
 }
 .navbar a:hover {
   color: #00bcd4;
 }
+
 /* Layout */
 .container {
   display: flex;
   flex-wrap: wrap;
-  margin: 20px;
+  /* Use a little viewport width padding for margin */
+  margin: 20px 2vw; 
+  max-width: 1200px; /* Good practice for readability */
+  margin-left: auto;
+  margin-right: auto;
 }
+
 /* Sidebar */
 .sidebar {
   width: 250px;
@@ -48,6 +63,8 @@ body {
 }
 .profile-img {
   width: 100%;
+  /* Use 'display: block' to remove any inline spacing issues */
+  display: block; 
   border-radius: 10px;
   margin-bottom: 10px;
 }
@@ -70,6 +87,7 @@ body {
 .icons a:hover {
   color: #00bcd4;
 }
+
 /* Main Content */
 .content {
   flex: 1;
@@ -80,18 +98,23 @@ body {
   border-radius: 10px;
   min-width: 300px;
 }
-.section h2, .section h3 {
+.content h2, .content h3 { /* Changed .section to .content to match your HTML structure */
   margin-bottom: 10px;
   color: #222;
 }
-.section ul {
+.content ul {
   list-style-type: disc;
   padding-left: 20px;
   margin: 10px 0;
 }
-.section p {
-  margin: 10px 0;
+.content p {
+  line-height: 1.6;
+  font-size: 1.1em;
+  margin-bottom: 1.2em;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
 /* Button styling */
 .btn {
   display: inline-block;
@@ -107,30 +130,8 @@ body {
 .btn:hover {
   background-color: #019aa8;
 }
-/* Responsive */
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-  }
-  .sidebar {
-    width: 100%;
-    margin-bottom: 20px;
-  }
-  .content {
-    margin-left: 0;
-  }
-  .navbar li {
-    display: block;
-    margin: 10px 0;
-  }
-}
-.content p {
-  line-height: 1.6;
-  font-size: 1.1em;
-  margin-bottom: 1.2em;
-  color: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+
+/* Image Gallery (Adjusted for responsiveness) */
 .image-gallery {
   display: flex;
   gap: 15px;
@@ -139,9 +140,72 @@ body {
   margin-bottom: 15px;
 }
 .research-image {
-  max-width: 30%;
+  /* Set a maximum width and let flex-basis handle the sizing */
+  max-width: 100%;
+  flex-basis: calc(33.33% - 10px); /* 3 images per row on desktop (minus gap) */
   height: auto;
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+}
+
+/* --- MEDIA QUERIES FOR MOBILE --- */
+/* Breakpoint 1: Tablet/Small Desktop (768px and below) */
+@media screen and (max-width: 768px) {
+  /* Re-stack the main content and sidebar */
+  .container {
+    flex-direction: column;
+    margin: 10px 20px; /* Slightly less margin on the sides */
+  }
+  .sidebar {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .content {
+    margin-left: 0;
+  }
+
+  /* Make the Navbar links stack vertically for better tapping */
+  .navbar ul {
+    flex-direction: column; 
+    align-items: center; /* Center-align the links */
+  }
+  .navbar li {
+    display: block;
+    margin: 10px 0;
+    width: 100%; /* Make list item full width for better alignment */
+  }
+  .navbar a {
+    display: block; /* Make anchor tag fill the full width of the list item */
+  }
+
+  /* Adjust image gallery to show 2 images per row */
+  .research-image {
+    flex-basis: calc(50% - 7.5px); /* 2 images per row (minus gap) */
+  }
+}
+
+/* Breakpoint 2: Small Mobile Phones (480px and below) */
+@media screen and (max-width: 480px) {
+  /* Reduce font size for readability on very small screens */
+  .content h2 {
+    font-size: 1.5em;
+  }
+  .content h3 {
+    font-size: 1.2em;
+  }
+  .content p {
+    font-size: 1em; /* Standard readable size */
+  }
+
+  /* Adjust image gallery to show 1 image per row */
+  .research-image {
+    flex-basis: 100%; /* 1 image per row */
+  }
+
+  /* Ensure the visit tracker box is responsive */
+  .sidebar > div[style] {
+    max-width: 100% !important; 
+    margin: 1.5rem auto !important;
+  }
 }
