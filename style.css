@@ -1,242 +1,211 @@
-/* ================================================= */
-/* 0. BASE & GLOBAL RESET                            */
-/* ================================================= */
+/* Base Reset */
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* 引入现代字体：'Inter' 更适合界面和信息呈现 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap');
-
+/* Body and Global */
 body {
-    /* 柔和的背景，略带暖色调 */
-    background: #fcfcfc; 
-    color: #343a40;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.6;
-    
-    /* 启用侧栏和主内容的 Flex 布局 */
-    display: flex;
-    min-height: 100vh; 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f4f4f4;
+  color: #333;
+  line-height: 1.6;
 }
 
-/* ================================================= */
-/* 1. LAYOUT & NAVIGATION (固定宽度侧栏)             */
-/* ================================================= */
-
-/* 侧边栏/导航栏 (固定 280px 宽度) */
+/* Navbar */
 .navbar {
-    width: 280px; /* 固定宽度，确保导航美观 */
-    background-color: #212529; 
-    padding: 30px 0;
-    flex-shrink: 0; 
-    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15); /* 提升阴影深度 */
-    z-index: 10; /* 确保在内容之上 */
+  background-color: #222;
+  /* Use viewport width for padding to be more flexible */
+  padding: 1em 2vw; 
+  text-align: center;
 }
-
 .navbar ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column; 
-    padding: 0 20px; 
+  list-style: none;
+  /* Add Flexbox to align items even on desktop */
+  display: flex; 
+  justify-content: center;
+  flex-wrap: wrap; /* Allows links to wrap on small screens */
 }
-
 .navbar li {
-    display: block;
-    margin: 4px 0; 
-    width: 100%;
+  /* Keep inline display for desktop */
+  display: inline; 
+  margin: 0 15px;
 }
-
 .navbar a {
-    color: #dee2e6;
-    text-decoration: none;
-    font-weight: 500;
-    padding: 12px 15px;
-    display: block;
-    border-radius: 8px; /* 更圆润的边角 */
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 5px 0; /* Add padding to make links easier to tap */
+}
+.navbar a:hover {
+  color: #00bcd4;
 }
 
-.navbar a:hover,
-.navbar a.active {
-    background-color: #343a40; 
-    color: #00bcd4; 
-    transform: translateX(3px); /* 悬停时轻微向右移动，增加动感 */
-}
-
-/* 主内容容器 (自动占据剩余空间) */
+/* Layout */
 .container {
-    flex-grow: 1; 
-    padding: 40px; /* 外部留白 */
-    overflow-y: auto; 
+  display: flex;
+  flex-wrap: wrap;
+  /* Use a little viewport width padding for margin */
+  margin: 20px 2vw; 
+  max-width: 1200px; /* Good practice for readability */
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* ================================================= */
-/* 2. CONTENT STYLING (文章和列表)                   */
-/* ================================================= */
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
+.profile-img {
+  width: 100%;
+  /* Use 'display: block' to remove any inline spacing issues */
+  display: block; 
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.sidebar h1 {
+  font-size: 1.5em;
+  margin-top: 10px;
+}
+.sidebar p {
+  margin: 5px 0;
+  font-size: 0.95em;
+}
+.icons {
+  margin-top: 10px;
+}
+.icons a {
+  margin-right: 10px;
+  color: #444;
+  font-size: 1.2em;
+}
+.icons a:hover {
+  color: #00bcd4;
+}
 
-/* 内容卡片 (故事列表和详情页) */
+/* Main Content */
 .content {
-    padding: 40px; 
-    background: #ffffff;
-    
-    /* 柔和的阴影 */
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); 
-    border-radius: 12px;
-    max-width: 900px; /* 限制内容宽度，优化阅读体验 */
-    margin: 0 auto; 
+  flex: 1;
+  padding: 20px;
+  margin-left: 20px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  min-width: 300px;
 }
-
-.content h2 { 
-    font-family: 'Playfair Display', serif; 
-    font-size: 2.4em;
-    margin-bottom: 25px;
-    color: #212529;
-    border-bottom: 2px solid #e9ecef; 
-    padding-bottom: 10px;
+.content h2, .content h3 { /* Changed .section to .content to match your HTML structure */
+  margin-bottom: 10px;
+  color: #222;
 }
-.content h3 {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 1.6em;
-    margin-top: 35px;
-    margin-bottom: 15px;
-    color: #343a40;
+.content ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 10px 0;
 }
-
 .content p {
-    font-size: 1.05em;
-    line-height: 1.8; /* 增加行高，提升可读性 */
-    margin-bottom: 1.5em;
-    color: #495057;
+  line-height: 1.6;
+  font-size: 1.1em;
+  margin-bottom: 1.2em;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* 故事列表样式 */
-.story-list {
-    list-style: none;
-    padding: 0;
+/* Button styling */
+.btn {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #00bcd4;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+.btn:hover {
+  background-color: #019aa8;
 }
 
-.story-list li {
-    margin-bottom: 5px;
-    border-radius: 8px;
-    overflow: hidden; /* 确保悬停背景不溢出 */
+/* Image Gallery (Adjusted for responsiveness) */
+.image-gallery {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+.research-image {
+  /* Set a maximum width and let flex-basis handle the sizing */
+  max-width: 100%;
+  flex-basis: calc(33.33% - 10px); /* 3 images per row on desktop (minus gap) */
+  height: auto;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
 }
 
-.story-list a {
+/* --- MEDIA QUERIES FOR MOBILE --- */
+/* Breakpoint 1: Tablet/Small Desktop (768px and below) */
+@media screen and (max-width: 768px) {
+  /* Re-stack the main content and sidebar */
+  .container {
+    flex-direction: column;
+    margin: 10px 20px; /* Slightly less margin on the sides */
+  }
+  .sidebar {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .content {
+    margin-left: 0;
+  }
+
+  /* Make the Navbar links stack vertically for better tapping */
+  .navbar ul {
+    flex-direction: column; 
+    align-items: center; /* Center-align the links */
+  }
+  .navbar li {
     display: block;
-    padding: 20px 25px;
-    text-decoration: none;
-    color: #343a40;
-    transition: background-color 0.3s ease, transform 0.1s ease;
+    margin: 10px 0;
+    width: 100%; /* Make list item full width for better alignment */
+  }
+  .navbar a {
+    display: block; /* Make anchor tag fill the full width of the list item */
+  }
+
+  /* Adjust image gallery to show 2 images per row */
+  .research-image {
+    flex-basis: calc(50% - 7.5px); /* 2 images per row (minus gap) */
+  }
 }
 
-.story-list a:hover {
-    background-color: #f1f3f5; 
-    transform: translateY(-2px); /* 悬停时轻微上浮 */
-}
+/* Breakpoint 2: Small Mobile Phones (480px and below) */
+@media screen and (max-width: 480px) {
+  /* Reduce font size for readability on very small screens */
+  .content h2 {
+    font-size: 1.5em;
+  }
+  .content h3 {
+    font-size: 1.2em;
+  }
+  .content p {
+    font-size: 1em; /* Standard readable size */
+  }
 
-.story-list h3 {
-    margin: 0 0 5px 0;
-    font-size: 1.35em;
-    color: #00bcd4; 
-}
+  /* Adjust image gallery to show 1 image per row */
+  .research-image {
+    flex-basis: 100%; /* 1 image per row */
+  }
 
-.story-meta {
-    font-size: 0.9em;
-    color: #6c757d;
-    margin: 0;
-}
-
-/* 返回按钮样式 */
-#back-to-list-btn {
-    border: none;
-    background-color: #6c757d;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-bottom: 30px !important;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-}
-#back-to-list-btn:hover {
-    background-color: #495057;
-    transform: translateY(-1px);
-}
-
-
-/* ================================================= */
-/* 3. MEDIA QUERIES (响应式设计)                     */
-/* ================================================= */
-
-/* 平板/小桌面 (< 992px): 侧栏变顶部导航 */
-@media screen and (max-width: 992px) {
-    body {
-        flex-direction: column;
-    }
-    
-    /* 导航栏变回顶部横向 */
-    .navbar {
-        width: 100%; 
-        padding: 15px 0;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); /* 底部阴影 */
-    }
-
-    /* 恢复横向导航的 flex 属性 */
-    .navbar ul {
-        flex-direction: row; 
-        justify-content: center;
-        flex-wrap: wrap;
-        padding: 0;
-    }
-    .navbar li {
-        margin: 5px 10px;
-        width: auto;
-    }
-    .navbar a {
-        display: inline;
-        padding: 5px 10px;
-        background-color: transparent !important;
-        color: #dee2e6;
-        transform: none; /* 移除侧栏的动画 */
-    }
-    .navbar a:hover {
-        color: #00bcd4;
-    }
-    
-    /* 内容区域占满 */
-    .container {
-        width: 100%;
-        padding: 20px 15px;
-    }
-    .content {
-        margin: 0 auto; 
-        box-shadow: none; 
-        border-radius: 0;
-        max-width: 95%; /* 适应平板宽度 */
-    }
-}
-
-/* 手机 (< 576px) */
-@media screen and (max-width: 576px) {
-    .navbar ul {
-        flex-direction: column; 
-        align-items: center;
-    }
-    .navbar li {
-        margin: 5px 0;
-        width: 80%; 
-    }
-    .navbar a {
-         padding: 10px 0;
-    }
-    .content {
-        padding: 20px 15px;
-    }
-    .content h2 {
-        font-size: 2em;
-    }
+  /* Ensure the visit tracker box is responsive */
+  .sidebar > div[style] {
+    max-width: 100% !important; 
+    margin: 1.5rem auto !important;
+  }
 }
