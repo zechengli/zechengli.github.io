@@ -7,23 +7,153 @@
 <link rel="stylesheet" href="../style.css" />
 </head>
 <body>
+
 <nav class="navbar">
-<ul>
-<li><a href="/Home/">Home</a></li>
-<li><a href="/Education/">Education</a></li>
-<li><a href="/Research/">Research</a></li>
-<li><a href="/Work/">Work</a></li>
-<li><a href="/Sports/">Sports</a></li>
-<li><a href="/Others/">Others</a></li>
-<li><a href="/Story/">Story</a></li>
-</ul>
+    <ul>
+        <li><a href="/Home/" id="nav-control-link">Home</a></li>
+    </ul>
 </nav>
 
 
 <main class="container">
-<section class="content">
-<h2>Stories</h2>
-</section>
+
+
+    <section class="content" id="story-list-view">
+        <h2>Stories</h2>
+        <ul class="story-list">
+            <li>
+                <a href="#" 
+                   data-story-title="How I Built This Website"
+                   data-story-meta="Dec 2025 · GitHub Pages"
+                   data-file="content/story-1-body.html">
+                    <h3>📌 How I Built This Website</h3>
+                    <p class="story-meta">Dec 2025 · GitHub Pages</p>
+                </a>
+            </li>
+            <li>
+                <a href="#" 
+                   data-story-title="Applying for a PhD: What I Didn’t Expect"
+                   data-story-meta="Dec 2025 · PhD Journey"
+                   data-file="content/story-2-body.html">
+                    <h3>📌 Applying for a PhD: What I Didn’t Expect</h3>
+                    <p class="story-meta">Dec 2025 · PhD Journey</p>
+                </a>
+            </li>
+        </ul>
+    </section>
+
+
+    <article class="content hidden" id="story-detail-view">
+        <h2 id="story-title"></h2>
+        <p class="story-meta" id="story-meta"></p>
+        <div id="story-content">Loading story...</div> 
+    </article>
+
+
 </main>
+
+
+<script>
+// ===================================
+// DOM 元素获取
+// ===================================
+const listView = document.getElementById('story-list-view');
+const detailView = document.getElementById('story-detail-view');
+const storyTitleEl = document.getElementById('story-title');
+const storyMetaEl = document.getElementById('story-meta');
+const storyContentEl = document.getElementById('story-content');
+const storyLinks = document.querySelectorAll('.story-list a');
+const navControlLink = document.getElementById('nav-control-link');
+
+
+// ===================================
+// 核心逻辑函数
+// ===================================
+
+/**
+ * @description 显示故事列表视图，并更新导航栏为 Home。
+ */
+function showList() {
+    // 切换视图
+    detailView.classList.add('hidden');
+    listView.classList.remove('hidden');
+
+    // 更新导航栏：返回 Home 页面
+    navControlLink.href = '/Home/'; 
+    navControlLink.textContent = 'Home';
+    // 移除点击事件监听器，让链接恢复默认的跳转行为
+    navControlLink.removeEventListener('click', handleNavBack); 
+}
+
+/**
+ * @description 异步加载并显示故事详情视图，并更新导航栏为 Back。
+ * @param {HTMLElement} linkElement - 被点击的故事链接元素。
+ */
+async function showStory(linkElement) {
+    const title = linkElement.getAttribute('data-story-title');
+    const meta = linkElement.getAttribute('data-story-meta');
+    const filePath = linkElement.getAttribute('data-file');
+
+    // 1. 切换视图到详情页，并显示加载提示
+    storyTitleEl.textContent = title;
+    storyMetaEl.textContent = meta;
+    storyContentEl.innerHTML = 'Loading content...'; 
+    listView.classList.add('hidden');
+    detailView.classList.remove('hidden');
+    
+    // 更新导航栏：添加返回列表的逻辑
+    navControlLink.href = '#list'; // 假链接，用于区分
+    navControlLink.textContent = '← Back to Stories';
+    // 确保只添加一次监听器，避免重复触发
+    navControlLink.removeEventListener('click', handleNavBack); 
+    navControlLink.addEventListener('click', handleNavBack); 
+
+    try {
+        // 2. 异步获取 HTML 片段文件
+        const response = await fetch(filePath);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const htmlContent = await response.text();
+        
+        // 3. 插入内容
+        storyContentEl.innerHTML = htmlContent;
+
+    } catch (error) {
+        console.error('Failed to load story content:', error);
+        storyContentEl.innerHTML = 'Oops! Failed to load the story. Please check the file path: ' + filePath;
+    }
+}
+
+/**
+ * @description 处理导航栏点击事件，用于从详情页返回列表。
+ * @param {Event} e - 点击事件对象。
+ */
+function handleNavBack(e) {
+    // 仅在当前链接是“返回故事列表”时阻止默认行为
+    if (navControlLink.href.endsWith('#list')) {
+        e.preventDefault(); 
+        showList();
+    }
+}
+
+
+// ===================================
+// 页面初始化和事件绑定
+// ===================================
+
+// 1. 为列表中的每个链接添加点击事件监听器
+storyLinks.forEach(link => {
+    link.addEventListener('click', function(event) {
+        event.preventDefault(); // 阻止默认跳转
+        showStory(this);
+    });
+});
+
+// 2. 初始加载时显示列表
+showList();
+
+</script>
+
 </body>
 </html>
