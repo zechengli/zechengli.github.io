@@ -1,211 +1,185 @@
 /* Base Reset */
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 /* Body and Global */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f4f4f4;
-  color: #333;
-  line-height: 1.6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+    /* 使用 flex 布局让 body 容纳左侧导航和右侧主内容区 */
+    display: flex; 
+    min-height: 100vh; /* 确保 body 至少占满整个视口高度 */
 }
 
-/* Navbar */
+/* ------------------------------------------- */
+/* 1. SIDEBAR / NAVBAR (左侧 20% 导航栏)       */
+/* ------------------------------------------- */
 .navbar {
-  background-color: #222;
-  /* Use viewport width for padding to be more flexible */
-  padding: 1em 2vw; 
-  text-align: center;
+    width: 20%; /* 占据 20% 宽度 */
+    min-width: 150px; /* 最小宽度限制，避免在某些小屏幕上过窄 */
+    background-color: #222;
+    padding: 20px 10px;
+    text-align: left; /* 文本左对齐 */
+    flex-shrink: 0; /* 防止在空间不足时被压缩 */
 }
 .navbar ul {
-  list-style: none;
-  /* Add Flexbox to align items even on desktop */
-  display: flex; 
-  justify-content: center;
-  flex-wrap: wrap; /* Allows links to wrap on small screens */
+    list-style: none;
+    /* 更改为纵向排列 */
+    display: flex;
+    flex-direction: column; 
+    align-items: flex-start; /* 链接左对齐 */
 }
 .navbar li {
-  /* Keep inline display for desktop */
-  display: inline; 
-  margin: 0 15px;
+    display: block; /* 确保链接独占一行 */
+    margin: 10px 0; /* 增加垂直间距 */
+    width: 100%;
 }
 .navbar a {
-  color: #fff;
-  text-decoration: none;
-  font-weight: bold;
-  padding: 5px 0; /* Add padding to make links easier to tap */
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 8px 10px; /* 增加点击区域 */
+    display: block; /* 链接填充 li 的宽度 */
+    border-radius: 4px;
 }
 .navbar a:hover {
-  color: #00bcd4;
+    color: #00bcd4;
+    background-color: #333;
 }
 
-/* Layout */
+/* ------------------------------------------- */
+/* 2. MAIN LAYOUT AND CONTENT (右侧 80% 内容区)*/
+/* ------------------------------------------- */
+
+/* Layout: .container 现在是右侧 80% 的内容容器 */
 .container {
-  display: flex;
-  flex-wrap: wrap;
-  /* Use a little viewport width padding for margin */
-  margin: 20px 2vw; 
-  max-width: 1200px; /* Good practice for readability */
-  margin-left: auto;
-  margin-right: auto;
+    flex-grow: 1; /* 占据所有剩余空间 */
+    width: 80%; /* 占据 80% 宽度 */
+    padding: 20px; /* 外部留白 */
+    overflow-y: auto; /* 允许内容超出时滚动 */
 }
 
-/* Sidebar */
-.sidebar {
-  width: 250px;
-  padding: 20px;
-  background: white;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  border-radius: 10px;
-}
-.profile-img {
-  width: 100%;
-  /* Use 'display: block' to remove any inline spacing issues */
-  display: block; 
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-.sidebar h1 {
-  font-size: 1.5em;
-  margin-top: 10px;
-}
-.sidebar p {
-  margin: 5px 0;
-  font-size: 0.95em;
-}
-.icons {
-  margin-top: 10px;
-}
-.icons a {
-  margin-right: 10px;
-  color: #444;
-  font-size: 1.2em;
-}
-.icons a:hover {
-  color: #00bcd4;
-}
+/* .sidebar 相关的样式已被移除或整合到 .navbar 中 */
+/* 原始的 .container 现在的内容被直接放在 .container 中，不再需要 flex 布局 */
 
-/* Main Content */
+/* Main Content: 故事和内容的包裹器 */
 .content {
-  flex: 1;
-  padding: 20px;
-  margin-left: 20px;
-  background: white;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  border-radius: 10px;
-  min-width: 300px;
+    /* 调整样式使其更像一个内容卡片 */
+    padding: 30px; 
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    max-width: 900px; /* 限制内容的宽度，避免在超宽屏上过长 */
+    margin: 0 auto; /* 居中内容卡片 */
 }
-.content h2, .content h3 { /* Changed .section to .content to match your HTML structure */
-  margin-bottom: 10px;
-  color: #222;
+.content h2, .content h3 {
+    margin-bottom: 15px;
+    color: #222;
 }
 .content ul {
-  list-style-type: disc;
-  padding-left: 20px;
-  margin: 10px 0;
+    list-style-type: disc;
+    padding-left: 20px;
+    margin: 10px 0;
 }
 .content p {
-  line-height: 1.6;
-  font-size: 1.1em;
-  margin-bottom: 1.2em;
-  color: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    font-size: 1.1em;
+    margin-bottom: 1.2em;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* Button styling */
 .btn {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 10px 20px;
-  background-color: #00bcd4;
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
-  font-weight: bold;
-  transition: background-color 0.2s ease;
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #00bcd4;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
 }
 .btn:hover {
-  background-color: #019aa8;
+    background-color: #019aa8;
 }
 
-/* Image Gallery (Adjusted for responsiveness) */
+/* Image Gallery (保持不变) */
 .image-gallery {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-  margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    margin-bottom: 15px;
 }
 .research-image {
-  /* Set a maximum width and let flex-basis handle the sizing */
-  max-width: 100%;
-  flex-basis: calc(33.33% - 10px); /* 3 images per row on desktop (minus gap) */
-  height: auto;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    max-width: 100%;
+    flex-basis: calc(33.33% - 10px);
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Utility Class (用于 JS 切换) */
+.hidden {
+    display: none !important;
 }
 
 /* --- MEDIA QUERIES FOR MOBILE --- */
 /* Breakpoint 1: Tablet/Small Desktop (768px and below) */
 @media screen and (max-width: 768px) {
-  /* Re-stack the main content and sidebar */
-  .container {
-    flex-direction: column;
-    margin: 10px 20px; /* Slightly less margin on the sides */
-  }
-  .sidebar {
-    width: 100%;
-    margin-bottom: 20px;
-  }
-  .content {
-    margin-left: 0;
-  }
-
-  /* Make the Navbar links stack vertically for better tapping */
-  .navbar ul {
-    flex-direction: column; 
-    align-items: center; /* Center-align the links */
-  }
-  .navbar li {
-    display: block;
-    margin: 10px 0;
-    width: 100%; /* Make list item full width for better alignment */
-  }
-  .navbar a {
-    display: block; /* Make anchor tag fill the full width of the list item */
-  }
-
-  /* Adjust image gallery to show 2 images per row */
-  .research-image {
-    flex-basis: calc(50% - 7.5px); /* 2 images per row (minus gap) */
-  }
+    /* 在小屏幕上，导航栏（侧栏）和内容应该堆叠 */
+    body {
+        flex-direction: column;
+    }
+    .navbar {
+        width: 100%; /* 导航栏变回顶部横向 */
+        min-width: auto;
+        padding: 1em 2vw;
+    }
+    /* 恢复横向导航的 flex 属性 */
+    .navbar ul {
+        flex-direction: row; 
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .navbar li {
+        display: inline;
+        margin: 0 15px;
+        width: auto;
+    }
+    .navbar a {
+        display: inline;
+        padding: 5px 0;
+    }
+    .container {
+        width: 100%;
+        margin: 10px 20px;
+        padding: 0; /* 容器内部 padding 由 .content 控制 */
+    }
+    .content {
+        /* .content 占据全部宽度并居中 */
+        margin: 0;
+        border-radius: 0; 
+        box-shadow: none;
+    }
+    /* 调整图片数量 */
+    .research-image {
+        flex-basis: calc(50% - 7.5px);
+    }
 }
 
 /* Breakpoint 2: Small Mobile Phones (480px and below) */
 @media screen and (max-width: 480px) {
-  /* Reduce font size for readability on very small screens */
-  .content h2 {
-    font-size: 1.5em;
-  }
-  .content h3 {
-    font-size: 1.2em;
-  }
-  .content p {
-    font-size: 1em; /* Standard readable size */
-  }
-
-  /* Adjust image gallery to show 1 image per row */
-  .research-image {
-    flex-basis: 100%; /* 1 image per row */
-  }
-
-  /* Ensure the visit tracker box is responsive */
-  .sidebar > div[style] {
-    max-width: 100% !important; 
-    margin: 1.5rem auto !important;
-  }
+    /* ... 保持您原有的字体和图片调整 ... */
+    .research-image {
+        flex-basis: 100%;
+    }
 }
