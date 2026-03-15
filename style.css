@@ -1,14 +1,14 @@
 /* ========== Base ========== */
 :root {
-  --bg: #f6f7fb;
-  --card: #ffffff;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --accent: #00bcd4;
-  --accent-dark: #019aa8;
-  --nav: #111827;
-  --border: #e5e7eb;
-  --shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  --bg: #f7f1e8;
+  --card: #fffaf2;
+  --text: #3f2f1f;
+  --muted: #7c6a58;
+  --accent: #c97b4a;
+  --accent-dark: #a86235;
+  --nav: #3f2f1f;
+  --border: #e8dccf;
+  --shadow: 0 10px 28px rgba(63, 47, 31, 0.12);
   --radius: 14px;
 }
 
@@ -114,7 +114,7 @@ a:hover {
 
 .title {
   font-weight: 600;
-  color: #374151;
+  color: #5a4331;
 }
 
 .affiliation {
