@@ -1,89 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Stories | Zecheng Li</title>
-<link rel="stylesheet" href="../style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stories | Zecheng Li</title>
+  <link rel="stylesheet" href="../style.css" />
 </head>
 <body>
-
-<nav class="navbar">
-    <ul>
-        <li><a href="/Home/">Home</a></li>
-        <li><a href="/Education/">Education</a></li>
-        <li><a href="/Research/">Research</a></li>
-        <li><a href="/Work/">Work</a></li>
-        <li><a href="/Sports/">Sports</a></li>
-        <li><a href="/Others/">Others</a></li>
-        <li><a href="/Story/">Story</a></li>
+  <nav class="navbar">
+    <ul class="nav-list">
+      <li><a class="nav-link" href="/Home/">Home</a></li>
+      <li><a class="nav-link" href="/Education/">Education</a></li>
+      <li><a class="nav-link" href="/Research/">Research</a></li>
+      <li><a class="nav-link" href="/Work/">Work</a></li>
+      <li><a class="nav-link" href="/Sports/">Sports</a></li>
+      <li><a class="nav-link" href="/Others/">Others</a></li>
+      <li><a class="nav-link active" href="/Story/">Story</a></li>
     </ul>
-</nav>
+  </nav>
 
-
-<main class="container">
-
-
-    <section class="content" id="story-list-view">
-        <h2>Stories</h2>
-        <ul class="story-list">
-            <li>
-                <a href="#" 
-                   data-story-title="我的故事"
-                   data-story-meta="Dec 2025 · PhD Journey"
-                   data-file="Purdue.html">
-                    <h3>📌 </h3>
-                    <p class="story-meta">Dec 2025 · PhD Journey</p>
-                </a>
-            </li>
-        </ul>
+  <main class="page">
+    <section class="card content" id="story-list-view">
+      <h2>Stories</h2>
+      <ul class="story-list">
+        <li>
+          <a href="#"
+             class="story-card"
+             data-story-title="我的故事"
+             data-story-meta="Dec 2025 · PhD Journey"
+             data-file="Purdue.html">
+            <h3>📌 我的故事</h3>
+            <p class="story-meta">Dec 2025 · PhD Journey</p>
+          </a>
+        </li>
+      </ul>
     </section>
 
-
-    <article class="content hidden" id="story-detail-view">
-        <button id="back-to-list-btn" style="margin-bottom: 20px; cursor: pointer;">
-            ← Back to Stories
-        </button> 
-        <h2 id="story-title"></h2>
-        <p class="story-meta" id="story-meta"></p>
-        <div id="story-content">Loading story...</div> 
+    <article class="card content hidden" id="story-detail-view">
+      <button id="back-to-list-btn" class="btn btn-secondary">
+        ← Back to Stories
+      </button>
+      <h2 id="story-title"></h2>
+      <p class="story-meta" id="story-meta"></p>
+      <div id="story-content">Loading story...</div>
     </article>
+  </main>
+
+  <script>
+  // ===================================
+  // DOM 元素获取
+  // ===================================
+  const listView = document.getElementById('story-list-view');
+  const detailView = document.getElementById('story-detail-view');
+  const storyTitleEl = document.getElementById('story-title');
+  const storyMetaEl = document.getElementById('story-meta');
+  const storyContentEl = document.getElementById('story-content');
+  const storyLinks = document.querySelectorAll('.story-list a');
+  const backToListBtn = document.getElementById('back-to-list-btn');
 
 
-</main>
+  // ===================================
+  // 核心逻辑函数
+  // ===================================
 
-
-<script>
-// ===================================
-// DOM 元素获取
-// ===================================
-const listView = document.getElementById('story-list-view');
-const detailView = document.getElementById('story-detail-view');
-const storyTitleEl = document.getElementById('story-title');
-const storyMetaEl = document.getElementById('story-meta');
-const storyContentEl = document.getElementById('story-content');
-const storyLinks = document.querySelectorAll('.story-list a');
-const backToListBtn = document.getElementById('back-to-list-btn');
-
-
-// ===================================
-// 核心逻辑函数
-// ===================================
-
-/**
- * @description 显示故事列表视图。
- */
-function showList() {
+  /**
+   * @description 显示故事列表视图。
+   */
+  function showList() {
     // 切换视图：显示列表，隐藏详情
     detailView.classList.add('hidden');
     listView.classList.remove('hidden');
-}
+  }
 
-/**
- * @description 异步加载并显示故事详情视图。
- * @param {HTMLElement} linkElement - 被点击的故事链接元素。
- */
-async function showStory(linkElement) {
+  /**
+   * @description 异步加载并显示故事详情视图。
+   * @param {HTMLElement} linkElement - 被点击的故事链接元素。
+   */
+  async function showStory(linkElement) {
     const title = linkElement.getAttribute('data-story-title');
     const meta = linkElement.getAttribute('data-story-meta');
     const filePath = linkElement.getAttribute('data-file');
@@ -91,47 +84,44 @@ async function showStory(linkElement) {
     // 1. 切换视图到详情页，并显示加载提示
     storyTitleEl.textContent = title;
     storyMetaEl.textContent = meta;
-    storyContentEl.innerHTML = 'Loading content...'; 
+    storyContentEl.innerHTML = 'Loading content...';
     listView.classList.add('hidden');
     detailView.classList.remove('hidden');
 
     try {
-        // 2. 使用 fetch API 异步获取 HTML 片段文件
-        const response = await fetch(filePath);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const htmlContent = await response.text();
-        
-        // 3. 将加载的内容插入到容器中
-        storyContentEl.innerHTML = htmlContent;
+      // 2. 使用 fetch API 异步获取 HTML 片段文件
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const htmlContent = await response.text();
 
+      // 3. 将加载的内容插入到容器中
+      storyContentEl.innerHTML = htmlContent;
     } catch (error) {
-        console.error('Failed to load story content:', error);
-        storyContentEl.innerHTML = 'Oops! Failed to load the story. Please check if the file: ' + filePath + ' exists.';
+      console.error('Failed to load story content:', error);
+      storyContentEl.innerHTML = 'Oops! Failed to load the story. Please check if the file: ' + filePath + ' exists.';
     }
-}
+  }
 
 
-// ===================================
-// 页面初始化和事件绑定
-// ===================================
+  // ===================================
+  // 页面初始化和事件绑定
+  // ===================================
 
-// 1. 为列表中的故事链接添加点击事件监听器
-storyLinks.forEach(link => {
+  // 1. 为列表中的故事链接添加点击事件监听器
+  storyLinks.forEach(link => {
     link.addEventListener('click', function(event) {
-        event.preventDefault(); // 阻止默认跳转
-        showStory(this);
+      event.preventDefault(); // 阻止默认跳转
+      showStory(this);
     });
-});
+  });
 
-// 2. 为详情页的“返回”按钮添加点击事件监听器
-backToListBtn.addEventListener('click', showList);
+  // 2. 为详情页的“返回”按钮添加点击事件监听器
+  backToListBtn.addEventListener('click', showList);
 
-// 3. 初始加载时显示列表
-showList();
-
-</script>
-
+  // 3. 初始加载时显示列表
+  showList();
+  </script>
 </body>
 </html>
