@@ -323,23 +323,46 @@ video {
 
 @media (max-width: 768px) {
   .navbar {
-    padding: 12px 16px;
+    padding: 10px 12px;
   }
 
   .nav-list {
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 14px;
+    padding-bottom: 4px;
   }
 
-  .research-image {
-    flex-basis: calc(50% - 7.5px);
+  .nav-list::-webkit-scrollbar {
+    height: 6px;
   }
-}
 
-@media (max-width: 480px) {
+  .nav-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+
+  .page {
+    margin-top: 18px;
+    padding: 0 14px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .sidebar {
+    text-align: left;
+  }
+
+  .profile-img {
+    max-width: 220px;
+    margin: 0 0 12px;
+  }
+
   .content h2 {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
   }
 
   .content h3 {
@@ -348,6 +371,36 @@ video {
 
   .content p {
     font-size: 1rem;
+  }
+
+  .research-image {
+    flex-basis: calc(50% - 7.5px);
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-list {
+    gap: 12px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .profile-img {
+    max-width: 180px;
+  }
+
+  .content h2 {
+    font-size: 1.35rem;
+  }
+
+  .content h3 {
+    font-size: 1.05rem;
+  }
+
+  .content p {
+    font-size: 0.98rem;
   }
 
   .research-image {
