@@ -177,6 +177,19 @@ a:hover {
   color: #111827;
 }
 
+.matrix-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.matrix-image {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
 .content h2 {
   font-size: 1.7rem;
 }
@@ -345,6 +358,10 @@ video {
 /* ========== Responsive ========== */
 @media (max-width: 900px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .matrix-block {
     grid-template-columns: 1fr;
   }
 }
