@@ -175,9 +175,12 @@ a:hover {
   margin-bottom: 14px;
 }
 
-.home-content {
-  margin-top: -12px;
-  padding-top: 12px;
+.about-me-title {
+  margin-top: 6px;
+}
+
+.about-me-text {
+  margin-top: -6px;
 }
 
 .content ul {
