@@ -175,6 +175,11 @@ a:hover {
   margin-bottom: 14px;
 }
 
+.home-content {
+  margin-top: -12px;
+  padding-top: 12px;
+}
+
 .content ul {
   padding-left: 20px;
   margin: 10px 0 14px;
