@@ -7,40 +7,42 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E" />
+  <script src="../lang.js" defer></script>
 </head>
 <body>
   <nav class="navbar">
     <ul class="nav-list">
-      <li><a class="nav-link" href="/Home/">Home</a></li>
-      <li><a class="nav-link" href="/Philosophy/">Philosophy</a></li>
-      <li><a class="nav-link active" href="/Education/">Education</a></li>
-      <li><a class="nav-link" href="/Research/">Research</a></li>
-      <li><a class="nav-link" href="/Work/">Work</a></li>
-      <li><a class="nav-link" href="/Sports/">Sports</a></li>
-      <li><a class="nav-link" href="/Others/">Others</a></li>
-      <li><a class="nav-link" href="/Story/">Story</a></li>
+      <li><a class="nav-link" href="/Home/" data-en="Home" data-zh="主页">Home</a></li>
+      <li><a class="nav-link" href="/Philosophy/" data-en="Philosophy" data-zh="哲学">Philosophy</a></li>
+      <li><a class="nav-link active" href="/Education/" data-en="Education" data-zh="教育">Education</a></li>
+      <li><a class="nav-link" href="/Research/" data-en="Research" data-zh="研究">Research</a></li>
+      <li><a class="nav-link" href="/Work/" data-en="Work" data-zh="工作">Work</a></li>
+      <li><a class="nav-link" href="/Sports/" data-en="Sports" data-zh="运动">Sports</a></li>
+      <li><a class="nav-link" href="/Others/" data-en="Others" data-zh="其他">Others</a></li>
+      <li><a class="nav-link" href="/Story/" data-en="Story" data-zh="故事">Story</a></li>
+      <li><button class="lang-toggle" type="button" data-lang-toggle>中文</button></li>
     </ul>
   </nav>
 
   <main class="page">
     <section class="card content">
-      <h2>Education</h2>
+      <h2 data-en="Education" data-zh="教育">Education</h2>
       <ul>
-        <li>
+        <li data-en-html="<strong>2013–2015:</strong> Anhui Normal University – Software Engineering (GPA: 2.9)<p class=\"edu-note\">Yes, I took the GaoKao (College Entrance Exam) and was ranked about 50,000 out of 280,000 students in my province. I am not smart and I did not work hard enough either. I went to the No.1 High School in Tongling City, I ranked about 400th out of 900 people on average.</p>" data-zh-html="<strong>2013–2015:</strong> 安徽师范大学 — 软件工程（GPA: 2.9）<p class=\"edu-note\">是的，我参加了高考，在本省 28 万考生中排名约 5 万。我不够聪明，也没有足够努力。我在铜陵市第一中学读书，平时成绩大概 900 人里排第 400 名左右。</p>">
           <strong>2013–2015:</strong> Anhui Normal University – Software Engineering (GPA: 2.9)
           <p class="edu-note">
             Yes, I took the GaoKao (College Entrance Exam) and was ranked about 50,000 out of 280,000 students in my province.
             I am not smart and I did not work hard enough either. I went to the No.1 High School in Tongling City, I ranked about 400th out of 900 people on average.
           </p>
         </li>
-        <li>
+        <li data-en-html="<strong>2015–2018:</strong> University of Nebraska–Lincoln – BSc Computer Science (GPA: 3.42)<p class=\"edu-note\">I transferred from AHNU to UNL in 2015. Why UNL? Because the tuition was affordable and UNL offered me the earliest. I was also accepted to other schools like the University of New Hampshire and the ASU. Wait-listed at U of Minnesota.</p>" data-zh-html="<strong>2015–2018:</strong> 内布拉斯加大学林肯分校 — 计算机科学学士（GPA: 3.42）<p class=\"edu-note\">我在 2015 年从安徽师范大学转到 UNL。为什么是 UNL？因为学费可负担，而且 UNL 给我最早的录取。我也被新罕布什尔大学和 ASU 录取，明尼苏达大学在等候名单。</p>">
           <strong>2015–2018:</strong> University of Nebraska–Lincoln – BSc Computer Science (GPA: 3.42)
           <p class="edu-note">
             I transferred from AHNU to UNL in 2015. Why UNL? Because the tuition was affordable and UNL offered me the earliest.
             I was also accepted to other schools like the University of New Hampshire and the ASU. Wait-listed at U of Minnesota.
           </p>
         </li>
-        <li>
+        <li data-en-html="<strong>2022–2024:</strong> University of Nebraska–Lincoln – MSc Computer Science (GPA: 3.89)<p class=\"edu-note\">I couldn’t find a job at the time and was also accepted to Boston University. I chose UNL again because of the scholarship, and I love the city of Lincoln.</p>" data-zh-html="<strong>2022–2024:</strong> 内布拉斯加大学林肯分校 — 计算机科学硕士（GPA: 3.89）<p class=\"edu-note\">当时我找不到工作，也被波士顿大学录取。我再次选择 UNL 是因为奖学金，而且我很喜欢林肯这座城市。</p>">
           <strong>2022–2024:</strong> University of Nebraska–Lincoln – MSc Computer Science (GPA: 3.89)
           <p class="edu-note">
             I couldn’t find a job at the time and was also accepted to Boston University. I chose UNL again because of the scholarship, and I love the city of Lincoln.
@@ -48,8 +50,8 @@
         </li>
       </ul>
 
-      <h3>My Perspective on Education</h3>
-      <p>
+      <h3 data-en="My Perspective on Education" data-zh="我对教育的看法">My Perspective on Education</h3>
+      <p data-en-html="I think nowadays, all knowledge can be learned by ChatGPT — anyone can build something great with the help of AI. The key is being <strong>adaptive</strong>.<br><br>Going to class is mostly meaningless. I'd say I learned 90% of what I know by myself(search the answer and practice it, remember it first then intuitively get used to it). Attending class is more about connecting with classmates and professors.<br><br>However, standardized tests like GaoKao, SAT, or TOEFL — and LeetCode-style interviews — are still extremely important. They reflect your intelligence and work ethic. They're the most efficient way to filter talent. I got 494 in Gaokao, 82 points in TOFEL(2014), 320 points in GRE (153 and 167). I roughly did 200 questions on Leetcode, I want to honestly say that I don't have the talent doing Leetcode, maybe I am not working hard enough? I don't know. Failed Microsoft SDE Interview 2 times." data-zh-html="我觉得现在很多知识都可以通过 ChatGPT 学到 — 任何人都能借助 AI 做出很棒的东西。关键是<strong>适应性</strong>。<br><br>上课大多没有意义。我可以说我掌握的 90% 都是自学的（搜索答案并练习，先记住再慢慢形成直觉）。上课更多是为了和同学、老师建立连接。<br><br>但标准化考试（高考、SAT、TOEFL）以及 LeetCode 风格的面试仍然非常重要。它们体现你的智力和工作态度，也是最有效的筛选方式。我高考 494 分，托福 82 分（2014），GRE 320（153/167）。我大概刷了 200 道 LeetCode，说实话我没有做 LeetCode 的天赋，也许是不够努力？我也不确定。微软 SDE 面试失败过两次。">
         I think nowadays, all knowledge can be learned by ChatGPT — anyone can build something great with the help of AI. The key is being <strong>adaptive</strong>.
         <br><br>
         Going to class is mostly meaningless. I'd say I learned 90% of what I know by myself(search the answer and practice it, remember it first then intuitively get used to it).

@@ -7,31 +7,33 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E" />
+  <script src="../lang.js" defer></script>
 </head>
 <body>
   <nav class="navbar">
     <ul class="nav-list">
-      <li><a class="nav-link" href="/Home/">Home</a></li>
-      <li><a class="nav-link active" href="/Philosophy/">Philosophy</a></li>
-      <li><a class="nav-link" href="/Education/">Education</a></li>
-      <li><a class="nav-link" href="/Research/">Research</a></li>
-      <li><a class="nav-link" href="/Work/">Work</a></li>
-      <li><a class="nav-link" href="/Sports/">Sports</a></li>
-      <li><a class="nav-link" href="/Others/">Others</a></li>
-      <li><a class="nav-link" href="/Story/">Story</a></li>
+      <li><a class="nav-link" href="/Home/" data-en="Home" data-zh="主页">Home</a></li>
+      <li><a class="nav-link active" href="/Philosophy/" data-en="Philosophy" data-zh="哲学">Philosophy</a></li>
+      <li><a class="nav-link" href="/Education/" data-en="Education" data-zh="教育">Education</a></li>
+      <li><a class="nav-link" href="/Research/" data-en="Research" data-zh="研究">Research</a></li>
+      <li><a class="nav-link" href="/Work/" data-en="Work" data-zh="工作">Work</a></li>
+      <li><a class="nav-link" href="/Sports/" data-en="Sports" data-zh="运动">Sports</a></li>
+      <li><a class="nav-link" href="/Others/" data-en="Others" data-zh="其他">Others</a></li>
+      <li><a class="nav-link" href="/Story/" data-en="Story" data-zh="故事">Story</a></li>
+      <li><button class="lang-toggle" type="button" data-lang-toggle>中文</button></li>
     </ul>
   </nav>
 
   <main class="page">
     <section class="card content">
-      <h2>Philosophy</h2>
-      <p>
+      <h2 data-en="Philosophy" data-zh="哲学">Philosophy</h2>
+      <p data-en="Placeholder: I’m organizing this page and will add content soon." data-zh="占位：我正在整理这个页面，内容稍后补充。">
         Placeholder: I’m organizing this page and will add content soon.
       </p>
       <ul>
-        <li>Principle 1 — placeholder text.</li>
-        <li>Principle 2 — placeholder text.</li>
-        <li>Principle 3 — placeholder text.</li>
+        <li data-en="Principle 1 — placeholder text." data-zh="原则 1 — 占位内容。">Principle 1 — placeholder text.</li>
+        <li data-en="Principle 2 — placeholder text." data-zh="原则 2 — 占位内容。">Principle 2 — placeholder text.</li>
+        <li data-en="Principle 3 — placeholder text." data-zh="原则 3 — 占位内容。">Principle 3 — placeholder text.</li>
       </ul>
     </section>
   </main>

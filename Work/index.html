@@ -7,30 +7,32 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E" />
+  <script src="../lang.js" defer></script>
 </head>
 <body>
   <nav class="navbar">
     <ul class="nav-list">
-      <li><a class="nav-link" href="/Home/">Home</a></li>
-      <li><a class="nav-link" href="/Philosophy/">Philosophy</a></li>
-      <li><a class="nav-link" href="/Education/">Education</a></li>
-      <li><a class="nav-link" href="/Research/">Research</a></li>
-      <li><a class="nav-link active" href="/Work/">Work</a></li>
-      <li><a class="nav-link" href="/Sports/">Sports</a></li>
-      <li><a class="nav-link" href="/Others/">Others</a></li>
-      <li><a class="nav-link" href="/Story/">Story</a></li>
+      <li><a class="nav-link" href="/Home/" data-en="Home" data-zh="主页">Home</a></li>
+      <li><a class="nav-link" href="/Philosophy/" data-en="Philosophy" data-zh="哲学">Philosophy</a></li>
+      <li><a class="nav-link" href="/Education/" data-en="Education" data-zh="教育">Education</a></li>
+      <li><a class="nav-link" href="/Research/" data-en="Research" data-zh="研究">Research</a></li>
+      <li><a class="nav-link active" href="/Work/" data-en="Work" data-zh="工作">Work</a></li>
+      <li><a class="nav-link" href="/Sports/" data-en="Sports" data-zh="运动">Sports</a></li>
+      <li><a class="nav-link" href="/Others/" data-en="Others" data-zh="其他">Others</a></li>
+      <li><a class="nav-link" href="/Story/" data-en="Story" data-zh="故事">Story</a></li>
+      <li><button class="lang-toggle" type="button" data-lang-toggle>中文</button></li>
     </ul>
   </nav>
 
   <main class="page">
     <section class="card content">
-      <h2>Work Experience</h2>
+      <h2 data-en="Work Experience" data-zh="工作经历">Work Experience</h2>
 
-      <p><strong>Feb 2024 – Present</strong> — <em>Research Engineer, University of Nebraska–Lincoln</em><br>
+      <p data-en-html="<strong>Feb 2024 – Present</strong> — <em>Research Engineer, University of Nebraska–Lincoln</em><br>I work with Dr. Shubhendu Bhardwaj on antenna design and RF engineering. Our collaboration has resulted in a publication in this area.<br><a href=\"/Work/Zecheng_Paper.pdf\" target=\"_blank\">Click here to view my latest accepted paper.</a>" data-zh-html="<strong>2024 年 2 月 – 至今</strong> — <em>内布拉斯加大学林肯分校 研究工程师</em><br>我与 Dr. Shubhendu Bhardwaj 在天线设计与射频工程方面合作，已在该方向发表论文。<br><a href=\"/Work/Zecheng_Paper.pdf\" target=\"_blank\">点击查看我最新录用的论文。</a>"><strong>Feb 2024 – Present</strong> — <em>Research Engineer, University of Nebraska–Lincoln</em><br>
       I work with Dr. Shubhendu Bhardwaj on antenna design and RF engineering. Our collaboration has resulted in a publication in this area.
       <br><a href="/Work/Zecheng_Paper.pdf" target="_blank">Click here to view my latest accepted paper.</a></p>
 
-      <p><strong>Feb 2023 – Feb 2024</strong> — <em>Graduate Research Assistant, University of Nebraska–Lincoln</em><br>
+      <p data-en-html="<strong>Feb 2023 – Feb 2024</strong> — <em>Graduate Research Assistant, University of Nebraska–Lincoln</em><br>I worked with Dr. Shuai Nie on research related to wireless communication propagation channels, depth camera technologies, and ray tracing simulations.<br><br>Here are some sample images related to my work (created before the ChatGPT era):" data-zh-html="<strong>2023 年 2 月 – 2024 年 2 月</strong> — <em>内布拉斯加大学林肯分校 研究生研究助理</em><br>我与 Dr. Shuai Nie 合作，研究无线通信传播信道、深度相机技术以及光线追踪仿真。<br><br>下面是一些与我工作相关的示例图片（均为 ChatGPT 时代之前制作）："><strong>Feb 2023 – Feb 2024</strong> — <em>Graduate Research Assistant, University of Nebraska–Lincoln</em><br>
       I worked with Dr. Shuai Nie on research related to wireless communication propagation channels, depth camera technologies, and ray tracing simulations.<br><br>
 
       Here are some sample images related to my work (created before the ChatGPT era):</p>
@@ -41,27 +43,27 @@
       </div>
 
       <p>
-        <a href="/Work/Depth_Camera_Ray_Tracing_User_Manual.pdf" target="_blank">Depth Camera Ray Tracing User Manual (PDF)</a>
+        <a href="/Work/Depth_Camera_Ray_Tracing_User_Manual.pdf" target="_blank" data-en="Depth Camera Ray Tracing User Manual (PDF)" data-zh="深度相机光线追踪用户手册（PDF）">Depth Camera Ray Tracing User Manual (PDF)</a>
       </p>
 
-      <p><strong>Aug 2018 – Oct 2022</strong> — <em>Software Engineer, Hancock Software</em><br>
+      <p data-en-html="<strong>Aug 2018 – Oct 2022</strong> — <em>Software Engineer, Hancock Software</em><br>I joined Hancock Software full-time after interning there during my undergraduate studies. As an international student, I was fortunate to secure the internship through a family connection—my aunt is the company’s founder." data-zh-html="<strong>2018 年 8 月 – 2022 年 10 月</strong> — <em>Hancock Software 软件工程师</em><br>我在本科期间在那里实习，之后全职加入 Hancock Software。作为国际学生，我通过家庭关系获得这次实习机会——我阿姨是公司的创始人。"><strong>Aug 2018 – Oct 2022</strong> — <em>Software Engineer, Hancock Software</em><br>
       I joined Hancock Software full-time after interning there during my undergraduate studies. As an international student, I was fortunate to secure the internship through a family connection—my aunt is the company’s founder.</p>
 
-      <p>
+      <p data-en="During my four years there, I contributed across multiple areas of development and led impactful initiatives. One major project was a complete data migration from an old application to a new one, which I implemented and deployed to production single-handedly after thorough testing and staging. The software served over 100 users and managed data for more than 100,000 individuals. I maintained high code quality and reliability throughout, with no critical issues requiring senior developer intervention." data-zh="在那里的四年里，我在多个开发领域做出贡献并主导了重要项目。其中一个核心项目是将旧系统的数据完整迁移到新系统，我在充分测试与预发布后独立完成并上线。该软件服务超过 100 名用户，管理 10 万+ 个体数据。我始终保持高质量与高可靠性，没有出现需要高级开发介入的严重问题。">
         During my four years there, I contributed across multiple areas of development and led impactful initiatives. One major project was a complete data migration from an old application to a new one, which I implemented and deployed to production single-handedly after thorough testing and staging. The software served over 100 users and managed data for more than 100,000 individuals. I maintained high code quality and reliability throughout, with no critical issues requiring senior developer intervention.
       </p>
 
-      <p>
+      <p data-en="While I gained valuable experience, working for a family member came with unique challenges—recognition is hard-earned and criticism hits harder. After four years, I made the difficult decision to leave the role while on an H1B visa to pursue new opportunities." data-zh="虽然这段经历很宝贵，但为家人工作也有独特挑战——认可来之不易，批评更刺耳。四年后，我在持 H1B 签证期间做出离开的艰难决定，去寻找新的机会。">
         While I gained valuable experience, working for a family member came with unique challenges—recognition is hard-earned and criticism hits harder. After four years, I made the difficult decision to leave the role while on an H1B visa to pursue new opportunities.
       </p>
 
-      <p>
+      <p data-en-html="<strong>Tech stack:</strong> C#, AngularJS, MSSQL. I also utilized Jenkins for automated deployments. The product itself supported nonprofit organizations, such as community action agencies, in assessing and managing benefits for low-income families.<br>You can view the application I helped build here: <a href=\"https://la.hancocksoftware.com/HEEC/\" target=\"_blank\">https://la.hancocksoftware.com/HEEC/</a><br>Because of credential limitations, I am not allowed to share additional details about the product, but I’m happy to discuss it further if you’re interested." data-zh-html="<strong>技术栈：</strong> C#、AngularJS、MSSQL。我也使用 Jenkins 做自动化部署。该产品面向非营利组织（如社区行动机构），用于评估与管理低收入家庭的福利。<br>我参与构建的应用在此：<a href=\"https://la.hancocksoftware.com/HEEC/\" target=\"_blank\">https://la.hancocksoftware.com/HEEC/</a><br>由于资质限制，我不能分享更多产品细节，但如果你感兴趣我愿意进一步交流。">
         <strong>Tech stack:</strong> C#, AngularJS, MSSQL. I also utilized Jenkins for automated deployments. The product itself supported nonprofit organizations, such as community action agencies, in assessing and managing benefits for low-income families.<br>
         You can view the application I helped build here: <a href="https://la.hancocksoftware.com/HEEC/" target="_blank">https://la.hancocksoftware.com/HEEC/</a><br>
         Because of credential limitations, I am not allowed to share additional details about the product, but I’m happy to discuss it further if you’re interested.
       </p>
 
-      <p><strong>Other Experience</strong><br>
+      <p data-en-html="<strong>Other Experience</strong><br>I also worked as a swimming lifeguard, delivery driver, phone plan salesman, and tutor between the ages of 17 and 22." data-zh-html="<strong>其他经历</strong><br>17–22 岁期间，我还做过游泳救生员、送货司机、手机套餐销售以及家教。"><strong>Other Experience</strong><br>
       I also worked as a swimming lifeguard, delivery driver, phone plan salesman, and tutor between the ages of 17 and 22.</p>
     </section>
   </main>

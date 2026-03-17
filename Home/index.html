@@ -7,18 +7,20 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E" />
+  <script src="../lang.js" defer></script>
 </head>
 <body>
   <nav class="navbar">
     <ul class="nav-list">
-      <li><a class="nav-link active" href="/Home/">Home</a></li>
-      <li><a class="nav-link" href="/Philosophy/">Philosophy</a></li>
-      <li><a class="nav-link" href="/Education/">Education</a></li>
-      <li><a class="nav-link" href="/Research/">Research</a></li>
-      <li><a class="nav-link" href="/Work/">Work</a></li>
-      <li><a class="nav-link" href="/Sports/">Sports</a></li>
-      <li><a class="nav-link" href="/Others/">Others</a></li>
-      <li><a class="nav-link" href="/Story/">Story</a></li>
+      <li><a class="nav-link active" href="/Home/" data-en="Home" data-zh="主页">Home</a></li>
+      <li><a class="nav-link" href="/Philosophy/" data-en="Philosophy" data-zh="哲学">Philosophy</a></li>
+      <li><a class="nav-link" href="/Education/" data-en="Education" data-zh="教育">Education</a></li>
+      <li><a class="nav-link" href="/Research/" data-en="Research" data-zh="研究">Research</a></li>
+      <li><a class="nav-link" href="/Work/" data-en="Work" data-zh="工作">Work</a></li>
+      <li><a class="nav-link" href="/Sports/" data-en="Sports" data-zh="运动">Sports</a></li>
+      <li><a class="nav-link" href="/Others/" data-en="Others" data-zh="其他">Others</a></li>
+      <li><a class="nav-link" href="/Story/" data-en="Story" data-zh="故事">Story</a></li>
+      <li><button class="lang-toggle" type="button" data-lang-toggle>中文</button></li>
     </ul>
   </nav>
 
@@ -27,9 +29,9 @@
       <aside class="card sidebar">
         <img src="../profile.jpeg" alt="Zecheng Li Profile Photo" class="profile-img" />
         <h1>Zecheng Li 李泽成</h1>
-        <p class="title">Incoming PhD Student at Purdue University</p>
-        <p class="affiliation">Computer Science</p>
-        <p class="affiliation">Research Assistant, University of Nebraska–Lincoln</p>
+        <p class="title" data-en="Incoming PhD Student at Purdue University" data-zh="普渡大学博士新生">Incoming PhD Student at Purdue University</p>
+        <p class="affiliation" data-en="Computer Science" data-zh="计算机科学">Computer Science</p>
+        <p class="affiliation" data-en="Research Assistant, University of Nebraska–Lincoln" data-zh="内布拉斯加大学林肯分校 研究助理">Research Assistant, University of Nebraska–Lincoln</p>
         <div class="icons">
           <a href="https://scholar.google.com/citations?user=k9SYOzMAAAAJ&hl=en" aria-label="Google Scholar" target="_blank" rel="noopener noreferrer"><i class="fas fa-graduation-cap"></i></a>
           <a href="https://www.linkedin.com/in/zecheng-li/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin"></i></a>
@@ -46,24 +48,24 @@
       </aside>
 
       <section class="card content">
-        <h3 class="about-me-title">About Me</h3>
-        <p class="about-me-text">
+        <h3 class="about-me-title" data-en="About Me" data-zh="关于我">About Me</h3>
+        <p class="about-me-text" data-en="I am an incoming PhD student at Purdue University, and currently a research assistant at University of Nebraska Lincoln, specializing in electromagnetic waves, antenna design, and RF engineering. I also have 4 years of software development experience." data-zh="我即将入读普渡大学博士，目前是内布拉斯加大学林肯分校的研究助理，研究方向为电磁波、天线设计与射频工程。同时我有 4 年软件开发经验。">
           I am an incoming PhD student at Purdue University, and currently a research assistant at University of Nebraska Lincoln, specializing in electromagnetic waves, antenna design, and RF engineering. I also have 4 years of software development experience.
         </p>
 
-        <h3>Latest Updates</h3>
+        <h3 data-en="Latest Updates" data-zh="最新动态">Latest Updates</h3>
         <ul>
-          <li>📄 Paper accepted to IEEE-APS 2025 – <em>"Impedance Interferometry for Temperature Sensing in High-Stress, High-Temperature Applications"</em> Feb 2025</li>
-          <li>🏃 Finished the Lincoln Marathon within 4 hours 10 min May 2025</li>
+          <li data-en-html="📄 Paper accepted to IEEE-APS 2025 – <em>\"Impedance Interferometry for Temperature Sensing in High-Stress, High-Temperature Applications\"</em> Feb 2025" data-zh-html="📄 论文被 IEEE-APS 2025 接收 – <em>\"Impedance Interferometry for Temperature Sensing in High-Stress, High-Temperature Applications\"</em> 2025 年 2 月">📄 Paper accepted to IEEE-APS 2025 – <em>"Impedance Interferometry for Temperature Sensing in High-Stress, High-Temperature Applications"</em> Feb 2025</li>
+          <li data-en="🏃 Finished the Lincoln Marathon within 4 hours 10 min May 2025" data-zh="🏃 2025 年 5 月以 4 小时 10 分完成林肯马拉松">🏃 Finished the Lincoln Marathon within 4 hours 10 min May 2025</li>
         </ul>
 
-        <a class="btn" href="../cv.pdf" target="_blank">📄 Download My CV (Mid 2024 Version)</a>
+        <a class="btn" href="../cv.pdf" target="_blank" data-en="📄 Download My CV (Mid 2024 Version)" data-zh="📄 下载我的简历（2024 年中版）">📄 Download My CV (Mid 2024 Version)</a>
 
-        <h3>Contact Info</h3>
+        <h3 data-en="Contact Info" data-zh="联系方式">Contact Info</h3>
         <ul>
-          <li>📞 Cell: 402-429-7685</li>
-          <li>📧 School Email: <a href="mailto:zli45@unl.edu">zli45@unl.edu</a>, <a href="mailto:li6158@purdue.edu">li6158@purdue.edu</a></li>
-          <li>📧 Personal Email: <a href="mailto:lzc199639@gmail.com">lzc199639@gmail.com</a></li>
+          <li data-en="📞 Cell: 402-429-7685" data-zh="📞 电话：402-429-7685">📞 Cell: 402-429-7685</li>
+          <li data-en-html="📧 School Email: <a href=\"mailto:zli45@unl.edu\">zli45@unl.edu</a>, <a href=\"mailto:li6158@purdue.edu\">li6158@purdue.edu</a>" data-zh-html="📧 学校邮箱：<a href=\"mailto:zli45@unl.edu\">zli45@unl.edu</a>, <a href=\"mailto:li6158@purdue.edu\">li6158@purdue.edu</a>">📧 School Email: <a href="mailto:zli45@unl.edu">zli45@unl.edu</a>, <a href="mailto:li6158@purdue.edu">li6158@purdue.edu</a></li>
+          <li data-en-html="📧 Personal Email: <a href=\"mailto:lzc199639@gmail.com\">lzc199639@gmail.com</a>" data-zh-html="📧 个人邮箱：<a href=\"mailto:lzc199639@gmail.com\">lzc199639@gmail.com</a>">📧 Personal Email: <a href="mailto:lzc199639@gmail.com">lzc199639@gmail.com</a></li>
         </ul>
 
         <div class="centered mt-2">

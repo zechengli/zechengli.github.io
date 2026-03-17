@@ -5,45 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stories | Zecheng Li</title>
   <link rel="stylesheet" href="../style.css" />
+  <script src="../lang.js" defer></script>
 </head>
 <body>
   <nav class="navbar">
     <ul class="nav-list">
-      <li><a class="nav-link" href="/Home/">Home</a></li>
-      <li><a class="nav-link" href="/Philosophy/">Philosophy</a></li>
-      <li><a class="nav-link" href="/Education/">Education</a></li>
-      <li><a class="nav-link" href="/Research/">Research</a></li>
-      <li><a class="nav-link" href="/Work/">Work</a></li>
-      <li><a class="nav-link" href="/Sports/">Sports</a></li>
-      <li><a class="nav-link" href="/Others/">Others</a></li>
-      <li><a class="nav-link active" href="/Story/">Story</a></li>
+      <li><a class="nav-link" href="/Home/" data-en="Home" data-zh="主页">Home</a></li>
+      <li><a class="nav-link" href="/Philosophy/" data-en="Philosophy" data-zh="哲学">Philosophy</a></li>
+      <li><a class="nav-link" href="/Education/" data-en="Education" data-zh="教育">Education</a></li>
+      <li><a class="nav-link" href="/Research/" data-en="Research" data-zh="研究">Research</a></li>
+      <li><a class="nav-link" href="/Work/" data-en="Work" data-zh="工作">Work</a></li>
+      <li><a class="nav-link" href="/Sports/" data-en="Sports" data-zh="运动">Sports</a></li>
+      <li><a class="nav-link" href="/Others/" data-en="Others" data-zh="其他">Others</a></li>
+      <li><a class="nav-link active" href="/Story/" data-en="Story" data-zh="故事">Story</a></li>
+      <li><button class="lang-toggle" type="button" data-lang-toggle>中文</button></li>
     </ul>
   </nav>
 
   <main class="page">
     <section class="card content" id="story-list-view">
-      <h2>Stories</h2>
+      <h2 data-en="Stories" data-zh="故事">Stories</h2>
       <ul class="story-list">
         <li>
           <a href="#"
              class="story-card"
-             data-story-title="我的故事"
-             data-story-meta="Dec 2025 · PhD Journey"
+             data-story-title-en="My Story"
+             data-story-title-zh="我的故事"
+             data-story-meta-en="Dec 2025 · PhD Journey"
+             data-story-meta-zh="2025 年 12 月 · 博士之路"
              data-file="Purdue.html">
-            <h3>📌 我的故事</h3>
-            <p class="story-meta">Dec 2025 · PhD Journey</p>
+            <h3 data-en="📌 My Story" data-zh="📌 我的故事">📌 我的故事</h3>
+            <p class="story-meta" data-en="Dec 2025 · PhD Journey" data-zh="2025 年 12 月 · 博士之路">Dec 2025 · PhD Journey</p>
           </a>
         </li>
       </ul>
     </section>
 
     <article class="card content hidden" id="story-detail-view">
-      <button id="back-to-list-btn" class="btn btn-secondary">
+      <button id="back-to-list-btn" class="btn btn-secondary" data-en="← Back to Stories" data-zh="← 返回故事列表">
         ← Back to Stories
       </button>
       <h2 id="story-title"></h2>
       <p class="story-meta" id="story-meta"></p>
-      <div id="story-content">Loading story...</div>
+      <div id="story-content" data-en="Loading story..." data-zh="正在加载故事…">Loading story...</div>
     </article>
   </main>
 
@@ -78,14 +82,17 @@
    * @param {HTMLElement} linkElement - 被点击的故事链接元素。
    */
   async function showStory(linkElement) {
-    const title = linkElement.getAttribute('data-story-title');
-    const meta = linkElement.getAttribute('data-story-meta');
+    const titleEn = linkElement.getAttribute('data-story-title-en');
+    const titleZh = linkElement.getAttribute('data-story-title-zh');
+    const metaEn = linkElement.getAttribute('data-story-meta-en');
+    const metaZh = linkElement.getAttribute('data-story-meta-zh');
     const filePath = linkElement.getAttribute('data-file');
+    const currentLang = window.getLang ? window.getLang() : 'en';
 
     // 1. 切换视图到详情页，并显示加载提示
-    storyTitleEl.textContent = title;
-    storyMetaEl.textContent = meta;
-    storyContentEl.innerHTML = 'Loading content...';
+    storyTitleEl.textContent = currentLang === 'zh' ? titleZh : titleEn;
+    storyMetaEl.textContent = currentLang === 'zh' ? metaZh : metaEn;
+    storyContentEl.innerHTML = currentLang === 'zh' ? '正在加载内容…' : 'Loading content...';
     listView.classList.add('hidden');
     detailView.classList.remove('hidden');
 
@@ -99,9 +106,12 @@
 
       // 3. 将加载的内容插入到容器中
       storyContentEl.innerHTML = htmlContent;
+      if (window.applyLang) {
+        window.applyLang(window.getLang ? window.getLang() : 'en');
+      }
     } catch (error) {
       console.error('Failed to load story content:', error);
-      storyContentEl.innerHTML = 'Oops! Failed to load the story. Please check if the file: ' + filePath + ' exists.';
+      storyContentEl.innerHTML = (currentLang === 'zh' ? '加载失败，请检查文件是否存在：' : 'Oops! Failed to load the story. Please check if the file: ') + filePath;
     }
   }
 
