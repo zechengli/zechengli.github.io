@@ -1,3 +1,57 @@
+/* ========== Philosophy Section Toggle ========== */
+.philosophy-section {
+  margin-bottom: 16px;
+}
+
+.section-toggle {
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
+}
+
+.section-toggle:hover {
+  background: #f5f0e8;
+  border-color: var(--accent);
+}
+
+.section-toggle i {
+  transition: transform 0.2s ease;
+  color: var(--muted);
+}
+
+.section-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 20px;
+}
+
+.section-content.expanded {
+  max-height: 5000px;
+  padding: 20px;
+  padding-top: 10px;
+}
+
+.section-content h4 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.section-content h4:first-child {
+  margin-top: 10px;
+}
+
 /* ========== Base ========== */
 :root {
   --bg: #f7f1e8;
