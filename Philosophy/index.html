@@ -76,3 +76,46 @@
             <img src="matrix-oracle.jpg" alt="The Matrix oracle" class="matrix-image" style="margin: 0 auto; display: block;" />
           </div>
 
+
+        </div>
+      </div>
+
+      <!-- Interpersonal Section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="interpersonal">
+          <span data-en="Interpersonal" data-zh="人际交往">Interpersonal</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="interpersonal">
+          <p data-en="(Placeholder to be filled.)" data-zh="(占位：待补充。)">(Placeholder to be filled.)</p>
+        </div>
+      </div>
+
+      <!-- Academic & Work Section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="academic">
+          <span data-en="Academic & Work" data-zh="学术与工作">Academic & Work</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="academic">
+          <p data-en="(Placeholder to be filled.)" data-zh="(占位：待补充。)">(Placeholder to be filled.)</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.section-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.toggle;
+        const content = document.getElementById(target);
+        const icon = btn.querySelector('i');
+        
+        content.classList.toggle('expanded');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+      });
+    });
+  </script>
+</body>
+</html>
