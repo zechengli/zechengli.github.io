@@ -257,6 +257,7 @@ a:hover {
 
 .matrix-image {
   width: 100%;
+  max-width: 400px;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
