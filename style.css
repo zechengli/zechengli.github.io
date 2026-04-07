@@ -170,9 +170,10 @@ a:hover {
 
 .profile-img {
   width: 100%;
+  max-width: 240px;
   display: block;
   border-radius: 12px;
-  margin-bottom: 14px;
+  margin: 0 auto 14px;
 }
 
 .sidebar h1 {
