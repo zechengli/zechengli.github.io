@@ -27,16 +27,50 @@
   <main class="page">
     <section class="card content">
       <h2 data-en="Other Platforms" data-zh="其他平台">Other Platforms</h2>
-      <p data-en-html="This is my YouTube channel where I share my life and other content:<br><a href=&quot;https://www.youtube.com/@LearnWithZ2023&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://www.youtube.com/@LearnWithZ2023</a>" data-zh-html="这是我的 YouTube 频道，我在这里分享生活和其他内容：<br><a href=&quot;https://www.youtube.com/@LearnWithZ2023&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://www.youtube.com/@LearnWithZ2023</a>">
-        This is my YouTube channel where I share my life and other content:<br>
-        <a href="https://www.youtube.com/@LearnWithZ2023" target="_blank" rel="noopener noreferrer">https://www.youtube.com/@LearnWithZ2023</a>
-      </p>
-      <p data-en-html="This is my podcast, where I speak with my Tongling accent:<br>Share &quot;Jianghuai Figures&quot; on NetEase Cloud Music: <a href=&quot;http://163cn.tv/FHwqfMI&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>http://163cn.tv/FHwqfMI</a><br>Or listen here: <a href=&quot;https://xima.tv/1_9rjlTF?_sonic=0&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://xima.tv/1_9rjlTF?_sonic=0</a>" data-zh-html="这是我的播客，我会用铜陵口音说话：<br>分享《江淮人物》在网易云音乐：<a href=&quot;http://163cn.tv/FHwqfMI&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>http://163cn.tv/FHwqfMI</a><br>或在这里收听：<a href=&quot;https://xima.tv/1_9rjlTF?_sonic=0&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://xima.tv/1_9rjlTF?_sonic=0</a>">
-        This is my podcast, where I speak with my Tongling accent:<br>
-        分享《江淮人物》on 网易云音乐: <a href="http://163cn.tv/FHwqfMI" target="_blank" rel="noopener noreferrer">http://163cn.tv/FHwqfMI</a><br>
-        Or listen here: <a href="https://xima.tv/1_9rjlTF?_sonic=0" target="_blank" rel="noopener noreferrer">https://xima.tv/1_9rjlTF?_sonic=0</a>
-      </p>
+
+      <!-- YouTube Section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="youtube">
+          <span data-en="YouTube" data-zh="YouTube">YouTube</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="youtube">
+          <p data-en-html="This is my YouTube channel where I share my life and other content:<br><a href=&quot;https://www.youtube.com/@LearnWithZ2023&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://www.youtube.com/@LearnWithZ2023</a>" data-zh-html="这是我的 YouTube 频道，我在这里分享生活和其他内容：<br><a href=&quot;https://www.youtube.com/@LearnWithZ2023&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://www.youtube.com/@LearnWithZ2023</a>">
+            This is my YouTube channel where I share my life and other content:<br>
+            <a href="https://www.youtube.com/@LearnWithZ2023" target="_blank" rel="noopener noreferrer">https://www.youtube.com/@LearnWithZ2023</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Podcast Section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="podcast">
+          <span data-en="Podcast" data-zh="播客">Podcast</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="podcast">
+          <p data-en-html="This is my podcast, where I speak with my Tongling accent:<br>Share &quot;Jianghuai Figures&quot; on NetEase Cloud Music: <a href=&quot;http://163cn.tv/FHwqfMI&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>http://163cn.tv/FHwqfMI</a><br>Or listen here: <a href=&quot;https://xima.tv/1_9rjlTF?_sonic=0&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://xima.tv/1_9rjlTF?_sonic=0</a>" data-zh-html="这是我的播客，我会用铜陵口音说话：<br>分享《江淮人物》在网易云音乐：<a href=&quot;http://163cn.tv/FHwqfMI&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>http://163cn.tv/FHwqfMI</a><br>或在这里收听：<a href=&quot;https://xima.tv/1_9rjlTF?_sonic=0&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;>https://xima.tv/1_9rjlTF?_sonic=0</a>">
+            This is my podcast, where I speak with my Tongling accent:<br>
+            分享《江淮人物》on 网易云音乐: <a href="http://163cn.tv/FHwqfMI" target="_blank" rel="noopener noreferrer">http://163cn.tv/FHwqfMI</a><br>
+            Or listen here: <a href="https://xima.tv/1_9rjlTF?_sonic=0" target="_blank" rel="noopener noreferrer">https://xima.tv/1_9rjlTF?_sonic=0</a>
+          </p>
+        </div>
+      </div>
     </section>
   </main>
+
+  <script>
+    document.querySelectorAll('.section-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.toggle;
+        const content = document.getElementById(target);
+        const icon = btn.querySelector('i');
+        
+        content.classList.toggle('expanded');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+      });
+    });
+  </script>
 </body>
 </html>

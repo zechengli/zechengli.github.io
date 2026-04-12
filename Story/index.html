@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stories | Zecheng Li</title>
   <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <script src="../lang.js" defer></script>
 </head>
 <body>
@@ -25,114 +26,60 @@
   <main class="page">
     <section class="card content" id="story-list-view">
       <h2 data-en="Stories" data-zh="故事">Stories</h2>
-      <ul class="story-list">
-        <li>
-          <a href="#"
-             class="story-card"
-             data-story-title-en="My Story"
-             data-story-title-zh="我的故事"
-             data-story-meta-en="Dec 2025 · PhD Journey"
-             data-story-meta-zh="2025 年 12 月 · 博士之路"
-             data-file="Purdue.html">
-            <h3 data-en="📌 My Story" data-zh="📌 我的故事">📌 我的故事</h3>
-            <p class="story-meta" data-en="Dec 2025 · PhD Journey" data-zh="2025 年 12 月 · 博士之路">Dec 2025 · PhD Journey</p>
-          </a>
-        </li>
-      </ul>
+      
+      <!-- Story Card as collapsible section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="my-story">
+          <span data-en="📌 My Story" data-zh="📌 我的故事">📌 My Story</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="my-story">
+          <p class="story-meta" data-en="Dec 2025 · PhD Journey" data-zh="2025 年 12 月 · 博士之路">Dec 2025 · PhD Journey</p>
+          <div id="story-content" data-en="Loading story..." data-zh="正在加载故事…">Loading story...</div>
+        </div>
+      </div>
     </section>
-
-    <article class="card content hidden" id="story-detail-view">
-      <button id="back-to-list-btn" class="btn btn-secondary" data-en="← Back to Stories" data-zh="← 返回故事列表">
-        ← Back to Stories
-      </button>
-      <h2 id="story-title"></h2>
-      <p class="story-meta" id="story-meta"></p>
-      <div id="story-content" data-en="Loading story..." data-zh="正在加载故事…">Loading story...</div>
-    </article>
   </main>
 
   <script>
-  // ===================================
-  // DOM 元素获取
-  // ===================================
-  const listView = document.getElementById('story-list-view');
-  const detailView = document.getElementById('story-detail-view');
-  const storyTitleEl = document.getElementById('story-title');
-  const storyMetaEl = document.getElementById('story-meta');
-  const storyContentEl = document.getElementById('story-content');
-  const storyLinks = document.querySelectorAll('.story-list a');
-  const backToListBtn = document.getElementById('back-to-list-btn');
-
-
-  // ===================================
-  // 核心逻辑函数
-  // ===================================
-
-  /**
-   * @description 显示故事列表视图。
-   */
-  function showList() {
-    // 切换视图：显示列表，隐藏详情
-    detailView.classList.add('hidden');
-    listView.classList.remove('hidden');
-  }
-
-  /**
-   * @description 异步加载并显示故事详情视图。
-   * @param {HTMLElement} linkElement - 被点击的故事链接元素。
-   */
-  async function showStory(linkElement) {
-    const titleEn = linkElement.getAttribute('data-story-title-en');
-    const titleZh = linkElement.getAttribute('data-story-title-zh');
-    const metaEn = linkElement.getAttribute('data-story-meta-en');
-    const metaZh = linkElement.getAttribute('data-story-meta-zh');
-    const filePath = linkElement.getAttribute('data-file');
-    const currentLang = window.getLang ? window.getLang() : 'en';
-
-    // 1. 切换视图到详情页，并显示加载提示
-    storyTitleEl.textContent = currentLang === 'zh' ? titleZh : titleEn;
-    storyMetaEl.textContent = currentLang === 'zh' ? metaZh : metaEn;
-    storyContentEl.innerHTML = currentLang === 'zh' ? '正在加载内容…' : 'Loading content...';
-    listView.classList.add('hidden');
-    detailView.classList.remove('hidden');
-
-    try {
-      // 2. 使用 fetch API 异步获取 HTML 片段文件
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const htmlContent = await response.text();
-
-      // 3. 将加载的内容插入到容器中
-      storyContentEl.innerHTML = htmlContent;
-      if (window.applyLang) {
-        window.applyLang(window.getLang ? window.getLang() : 'en');
-      }
-    } catch (error) {
-      console.error('Failed to load story content:', error);
-      storyContentEl.innerHTML = (currentLang === 'zh' ? '加载失败，请检查文件是否存在：' : 'Oops! Failed to load the story. Please check if the file: ') + filePath;
-    }
-  }
-
-
-  // ===================================
-  // 页面初始化和事件绑定
-  // ===================================
-
-  // 1. 为列表中的故事链接添加点击事件监听器
-  storyLinks.forEach(link => {
-    link.addEventListener('click', function(event) {
-      event.preventDefault(); // 阻止默认跳转
-      showStory(this);
+    // Toggle functionality for collapsible sections
+    document.querySelectorAll('.section-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.toggle;
+        const content = document.getElementById(target);
+        const icon = btn.querySelector('i');
+        
+        content.classList.toggle('expanded');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        
+        // Load story content when expanded
+        if (content.classList.contains('expanded') && target === 'my-story') {
+          loadStoryContent();
+        }
+      });
     });
-  });
 
-  // 2. 为详情页的“返回”按钮添加点击事件监听器
-  backToListBtn.addEventListener('click', showList);
-
-  // 3. 初始加载时显示列表
-  showList();
+    // Load story content
+    async function loadStoryContent() {
+      const storyContentEl = document.getElementById('story-content');
+      const currentLang = window.getLang ? window.getLang() : 'en';
+      
+      try {
+        const response = await fetch('Purdue.html');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const htmlContent = await response.text();
+        storyContentEl.innerHTML = htmlContent;
+        if (window.applyLang) {
+          window.applyLang(currentLang);
+        }
+      } catch (error) {
+        console.error('Failed to load story content:', error);
+        storyContentEl.innerHTML = (currentLang === 'zh' ? '加载失败，请检查文件是否存在。' : 'Oops! Failed to load the story.');
+      }
+    }
   </script>
 </body>
 </html>
