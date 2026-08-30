@@ -27,7 +27,7 @@
   <main class="page">
     <section class="card content">
       <h2 data-en="Research" data-zh="研究">Research</h2>
-      <p data-en="I've had three meaningful research experiences so far, and I deeply appreciate all the professors who have guided me along the way." data-zh="到目前为止我有三段有意义的研究经历，非常感谢一路指导我的所有教授。">I've had three meaningful research experiences so far, and I deeply appreciate all the professors who have guided me along the way.</p>
+      <p data-en="I've had three meaningful research experiences so far, and I deeply appreciate all the professors who have guided me along the way. I have also recently started a self-driven line of work on 5G O-RAN security — see the project section at the bottom of this page." data-zh="到目前为止我有三段有意义的研究经历，非常感谢一路指导我的所有教授。最近我也开启了一条自主的 5G O-RAN 安全研究方向——见本页底部的项目介绍。">I've had three meaningful research experiences so far, and I deeply appreciate all the professors who have guided me along the way. I have also recently started a self-driven line of work on 5G O-RAN security — see the project at the bottom of this page.</p>
 
       <!-- Undergraduate Research Section -->
       <div class="philosophy-section">
@@ -103,6 +103,28 @@
 
           <p data-en="I don't think research should be just about chasing publications. It should be about building things that make a difference. Of course, I know not everyone has access to the same resources, and success can depend on many factors beyond talent. That's why I really admire professors who stay passionate about their work, even when things get tough. When someone keeps going despite the setbacks, it shows me that research is a kind of battleground — and I want to be one of the people who step up and keep pushing forward." data-zh="我不认为研究只是追逐论文。它应该是做出能带来改变的东西。当然我也知道，并不是每个人都拥有同样的资源，成功与否也受很多非天赋因素影响。这也是我很敬佩那些在困难时仍保持热情的教授的原因。当一个人面对挫折仍然坚持下去，这让我看到研究是一种战场 — 而我想成为继续向前的人。">
             I don't think research should be just about chasing publications. It should be about building things that make a difference. Of course, I know not everyone has access to the same resources, and success can depend on many factors beyond talent. That's why I really admire professors who stay passionate about their work, even when things get tough. When someone keeps going despite the setbacks, it shows me that research is a kind of battleground — and I want to be one of the people who step up and keep pushing forward.
+          </p>
+        </div>
+      </div>
+
+      <!-- Self-Driven Project Section -->
+      <div class="philosophy-section">
+        <button class="section-toggle" data-toggle="oran-security">
+          <span data-en="Self-Driven Project: 5G O-RAN Security (2026)" data-zh="自主项目：5G O-RAN 安全（2026）">Self-Driven Project: 5G O-RAN Security (2026)</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="section-content" id="oran-security">
+          <h3 data-en="Rebuilding a Model-Based O-RAN Fuzzing Pipeline from the Specs (2026)" data-zh="从规范出发重建 O-RAN 模型化模糊测试流程（2026）">Rebuilding a Model-Based O-RAN Fuzzing Pipeline from the Specs (2026)</h3>
+          <p data-en-html="To understand the state of the art in cellular protocol fuzzing, I studied <a href=&quot;https://dl.acm.org/doi/10.1145/3680207.3723469&quot; target=&quot;_blank&quot;>ARCANE (ACM MobiCom '25)</a>, a framework that uses LLMs to extract protocol models from 3GPP specifications and fuzz O-RAN F1-C interfaces. Because the released repository ships only endpoints (a finished seed model and hand-written tests), I rebuilt the full pipeline myself from the source specifications upward: F1AP (TS 38.473) → three independent LLM extractions with different prompt framings → finite-state-machine refinement against real RAN traces (using ARCANE's unmodified merge algorithm) → mutation-based test-case generation with a fully logged elimination funnel → ASN.1 APER encoding → SCTP replay against a live OAI gNB-CU." data-zh-html="为了掌握蜂窝协议模糊测试的最新水平，我研究了 <a href=&quot;https://dl.acm.org/doi/10.1145/3680207.3723469&quot; target=&quot;_blank&quot;>ARCANE（ACM MobiCom '25）</a>——一个利用 LLM 从 3GPP 规范提取协议模型、对 O-RAN 进行模糊测试的框架。我从源规范出发完整重建了它的流水线：F1AP（TS 38.473）→ 三种不同提示框架的独立 LLM 提取 → 面向真实 RAN 轨迹的有限状态机精炼 → 带完整裁剪日志的变异测试用例生成 → ASN.1 APER 编码 → 针对真实 OAI gNB-CU 的 SCTP 重放。">
+            On my own initiative, I studied
+            <a href="https://dl.acm.org/doi/10.1145/3680207.3723469" target="_blank">ARCANE (ACM MobiCom '25)</a>,
+            a model-based fuzzing framework for 5G O-RAN that uses LLMs to extract protocol models from 3GPP specifications — and rebuilt the full pipeline myself, from the source specifications upward: F1AP (TS 38.473) → three independent LLM extractions → FSM refinement against real RAN traces → mutation-based test-case generation with a fully logged elimination funnel → ASN.1 APER encoding → SCTP replay against a live OAI gNB-CU.
+          </p>
+          <p data-en-html="The pipeline found a real memory-safety vulnerability: an <em>unsolicited</em> F1-Setup-Response — a message the specification explicitly forbids in that direction — crashed the gNB-CU with a segmentation fault (exit 139, SIGSEGV), reproducing the published bug end-to-end through my own rebuilt toolchain. The comparison between the paper's claims and the repository's released artifacts is documented, and every intermediate artifact (prompts, LLM outputs, models, elimination logs, wire bytes) is preserved. An interactive walkthrough of every step is live:" data-zh-html="该流程真实复现了一个内存安全漏洞：一条规范明确禁止向该方向发送的 <em>未请求</em> F1-Setup-Response，使 gNB-CU 段错误崩溃（exit 139, SIGSEGV）——通过我自己重建的工具链，端到端重现了论文发表的漏洞。论文声明与仓库实际交付物之间的对比亦有记录，所有中间产物（提示词、LLM 输出、模型、消解日志、线缆字节）均已保存。每一步的交互式演示：">
+            The rebuilt pipeline confirmed a real memory-safety vulnerability: an <em>unsolicited</em> F1-Setup-Response — a message the 3GPP specification only ever permits in the opposite direction — crashes the OAI gNB-CU with a segmentation fault (exit 139, SIGSEGV), reproducing the published bug end-to-end through my own toolchain. Paper claims vs. released artifacts are compared explicitly, and every intermediate artifact (prompts, LLM outputs, refinement logs, elimination funnel, wire bytes) is preserved.
+          </p>
+          <p>
+            <a href="https://zechengli.github.io/ORANSPEC-ZL/" target="_blank">📡 Interactive demo: from 3GPP spec to SIGSEGV</a>
           </p>
         </div>
       </div>
