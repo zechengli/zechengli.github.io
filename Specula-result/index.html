@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Specula × srsRAN · TLA+ model checking the UE L2/L3 stack</title>
+<meta name="description" content="Running Specula on srsRAN Project: RLC AM, PDCP and RRC protocol machinery converted to TLA+ and machine-checked with TLC.">
+<style>
+:root {
+  --bg: #f7f1e8;
+  --card: #fffaf2;
+  --text: #3f2f1f;
+  --muted: #7c6a58;
+  --accent: #b4552d;
+  --border: #e0d2bd;
+  --green: #3e7a4e;
+  --red: #b0392e;
+  --blue: #35618f;
+  --shadow: 0 1px 3px rgba(63,47,31,.08);
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.62;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px 22px 70px; }
+header { border-bottom: 3px double var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+.eyebrow {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--accent); font-weight: bold; margin-bottom: 6px;
+}
+h1 { font-size: 2.2rem; margin: 0 0 10px; line-height: 1.2; }
+h2 { font-size: 1.5rem; margin: 44px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { font-size: 1.12rem; margin: 26px 0 8px; color: var(--accent); }
+p { margin: 10px 0; }
+.lede, .note, .paper-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  margin: 14px 0;
+  width: 100%;
+}
+.note { border-left: 4px solid var(--blue); }
+.note.warn { border-left-color: var(--red); }
+.note.good { border-left-color: var(--green); }
+pre.paper {
+  background: #fbf6ec;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 10px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: #4a3a28;
+}
+.spec-tag {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 2px;
+}
+table { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+th, td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: Verdana, Arial, sans-serif; font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+tr:last-child td { border-bottom: none; }
+td.q { font-family: 'Courier New', Courier, monospace; font-size: .8rem; white-space: pre-wrap; }
+td.verdict { font-family: Verdana, Arial, sans-serif; font-size: .74rem; font-weight: bold;
+  white-space: nowrap; }
+.pass { color: var(--green); }
+.fail { color: var(--red); }
+code {
+  font-family: 'Courier New', Courier, monospace; font-size: .86em;
+  background: #f2e9d8; border-radius: 4px; padding: 1px 5px;
+}
+.badge {
+  font-family: Verdana, Arial, sans-serif; font-size: .68rem; font-weight: bold;
+  letter-spacing: .08em; text-transform: uppercase;
+  border-radius: 99px; padding: 2px 10px; white-space: nowrap;
+}
+.badge.high { background: #f6e3da; color: var(--red); }
+.badge.med { background: #f3ead6; color: #8a6d1f; }
+.badge.low { background: #e8ecdf; color: var(--green); }
+.badge.pending { background: #e5e0d4; color: var(--muted); }
+.kv { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; margin: 14px 0; }
+.kv > div { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: .93rem; }
+.kv > div:nth-last-child(-n+2) { border-bottom: none; }
+.kv .k { font-family: Verdana, Arial, sans-serif; font-size: .72rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+footer { margin-top: 50px; padding-top: 18px; border-top: 3px double var(--border);
+  font-size: .85rem; color: var(--muted); }
+a { color: var(--accent); }
+@media (max-width: 640px) { .kv { grid-template-columns: 1fr; } .kv .k { border-bottom: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Formal methods · Specula × srsRAN Project</div>
+  <h1>TLA<sup>+</sup> model checking the 5G L2/L3 stack</h1>
+  <div class="lede">
+    <p><a href="https://github.com/specula-org/Specula">Specula</a> was pointed at the
+    <a href="https://github.com/srsran/srsRAN_Project">srsRAN Project</a> gNB — the RLC AM, PDCP and RRC
+    protocol machinery that every 5G attachment runs through — and asked to turn its
+    UE-side L2/L3 behavior into TLA<sup>+</sup> and machine-check it with TLC.
+    The code implements the network side of the symmetric peer protocols
+    (3GPP TS&nbsp;38.322 / 38.323 / 38.331), so the gNB entities run the same state machines a UE does.
+    This page follows the full Specula pipeline: source audit, modeling brief, TLA<sup>+</sup> spec
+    generation, and TLC verification of the interleavings no test suite reaches.</p>
+  </div>
+  <div class="kv">
+    <div class="k">Target</div><div>srsRAN Project, release_25_10 (commit <code>d2f4b70</code>, 2025-11-11 — the final upstream <code>main</code> state; repo archived 2026-06)</div>
+    <div class="k">Scope</div><div>RLC AM TX/RX, PDCP TX/RX, RRC per-UE procedures, DU RLF escalation — ~5.5k LOC of core protocol logic (≈8k with containers/glue)</div>
+    <div class="k">Tooling</div><div>Specula (TLA<sup>+</sup> spec generation) · TLC 2026.09.01 model checker · JDK 21</div>
+    <div class="k">Run</div><div><code>specula run --run-id=srsran5g</code>, reasoning effort max, guidance focused on RLC retx accounting, PDCP reordering, RRC procedure terminal states</div>
+  </div>
+</header>
+
+<h2>The pipeline</h2>
+<p>Specula is itself an agentic system: a code-analysis phase reads the target and its history
+and writes a modeling brief; a spec-generation phase turns the brief into TLA<sup>+</sup>;
+a verification phase runs TLC over bounded configs of the model, looking for invariant
+violations the C++ tests never provoke. The phases and what each produced:</p>
+<table>
+  <tr><th>Phase</th><th>What it does</th><th>Output for srsran5g</th><th>Status</th></tr>
+  <tr>
+    <td>1 · Code analysis</td>
+    <td>Structural map, bug archaeology over git history &amp; issue tracker, deep reading of every scoped entity</td>
+    <td>225-line analysis report + 227-line modeling brief; 10 verified findings (F1–F10), 7 model-checkable suspects (MC1–MC7)</td>
+    <td><span class="badge low">done</span></td>
+  </tr>
+  <tr>
+    <td>2 · Spec generation</td>
+    <td>TLA<sup>+</sup> base model + MC config + trace instrumentation from the brief's scenarios</td>
+    <td><code>*.tla</code> modules in the run directory</td>
+    <td><span class="badge pending">in progress</span></td>
+  </tr>
+  <tr>
+    <td>3 · TLC verification</td>
+    <td>Bounded model checking of the invariants; counterexample traces on violation</td>
+    <td>Checker statistics + verdicts per invariant</td>
+    <td><span class="badge pending">pending</span></td>
+  </tr>
+  <tr>
+    <td>4 · Finding confirmation</td>
+    <td>Each counterexample replayed and confirmed against the real C++ semantics, then severity-ranked</td>
+    <td>Confirmed bug report</td>
+    <td><span class="badge pending">pending</span></td>
+  </tr>
+</table>
+
+<h2>What the audit found first: the architecture is not what the spec says</h2>
+<p>Phase 1 spent 1h21m of max-effort reasoning and ~37M tokens reading the stack
+(3,200 commit subjects enumerated, 14 bug-fix patches deep-read, 11 issue threads followed
+to the end). Before any model was written, four load-bearing facts surfaced that any
+faithful model must encode — each one a place where srsRAN deliberately departs from a naive
+reading of 3GPP:</p>
+
+<div class="note">
+<span class="spec-tag">Discovery 1 — RLC AM delivers out of order, on purpose</span>
+An SDU is delivered to PDCP the moment it is fully received; <code>RX_Next</code> never skips an
+unfilled hole. Unit tests assert <em>reverse-order</em> upper delivery. The in-sequence guarantee
+lives one layer up, entirely in PDCP reordering.
+</div>
+<div class="note">
+<span class="spec-tag">Discovery 2 — SRBs configure t-Reordering = infinity</span>
+Signaling radio bearers block forever on a missing PDCP count. No timer recovers an SRB hole;
+liveness rests wholly on RLC AM retransmission and, in the end, the max-retx→RLF escalation chain.
+</div>
+<div class="note">
+<span class="spec-tag">Discovery 3 — PDCP data recovery is discardTimer-gated</span>
+The SDU copy kept for re-establishment retransmission is taken only when a discardTimer is
+configured — an optional DRB parameter. Bearers without it lose all in-flight un-ACKed data
+silently across a rebuild. A genuine spec deviation with silent-loss consequence.
+</div>
+<div class="note warn">
+<span class="spec-tag">Discovery 4 — a proven concurrency race already lives here</span>
+Commit <code>e3ac5a630</code> (2023-03) fixed a TSAN-caught race on the t-StatusProhibit
+running-flag. The lock-free triple-buffer STATUS exchange between RX (ue executor) and TX
+(pcell executor) is exactly the seam formal checking should stress.
+</div>
+
+<h2>The scenarios that went into the model</h2>
+<p>The modeling brief distills the audit into six scenarios; five are high-priority model
+targets, each anchored to a 3GPP question and to concrete commit/issue evidence:</p>
+<table>
+  <tr><th>Scenario</th><th>Mechanism under the microscope</th><th>Q</th><th>Priority</th></tr>
+  <tr>
+    <td>1 · Max-RETX accounting &amp; escalation</td>
+    <td>RETX_COUNT +1/−1 sweeps, threshold checked on <em>exact equality</em>, a stop-everything
+    latch set only at retx <em>completion</em>, and a once-latch adapter that is only reset when its
+    dispatch <em>fails</em>. The chain every permanent in-order hole funnels into.</td>
+    <td>Q2</td><td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td>2 · RX reordering &amp; STATUS under timer races</td>
+    <td>t-Reassembly stop/start vs deferred expiry callbacks; t-StatusProhibit consolidation;
+    the cross-executor triple-buffer; a defer-failure path that latches the running flag even
+    when the defer fails — permanently disabling STATUS on that bearer.</td>
+    <td>Q1/Q5</td><td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td>3 · Internal loss between RLC and PDCP</td>
+    <td>Crypto/UE executor queue-full drops and the TX crypto-reorder hole-skip: PDUs the peer
+    already ACKed vanish inside the node. On an SRB (t-Reordering=∞) nothing ever recovers —
+    no timer, no procedure, no terminal state.</td>
+    <td>Q1</td><td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td>4 · Rebuild, re-establishment &amp; discard coupling</td>
+    <td>Bearer rebuild drops RLC buffers; PDCP compensation is the discardTimer-gated data
+    recovery; the <code>retransmit_id</code> epoch guard defends against stale-SN delivery.</td>
+    <td>Q4</td><td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td>5 · RRC procedure lifecycle &amp; transactions</td>
+    <td>4-slot, 2-bit-TID transaction manager; completions routed by TID with <em>no
+    message-type check</em>; TIDs reused round-robin; RLF release timer (t310+t311) sized to
+    admit re-establishment — three open upstream crash reports (#1395/#1307/#1347) sit in this family.</td>
+    <td>Q3</td><td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td>6 · UM RX spec deviations (reference)</td>
+    <td>Raw non-modular SN comparisons where the AM sister code is modular; bounded, self-correcting,
+    recorded to justify leaving UM out of the model.</td>
+    <td>—</td><td><span class="badge low">low</span></td>
+  </tr>
+</table>
+
+<h2>Invariants the model must uphold</h2>
+<table>
+  <tr><th>Invariant</th><th>Type</th><th>Claim</th></tr>
+  <tr><td class="q">PdcpExactlyOnce</td><td>safety</td><td>No PDCP COUNT is delivered upward more than once — across delivery, expiry, rebuild, re-establishment.</td></tr>
+  <tr><td class="q">PdcpInOrder</td><td>safety</td><td>SDUs release upward in ascending COUNT order when out-of-order delivery is disabled.</td></tr>
+  <tr><td class="q">NoSilentLoss</td><td>safety</td><td>Every accepted SDU ends in exactly one of: delivered, discarded-with-notification, timer-declared-lost, or covered by an RLF→release terminal path.</td></tr>
+  <tr><td class="q">MaxRetxFinality</td><td>safety</td><td>Once an SN hits maxRetxThreshold, no further PDU for that bearer is transmitted and the RLF state moves off idle.</td></tr>
+  <tr><td class="q">RlfTerminality</td><td>liveness</td><td>A RLF-detected UE always reaches a terminal state — never a silent standstill with no timer and no procedure.</td></tr>
+  <tr><td class="q">SrbNoStuck</td><td>liveness</td><td>SRB delivery either progresses or the UE reaches terminal release.</td></tr>
+  <tr><td class="q">StatusLiveness</td><td>liveness</td><td>A persistent RX hole is reported in some transmitted STATUS PDU before it leaves the window.</td></tr>
+  <tr><td class="q">TransactionSoundness</td><td>safety</td><td>A procedure succeeds only on a completion of its own kind and epoch; stale completions never complete a reused TID.</td></tr>
+  <tr><td class="q">TxWindowConsistency</td><td>safety</td><td>TX-window ACK/discard touches only SNs inside <code>[tx_next_ack, tx_next)</code>; the retx queue never references absent slots.</td></tr>
+</table>
+
+<h2>Suspects queued for the checker</h2>
+<p>Seven model-checkable hypotheses (MC1–MC7) came out of the audit, each an unaudited
+interleaving the C++ unit tests don't reach — for example:</p>
+<div class="note warn">
+<span class="spec-tag">MC2 · the silently dead bearer</span>
+Can the max-retx indication be consumed by a <em>failed</em> adapter dispatch (latch reset) while the
+peer stops requesting STATUS — leaving <code>max_retx_reached</code> set, no pulls, no RLF raised,
+no timer running? A bearer that dies without anyone noticing.
+</div>
+<div class="note warn">
+<span class="spec-tag">MC3 · the hidden hole</span>
+Under t-Reassembly expiry racing window advance, multiple prohibited STATUS triggers and report
+truncation — can a persistently missing SN stay inside the RX window yet never appear in any
+transmitted STATUS PDU? The NACK that never leaves the building.
+</div>
+<div class="note warn">
+<span class="spec-tag">MC5 · the unrecoverable SRB hole</span>
+A budgeted internal drop creates a PDCP hole on an SRB with t-Reordering=∞: no timer recovers
+it, and no RLF is ever reached. The starkest composition: the data-plane twin of Q3.
+</div>
+<p>The full set, with test-verifiable (TV1–TV6) and code-review (CR1–CR6) companions, lives in the
+modeling brief. Six TV items are directly unit-testable — including TV1 (the STATUS disable on
+defer failure) and TV5 (silent end-to-end SDU loss at re-establishment without discardTimer).</p>
+
+<h2>TLA<sup>+</sup> model &amp; TLC results</h2>
+<div class="paper-box">
+<p><em>This section fills in when the verification phases complete: the generated spec modules,
+the bounded MC configuration, per-invariant TLC verdicts, state-space statistics, and every
+counterexample trace confirmed or refuted against the real C++ semantics.</em></p>
+<p>Check back after run <code>srsran5g</code> finishes; the run summary, checker logs and
+confirmed-bug report will be published here verbatim.</p>
+</div>
+
+<h2>Reproducibility</h2>
+<div class="kv">
+  <div class="k">Specula</div><div>github.com/specula-org/Specula, commit <code>c6aa3df</code> (arXiv 2607.25333)</div>
+  <div class="k">Target</div><div>github.com/srsran/srsRAN_Project, commit <code>d2f4b70</code> (snapshot; live checkout untouched)</div>
+  <div class="k">Checker</div><div>TLC 2026.09.01, bounded model checking, auto memory limit</div>
+  <div class="k">Run id</div><div><code>srsran5g</code> — resumable; phases 2–4 land in this page as they complete</div>
+</div>
+
+<footer>
+Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01.
+First srsRAN case study in the Specula corpus (prior-art tree searched: no earlier entry).
+Phase-1 evidence: every finding cited line numbers were personally re-read, not taken from a subagent.
+</footer>
+
+</div>
+</body>
+</html>
