@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Timed Automata 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/uta-1_1.dtd'>
+<nta>
+  <declaration>// Uplink RLC Acknowledged Mode, abstracted for model checking.
+// TS 38.322 clauses modelled:
+//   5.2.3.2.2  discard duplicates / out-of-window PDUs
+//   5.2.3.2.3  reception buffer, in-order delivery, t-Reassembly start/stop
+//   5.2.3.2.4  t-Reassembly expiry -> STATUS, timer restart
+//   5.3.2      retransmission; RETX_COUNT = maxRetxThreshold -> upper layers
+//   5.3.3.2-4  poll on every AMD PDU; t-PollRetransmit restart/stop/expiry
+//   5.3.4      STATUS reporting under t-StatusProhibit
+// Abstractions (documented on the site):
+//   - 3 SDUs (SN 0..2) delivered by upper layer at t=0; send window of 2
+//   - pollPDU = 1, so every AMD PDU carries a poll (P field = 1)
+//   - air interface = nondeterministic loss with a finite budget each way
+//   - STATUS abstracted to (ACK up to rx_next, NACK hole if any)
+
+const int NUM_SDU = 3;
+const int MAX_RETX = 2;
+const int T_POLL = 3;
+const int T_REASM = 3;
+const int T_STATP = 2;
+const int DL_BUDGET = 3;
+const int UL_BUDGET = 2;
+
+int dl_budget = DL_BUDGET;
+int ul_budget = UL_BUDGET;
+
+// AMD PDU in flight (UE -> gNB)
+int sn_send = 0;
+
+// STATUS PDU in flight (gNB -> UE); SNs &lt; status_ack are acked
+int status_ack = 0;
+int status_nack = -1;
+
+int sn_recv = 0;
+
+// AM Tx state variables (38.322 clause 7.1)
+int tx_next = 0;
+int tx_ack = 0;
+int retx_count = 0;
+
+// AM Rx state variables (38.322 clause 7.1)
+int rx_next = 0;
+int rx_highest = 0;
+int have_gap = 0;
+int hole = -1;
+int dl0 = 0;
+int dl1 = 0;
+int dl2 = 0;
+int status_wanted = 0;
+
+clock tpoll;
+clock treasm;
+clock tstatus;
+
+chan data;
+chan rcv;
+chan ul_status;
+chan status;</declaration>
+  <template>
+    <name x="0" y="0">Tx</name>
+    <location id="t0" x="0" y="0">
+      <name x="-10" y="-34">T_Idle</name>
+      <urgent/>
+    </location>
+    <location id="t1" x="170" y="0">
+      <name x="160" y="-34">T_Wait</name>
+      <label kind="invariant" x="160" y="-12">tpoll &lt;= T_POLL</label>
+    </location>
+    <location id="t4" x="255" y="-90">
+      <name x="245" y="-124">T_Retx</name>
+      <committed/>
+    </location>
+    <location id="t2" x="340" y="0">
+      <name x="330" y="-34">T_Done</name>
+    </location>
+    <location id="t3" x="170" y="130">
+      <name x="160" y="96">T_RLF</name>
+    </location>
+    <init ref="t0"/>
+    <transition>
+      <source ref="t0"/>
+      <target ref="t1"/>
+      <label kind="guard" x="30" y="-40">tx_next &lt; NUM_SDU</label>
+      <label kind="comment" x="30" y="-20">submit first AMD PDU with poll (5.3.3.2)</label>
+      <label kind="synchronisation" x="30" y="0">data!</label>
+      <label kind="assignment" x="30" y="20">sn_send = tx_next, tx_next = tx_next + 1, tpoll = 0</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="200" y="-70">tx_next &lt; NUM_SDU &amp;&amp; tx_next - tx_ack &lt; 2</label>
+      <label kind="comment" x="200" y="-50">window allows the next new PDU, with poll</label>
+      <label kind="synchronisation" x="200" y="-30">data!</label>
+      <label kind="assignment" x="200" y="-10">sn_send = tx_next, tx_next = tx_next + 1, tpoll = 0</label>
+      <nail x="230" y="-70"/>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="40" y="60">tpoll == T_POLL &amp;&amp; tx_ack &lt; tx_next &amp;&amp; retx_count + 1 &lt; MAX_RETX</label>
+      <label kind="comment" x="40" y="80">t-PollRetransmit expiry (5.3.3.4): RETX_COUNT++ (5.3.2), retransmit lowest unacked outstanding PDU</label>
+      <label kind="synchronisation" x="40" y="100">data!</label>
+      <label kind="assignment" x="40" y="120">sn_send = tx_ack, retx_count = retx_count + 1, tpoll = 0</label>
+      <nail x="70" y="60"/>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t3"/>
+      <label kind="guard" x="40" y="160">tpoll == T_POLL &amp;&amp; tx_ack &lt; tx_next &amp;&amp; retx_count + 1 &gt;= MAX_RETX</label>
+      <label kind="comment" x="40" y="180">RETX_COUNT = maxRetxThreshold even on poll-driven retransmission: give up and indicate to upper layers (5.3.2)</label>
+      <label kind="assignment" x="40" y="200">retx_count = retx_count + 1</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t4"/>
+      <label kind="guard" x="150" y="-130">status_nack &gt;= 0 &amp;&amp; retx_count + 1 &lt; MAX_RETX</label>
+      <label kind="comment" x="150" y="-110">NACK for the hole: RETX_COUNT++ then retransmit (5.3.2)</label>
+      <label kind="synchronisation" x="150" y="-90">status?</label>
+      <label kind="assignment" x="150" y="-70">retx_count = retx_count + 1, sn_send = status_nack, tpoll = 0</label>
+    </transition>
+    <transition>
+      <source ref="t4"/>
+      <target ref="t1"/>
+      <label kind="synchronisation" x="240" y="-70">data!</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t3"/>
+      <label kind="guard" x="190" y="110">status_nack &gt;= 0 &amp;&amp; retx_count + 1 &gt;= MAX_RETX</label>
+      <label kind="comment" x="190" y="130">RETX_COUNT = maxRetxThreshold: indicate to upper layers (5.3.2)</label>
+      <label kind="synchronisation" x="190" y="150">status?</label>
+      <label kind="assignment" x="190" y="170">retx_count = retx_count + 1</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t2"/>
+      <label kind="guard" x="250" y="20">status_nack &lt; 0 &amp;&amp; status_ack == NUM_SDU</label>
+      <label kind="comment" x="250" y="40">STATUS acks everything: stop t-PollRetransmit (5.3.3.3)</label>
+      <label kind="synchronisation" x="250" y="60">status?</label>
+      <label kind="assignment" x="250" y="80">tx_ack = status_ack</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="320" y="-140">status_nack &lt; 0 &amp;&amp; status_ack &gt; tx_ack &amp;&amp; status_ack &lt; NUM_SDU</label>
+      <label kind="synchronisation" x="320" y="-120">status?</label>
+      <label kind="assignment" x="320" y="-100">tx_ack = status_ack, tpoll = 0</label>
+      <nail x="350" y="-140"/>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="120" y="170">status_nack &lt; 0 &amp;&amp; status_ack == tx_ack</label>
+      <label kind="comment" x="120" y="190">STATUS carries nothing new: ignore</label>
+      <label kind="synchronisation" x="120" y="210">status?</label>
+      <nail x="150" y="170"/>
+    </transition>
+    <transition>
+      <source ref="t2"/>
+      <target ref="t2"/>
+      <label kind="synchronisation" x="370" y="40">status?</label>
+      <label kind="comment" x="370" y="60">absorb late STATUS after completion</label>
+      <nail x="370" y="40"/>
+    </transition>
+    <transition>
+      <source ref="t3"/>
+      <target ref="t3"/>
+      <label kind="synchronisation" x="200" y="210">status?</label>
+      <label kind="comment" x="200" y="230">absorb STATUS after max-retx indication</label>
+      <nail x="200" y="210"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Rx</name>
+    <location id="r0" x="0" y="0">
+      <name x="-10" y="-34">R_Wait</name>
+    </location>
+    <location id="r1" x="170" y="0">
+      <name x="160" y="-34">R_GapWait</name>
+      <label kind="invariant" x="160" y="-12">treasm &lt;= T_REASM</label>
+    </location>
+    <init ref="r0"/>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="-110">sn_recv == 0 &amp;&amp; rx_next == 0</label>
+      <label kind="comment" x="30" y="-90">in-order: deliver SN0 (5.2.3.2.3)</label>
+      <label kind="synchronisation" x="30" y="-70">rcv?</label>
+      <label kind="assignment" x="30" y="-50">dl0 = dl0 + 1, rx_next = 1, status_wanted = 1</label>
+      <nail x="60" y="-110"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="-170">sn_recv == 1 &amp;&amp; rx_next == 1</label>
+      <label kind="comment" x="30" y="-150">in-order: deliver SN1</label>
+      <label kind="synchronisation" x="30" y="-130">rcv?</label>
+      <label kind="assignment" x="30" y="-110">dl1 = dl1 + 1, rx_next = 2, status_wanted = 1</label>
+      <nail x="60" y="-170"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="-230">sn_recv == 2 &amp;&amp; rx_next == 2</label>
+      <label kind="comment" x="30" y="-210">in-order: deliver SN2</label>
+      <label kind="synchronisation" x="30" y="-190">rcv?</label>
+      <label kind="assignment" x="30" y="-170">dl2 = dl2 + 1, rx_next = 3, status_wanted = 1</label>
+      <nail x="60" y="-230"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r1"/>
+      <label kind="guard" x="30" y="40">sn_recv == 1 &amp;&amp; rx_next == 0</label>
+      <label kind="comment" x="30" y="60">gap: buffer SN1, start t-Reassembly (5.2.3.2.3)</label>
+      <label kind="synchronisation" x="30" y="80">rcv?</label>
+      <label kind="assignment" x="30" y="100">have_gap = 1, hole = 0, rx_highest = 2, treasm = 0, status_wanted = 1</label>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r1"/>
+      <label kind="guard" x="30" y="150">sn_recv == 2 &amp;&amp; rx_next == 1</label>
+      <label kind="comment" x="30" y="170">gap: buffer SN2, start t-Reassembly</label>
+      <label kind="synchronisation" x="30" y="190">rcv?</label>
+      <label kind="assignment" x="30" y="210">have_gap = 1, hole = 1, rx_highest = 3, treasm = 0, status_wanted = 1</label>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="270">sn_recv &lt; rx_next</label>
+      <label kind="comment" x="30" y="290">duplicate: discard (5.2.3.2.2), poll still requests STATUS</label>
+      <label kind="synchronisation" x="30" y="310">rcv?</label>
+      <label kind="assignment" x="30" y="330">status_wanted = 1</label>
+      <nail x="60" y="270"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="380">sn_recv == 2 &amp;&amp; rx_next == 0</label>
+      <label kind="comment" x="30" y="400">outside expected window: discard</label>
+      <label kind="synchronisation" x="30" y="420">rcv?</label>
+      <label kind="assignment" x="30" y="440">status_wanted = 1</label>
+      <nail x="60" y="380"/>
+    </transition>
+    <transition>
+      <source ref="r1"/>
+      <target ref="r0"/>
+      <label kind="guard" x="200" y="40">sn_recv == 0 &amp;&amp; have_gap == 1 &amp;&amp; hole == 0</label>
+      <label kind="comment" x="200" y="60">hole filled: deliver SN0 + buffered SN1, stop t-Reassembly</label>
+      <label kind="synchronisation" x="200" y="80">rcv?</label>
+      <label kind="assignment" x="200" y="100">dl0 = dl0 + 1, dl1 = dl1 + 1, rx_next = 2, have_gap = 0, status_wanted = 1</label>
+    </transition>
+    <transition>
+      <source ref="r1"/>
+      <target ref="r0"/>
+      <label kind="guard" x="200" y="160">sn_recv == 1 &amp;&amp; have_gap == 1 &amp;&amp; hole == 1</label>
+      <label kind="comment" x="200" y="180">hole filled: deliver SN1 + buffered SN2</label>
+      <label kind="synchronisation" x="200" y="200">rcv?</label>
+      <label kind="assignment" x="200" y="220">dl1 = dl1 + 1, dl2 = dl2 + 1, rx_next = 3, have_gap = 0, status_wanted = 1</label>
+    </transition>
+    <transition>
+      <source ref="r1"/>
+      <target ref="r1"/>
+      <label kind="guard" x="220" y="280">sn_recv == hole + 1</label>
+      <label kind="comment" x="220" y="300">duplicate of the buffered PDU: discard</label>
+      <label kind="synchronisation" x="220" y="320">rcv?</label>
+      <label kind="assignment" x="220" y="340">status_wanted = 1</label>
+      <nail x="250" y="280"/>
+    </transition>
+    <transition>
+      <source ref="r1"/>
+      <target ref="r1"/>
+      <label kind="guard" x="220" y="390">sn_recv &lt; rx_next</label>
+      <label kind="synchronisation" x="220" y="410">rcv?</label>
+      <label kind="assignment" x="220" y="430">status_wanted = 1</label>
+      <nail x="250" y="390"/>
+    </transition>
+    <transition>
+      <source ref="r1"/>
+      <target ref="r1"/>
+      <label kind="guard" x="220" y="460">treasm == T_REASM</label>
+      <label kind="comment" x="220" y="480">t-Reassembly expiry (5.2.3.2.4): request STATUS, restart</label>
+      <label kind="assignment" x="220" y="500">status_wanted = 1, treasm = 0</label>
+      <nail x="250" y="460"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">RxStatus</name>
+    <location id="s0" x="0" y="0">
+      <name x="-10" y="-34">S_Free</name>
+    </location>
+    <location id="s1" x="170" y="0">
+      <name x="160" y="-34">S_Wait</name>
+      <label kind="invariant" x="160" y="-12">tstatus &lt;= T_STATP</label>
+    </location>
+    <init ref="s0"/>
+    <transition>
+      <source ref="s0"/>
+      <target ref="s1"/>
+      <label kind="guard" x="30" y="-60">status_wanted == 1 &amp;&amp; have_gap == 1</label>
+      <label kind="comment" x="30" y="-40">send STATUS: ACK up to rx_next, NACK the hole (5.3.4)</label>
+      <label kind="synchronisation" x="30" y="-20">ul_status!</label>
+      <label kind="assignment" x="30" y="0">status_ack = rx_next, status_nack = hole, status_wanted = 0, tstatus = 0</label>
+    </transition>
+    <transition>
+      <source ref="s0"/>
+      <target ref="s1"/>
+      <label kind="guard" x="30" y="60">status_wanted == 1 &amp;&amp; have_gap == 0</label>
+      <label kind="comment" x="30" y="80">send pure-ACK STATUS</label>
+      <label kind="synchronisation" x="30" y="100">ul_status!</label>
+      <label kind="assignment" x="30" y="120">status_ack = rx_next, status_nack = -1, status_wanted = 0, tstatus = 0</label>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s1"/>
+      <label kind="guard" x="200" y="-60">tstatus == T_STATP &amp;&amp; status_wanted == 1 &amp;&amp; have_gap == 1</label>
+      <label kind="comment" x="200" y="-40">first opportunity after t-StatusProhibit expiry</label>
+      <label kind="synchronisation" x="200" y="-20">ul_status!</label>
+      <label kind="assignment" x="200" y="0">status_ack = rx_next, status_nack = hole, status_wanted = 0, tstatus = 0</label>
+      <nail x="230" y="-60"/>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s1"/>
+      <label kind="guard" x="200" y="60">tstatus == T_STATP &amp;&amp; status_wanted == 1 &amp;&amp; have_gap == 0</label>
+      <label kind="synchronisation" x="200" y="80">ul_status!</label>
+      <label kind="assignment" x="200" y="100">status_ack = rx_next, status_nack = -1, status_wanted = 0, tstatus = 0</label>
+      <nail x="230" y="60"/>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s0"/>
+      <label kind="guard" x="200" y="160">tstatus == T_STATP &amp;&amp; status_wanted == 0</label>
+      <label kind="comment" x="200" y="180">t-StatusProhibit expiry, nothing pending</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Air</name>
+    <location id="a0" x="0" y="0">
+      <name x="-10" y="-34">A_Idle</name>
+    </location>
+    <location id="a1" x="170" y="0">
+      <name x="160" y="-34">A_HoldD</name>
+      <committed/>
+    </location>
+    <location id="a2" x="340" y="0">
+      <name x="330" y="-34">A_HoldU</name>
+      <committed/>
+    </location>
+    <init ref="a0"/>
+    <transition>
+      <source ref="a0"/>
+      <target ref="a1"/>
+      <label kind="synchronisation" x="30" y="-20">data?</label>
+    </transition>
+    <transition>
+      <source ref="a1"/>
+      <target ref="a0"/>
+      <label kind="synchronisation" x="200" y="-40">rcv!</label>
+      <label kind="assignment" x="200" y="-20">sn_recv = sn_send</label>
+    </transition>
+    <transition>
+      <source ref="a1"/>
+      <target ref="a0"/>
+      <label kind="guard" x="200" y="20">dl_budget &gt; 0</label>
+      <label kind="comment" x="200" y="40">the air swallows the AMD PDU</label>
+      <label kind="assignment" x="200" y="60">dl_budget = dl_budget - 1</label>
+    </transition>
+    <transition>
+      <source ref="a0"/>
+      <target ref="a2"/>
+      <label kind="synchronisation" x="30" y="60">ul_status?</label>
+    </transition>
+    <transition>
+      <source ref="a2"/>
+      <target ref="a0"/>
+      <label kind="synchronisation" x="200" y="60">status!</label>
+    </transition>
+    <transition>
+      <source ref="a2"/>
+      <target ref="a0"/>
+      <label kind="guard" x="200" y="100">ul_budget &gt; 0</label>
+      <label kind="assignment" x="200" y="120">ul_budget = ul_budget - 1</label>
+    </transition>
+  </template>
+  <system>Tx = Tx();
+Rx = Rx();
+RxStatus = RxStatus();
+Air = Air();
+system Tx, Rx, RxStatus, Air;</system>
+  <queries>
+    <query>
+      <formula>A[] not deadlock</formula>
+      <comment>the protocol never gets stuck</comment>
+    </query>
+    <query>
+      <formula>A[] dl0 &lt;= 1 &amp;&amp; dl1 &lt;= 1 &amp;&amp; dl2 &lt;= 1</formula>
+      <comment>every SDU is delivered to upper layer at most once</comment>
+    </query>
+    <query>
+      <formula>A[] rx_next &lt;= tx_next</formula>
+      <comment>receiver never advances past what was transmitted</comment>
+    </query>
+    <query>
+      <formula>A[] tx_ack &lt;= rx_next</formula>
+      <comment>transmitter never acks past what the receiver actually has</comment>
+    </query>
+    <query>
+      <formula>A[] retx_count &lt;= MAX_RETX</formula>
+      <comment>RETX_COUNT respects maxRetxThreshold</comment>
+    </query>
+    <query>
+      <formula>A[] not Tx.T_Wait or tx_ack &lt; NUM_SDU</formula>
+      <comment>the transmitter only waits while something is unacked</comment>
+    </query>
+    <query>
+      <formula>A[] have_gap == 0 or rx_next &lt; rx_highest</formula>
+      <comment>a gap is always a real hole below the buffered PDU</comment>
+    </query>
+    <query>
+      <formula>A&lt;&gt; Tx.T_Done or Tx.T_RLF</formula>
+      <comment>under bounded loss the AM entity always reaches an outcome</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; Tx.T_Done</formula>
+      <comment>a lossless run delivers every SDU</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; Tx.T_RLF</formula>
+      <comment>the maxRetx indication to upper layers is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; have_gap == 1</formula>
+      <comment>out-of-order buffering with t-Reassembly is reachable</comment>
+    </query>
+  </queries>
+</nta>

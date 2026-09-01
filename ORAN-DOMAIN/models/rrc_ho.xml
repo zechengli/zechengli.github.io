@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Timed Automata 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/uta-1_1.dtd'>
+<nta>
+  <declaration>// NR RRC intra-NR handover (reconfiguration with sync), TS 38.331.
+// Clauses modelled:
+//   5.3.5.5.2  RRCReconfiguration with reconfigurationWithSync received:
+//              if AS security is not activated, go to RRC_IDLE ('other');
+//              else stop T310, start T304, sync to the target SpCell
+//   5.3.5.8.3  T304 expiry = reconfiguration with sync failure:
+//              revert to the source PCell configuration, store the
+//              handover failure information in VarRLF-Report, initiate
+//              connection re-establishment as specified in 5.3.7
+//   5.3.7.2-7  re-establishment chain: T311 / cell selection / T301 /
+//              RRCReestablishmentRequest / RRCReestablishment or idle
+//   5.3.7.4    re-establishment initiated due to reconfiguration with sync
+//              failure -> reestablishmentCause = handoverFailure,
+//              c-RNTI and physCellId of the source PCell
+// Abstractions (documented on the site):
+//   - AS security is activated, so the reconfigurationWithSync is accepted
+//     (the spec's not-activated branch is kept as a guarded, disabled edge)
+//   - random access to the target either succeeds within T304 or the
+//     timer expires; the target's response is nondeterministic
+//   - the source gNB commands the handover at t=0 (forced first event)
+
+const int T304 = 4;
+const int T311 = 5;
+const int T301 = 3;
+const int SEC_ACTIVATED = 1;
+const int RA_BUDGET = 1;
+const int CELL_BUDGET = 1;
+
+int ra_left = RA_BUDGET;
+int cell_left = CELL_BUDGET;
+
+// handover outcome bookkeeping
+int ho_completed = 0;
+int hf_report = 0;
+int reest_ok = 0;
+int went_idle = 0;
+
+clock t304;
+clock t311;
+clock t301;
+
+chan ho_cmd;
+chan ra_success;
+chan cell_found;
+chan rr_ok;
+chan rr_reject;</declaration>
+  <template>
+    <name x="0" y="0">UE</name>
+    <location id="u0" x="0" y="0">
+      <name x="-10" y="-34">C_src</name>
+      <label kind="comment" x="-10" y="14">connected on the source PCell</label>
+    </location>
+    <location id="u1" x="170" y="0">
+      <name x="160" y="-34">HO_Exec</name>
+      <label kind="invariant" x="160" y="-12">t304 &lt;= T304</label>
+      <label kind="comment" x="160" y="14">T304 running: syncing and random-accessing the target (5.3.5.5.2)</label>
+    </location>
+    <location id="u2" x="340" y="-40">
+      <name x="330" y="-74">C_tgt</name>
+      <label kind="comment" x="330" y="14">random access succeeded: connected on the target</label>
+    </location>
+    <location id="u3" x="340" y="60">
+      <name x="330" y="94">HO_Fail</name>
+      <committed/>
+      <label kind="comment" x="330" y="130">T304 expired: reconfiguration with sync failure (5.3.5.8.3)</label>
+    </location>
+    <location id="u4" x="510" y="60">
+      <name x="500" y="26">RES</name>
+      <label kind="invariant" x="500" y="82">t311 &lt;= T311</label>
+      <label kind="comment" x="500" y="110">re-establishment: T311 running, cell selection (5.3.7.2)</label>
+    </location>
+    <location id="u5" x="680" y="60">
+      <name x="670" y="26">REQ</name>
+      <label kind="invariant" x="670" y="82">t301 &lt;= T301</label>
+      <label kind="comment" x="670" y="110">T301 running, RRCReestablishmentRequest sent with cause handoverFailure (5.3.7.3-4)</label>
+    </location>
+    <location id="u6" x="850" y="20">
+      <name x="840" y="-14">REEST</name>
+      <label kind="comment" x="840" y="54">RRCReestablishment received (5.3.7.5)</label>
+    </location>
+    <location id="u7" x="850" y="110">
+      <name x="840" y="144">IDLE</name>
+      <label kind="comment" x="840" y="180">RRC_IDLE after failed re-establishment</label>
+    </location>
+    <init ref="u0"/>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u1"/>
+      <label kind="guard" x="60" y="-60">SEC_ACTIVATED == 1</label>
+      <label kind="comment" x="60" y="-40">reconfigurationWithSync: stop T310, start T304, sync to target (5.3.5.5.2)</label>
+      <label kind="synchronisation" x="60" y="-20">ho_cmd?</label>
+      <label kind="assignment" x="60" y="0">t304 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u7"/>
+      <label kind="guard" x="60" y="120">SEC_ACTIVATED == 0</label>
+      <label kind="comment" x="60" y="140">AS security not activated: go to RRC_IDLE, release cause 'other' (5.3.5.5.2)</label>
+      <label kind="synchronisation" x="60" y="160">ho_cmd?</label>
+      <label kind="assignment" x="60" y="180">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u2"/>
+      <label kind="comment" x="200" y="-60">random access to the target succeeds: stop T304, handover complete</label>
+      <label kind="synchronisation" x="200" y="-40">ra_success?</label>
+      <label kind="assignment" x="200" y="-20">ho_completed = 1</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u3"/>
+      <label kind="guard" x="240" y="60">t304 == T304</label>
+      <label kind="comment" x="240" y="80">T304 expiry = reconfiguration with sync failure (5.3.5.8.3)</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u4"/>
+      <label kind="comment" x="360" y="60">revert to the source configuration, store handover failure in VarRLF-Report,</label>
+      <label kind="comment" x="360" y="80">initiate re-establishment: start T311 (5.3.5.8.3 / 5.3.7.2)</label>
+      <label kind="assignment" x="360" y="100">hf_report = 1, t311 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u4"/>
+      <target ref="u5"/>
+      <label kind="comment" x="530" y="30">suitable cell found: stop T311, start T301, send RRCReestablishmentRequest (5.3.7.3)</label>
+      <label kind="synchronisation" x="530" y="50">cell_found?</label>
+      <label kind="assignment" x="530" y="70">t301 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u4"/>
+      <target ref="u7"/>
+      <label kind="guard" x="560" y="120">t311 == T311</label>
+      <label kind="comment" x="560" y="140">T311 expiry: go to RRC_IDLE (5.3.7.6)</label>
+      <label kind="assignment" x="560" y="160">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u5"/>
+      <target ref="u6"/>
+      <label kind="comment" x="700" y="0">RRCReestablishment received: stop T301 (5.3.7.5)</label>
+      <label kind="synchronisation" x="700" y="20">rr_ok?</label>
+      <label kind="assignment" x="700" y="40">reest_ok = 1</label>
+    </transition>
+    <transition>
+      <source ref="u5"/>
+      <target ref="u7"/>
+      <label kind="comment" x="730" y="90">RRCReestablishmentReject: go to RRC_IDLE</label>
+      <label kind="synchronisation" x="730" y="110">rr_reject?</label>
+      <label kind="assignment" x="730" y="130">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u5"/>
+      <target ref="u7"/>
+      <label kind="guard" x="730" y="160">t301 == T301</label>
+      <label kind="comment" x="730" y="180">T301 expiry: go to RRC_IDLE (5.3.7.7)</label>
+      <label kind="assignment" x="730" y="200">went_idle = 1</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Src</name>
+    <location id="s0" x="0" y="0">
+      <name x="-10" y="-34">Boot</name>
+      <urgent/>
+    </location>
+    <location id="s1" x="170" y="0">
+      <name x="160" y="-34">Done</name>
+    </location>
+    <init ref="s0"/>
+    <transition>
+      <source ref="s0"/>
+      <target ref="s1"/>
+      <label kind="comment" x="30" y="-30">the source gNB commands the handover at t=0</label>
+      <label kind="synchronisation" x="30" y="-10">ho_cmd!</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Tgt</name>
+    <location id="g0" x="0" y="0">
+      <name x="-10" y="-34">Wait</name>
+    </location>
+    <init ref="g0"/>
+    <transition>
+      <source ref="g0"/>
+      <target ref="g0"/>
+      <label kind="guard" x="30" y="-60">ra_left &gt; 0</label>
+      <label kind="comment" x="30" y="-40">the target answers the random access</label>
+      <label kind="synchronisation" x="30" y="-20">ra_success!</label>
+      <label kind="assignment" x="30" y="0">ra_left = ra_left - 1</label>
+      <nail x="60" y="-60"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Net</name>
+    <location id="n0" x="0" y="0">
+      <name x="-10" y="-34">Wait</name>
+    </location>
+    <init ref="n0"/>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="-30">cell_left &gt; 0</label>
+      <label kind="comment" x="30" y="-10">a suitable cell is found during cell selection</label>
+      <label kind="synchronisation" x="30" y="10">cell_found!</label>
+      <label kind="assignment" x="30" y="30">cell_left = cell_left - 1</label>
+      <nail x="60" y="-30"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="80">cell_left == 0</label>
+      <label kind="comment" x="30" y="100">the network accepts the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="120">rr_ok!</label>
+      <nail x="60" y="80"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="150">cell_left == 0</label>
+      <label kind="comment" x="30" y="170">the network rejects the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="190">rr_reject!</label>
+      <nail x="60" y="150"/>
+    </transition>
+  </template>
+  <system>UE = UE();
+Src = Src();
+Tgt = Tgt();
+Net = Net();
+system UE, Src, Tgt, Net;</system>
+  <queries>
+    <query>
+      <formula>A[] not deadlock</formula>
+      <comment>the handover machinery never gets stuck</comment>
+    </query>
+    <query>
+      <formula>A[] not (ho_completed == 1 &amp;&amp; hf_report == 1)</formula>
+      <comment>the T304 race has at most one outcome: success or failure</comment>
+    </query>
+    <query>
+      <formula>A[] (UE.REQ imply hf_report == 1)</formula>
+      <comment>RRCReestablishmentRequest is only sent after the handover failure is stored in VarRLF-Report, and carries cause handoverFailure (5.3.7.4)</comment>
+    </query>
+    <query>
+      <formula>A[] (hf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))</formula>
+      <comment>after a failed handover the UE is inside the re-establishment chain</comment>
+    </query>
+    <query>
+      <formula>A&lt;&gt; (UE.C_tgt or UE.REEST or UE.IDLE)</formula>
+      <comment>every handover attempt ends in a terminal outcome: connected on target, re-established, or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>UE.HO_Exec --&gt; (UE.C_tgt or hf_report == 1)</formula>
+      <comment>T304 always resolves: the target is reached or the sync failure is declared</comment>
+    </query>
+    <query>
+      <formula>hf_report == 1 --&gt; (UE.REEST or UE.IDLE)</formula>
+      <comment>every declared handover failure ends in re-establishment or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>UE.RES --&gt; (UE.REQ or UE.IDLE)</formula>
+      <comment>T311 always resolves: a cell is found and T301 starts, or the UE goes idle</comment>
+    </query>
+    <query>
+      <formula>UE.REQ --&gt; (UE.REEST or UE.IDLE)</formula>
+      <comment>T301 always resolves: re-established or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; UE.C_tgt</formula>
+      <comment>a successful handover within T304 is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; hf_report == 1</formula>
+      <comment>T304 expiry with the failure stored in VarRLF-Report is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; UE.REEST</formula>
+      <comment>recovery by re-establishment after a failed handover is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; UE.IDLE</formula>
+      <comment>ending in RRC_IDLE is reachable</comment>
+    </query>
+  </queries>
+</nta>

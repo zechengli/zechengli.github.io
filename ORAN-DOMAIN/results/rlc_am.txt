@@ -1,0 +1,17 @@
+model: models/rlc_am.xml
+processes: Tx, Rx, RxStatus, Air   clocks: 3 (tpoll, treasm, tstatus)
+zone-graph states: 13369
+  PASS  A[]  A[] not deadlock    (the protocol never gets stuck)
+  PASS  A[]  A[] dl0 <= 1 && dl1 <= 1 && dl2 <= 1    (every SDU is delivered to upper layer at most once)
+  PASS  A[]  A[] rx_next <= tx_next    (receiver never advances past what was transmitted)
+  PASS  A[]  A[] tx_ack <= rx_next    (transmitter never acks past what the receiver actually has)
+  PASS  A[]  A[] retx_count <= MAX_RETX    (RETX_COUNT respects maxRetxThreshold)
+  PASS  A[]  A[] not Tx.T_Wait or tx_ack < NUM_SDU    (the transmitter only waits while something is unacked)
+  PASS  A[]  A[] have_gap == 0 or rx_next < rx_highest    (a gap is always a real hole below the buffered PDU)
+  PASS  A<>  A<> Tx.T_Done or Tx.T_RLF    (under bounded loss the AM entity always reaches an outcome)
+  PASS  E<>  E<> Tx.T_Done    (a lossless run delivers every SDU)
+        witness: [Tx.T_Done, Rx.R_Wait, RxStatus.S_Wait, Air.A_Idle] dl_budget=3, ul_budget=2, sn_send=1, status_ack=3, status_nack=-1, sn_recv=1, tx_next=3, tx_ack=3, retx_count=1, rx_next=3, rx_highest=0, have_gap=0, hole=-1, dl0=1, dl1=1, dl2=1, status_wanted=0
+  PASS  E<>  E<> Tx.T_RLF    (the maxRetx indication to upper layers is reachable)
+        witness: [Tx.T_RLF, Rx.R_Wait, RxStatus.S_Free, Air.A_Idle] dl_budget=3, ul_budget=2, sn_send=0, status_ack=0, status_nack=-1, sn_recv=0, tx_next=1, tx_ack=0, retx_count=2, rx_next=1, rx_highest=0, have_gap=0, hole=-1, dl0=1, dl1=0, dl2=0, status_wanted=1
+  PASS  E<>  E<> have_gap == 1    (out-of-order buffering with t-Reassembly is reachable)
+        witness: [Tx.T_Wait, Rx.R_GapWait, RxStatus.S_Free, Air.A_Idle] dl_budget=2, ul_budget=2, sn_send=1, status_ack=1, status_nack=-1, sn_recv=1, tx_next=3, tx_ack=1, retx_count=1, rx_next=1, rx_highest=3, have_gap=1, hole=1, dl0=1, dl1=0, dl2=0, status_wanted=1

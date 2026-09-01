@@ -1,0 +1,25 @@
+model: models/rrc_rlf.xml
+processes: UE, L1, Net   clocks: 3 (t310, t311, t301)
+zone-graph states: 8363
+  PASS  A[]  A[] not deadlock    (the RRC machinery never gets stuck)
+  PASS  A[]  A[] n310 <= N310 && n311 <= N311    (counters never exceed their thresholds)
+  PASS  A[]  A[] not (exp310 == 1 && rec310 == 1)    (each T310 episode has at most one outcome: expiry or recovery)
+  PASS  A[]  A[] (UE.REQ imply rlf_report == 1)    (RRCReestablishmentRequest is only sent after VarRLF-Report is stored (5.3.7.4))
+  PASS  A[]  A[] (UE.REQ imply rlf_cause > 0)    (the request is only sent after a concrete RLF trigger, and 5.3.7.4 maps it to reestablishmentCause = otherFailure)
+  PASS  A[]  A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.RECONN or UE.IDLE))    (once RLF is declared the UE is inside the re-establishment chain)
+  PASS  -->  UE.P --> (rec310 == 1 or rlf_report == 1)    (every T310 episode resolves: N311 in-syncs recover the link, or RLF is declared)
+  PASS  -->  rlf_report == 1 --> (UE.RECONN or UE.IDLE)    (every declared RLF ends in re-establishment or RRC_IDLE)
+  PASS  -->  UE.RES --> (UE.REQ or UE.IDLE)    (T311 always resolves: a cell is found and T301 starts, or the UE goes idle)
+  PASS  -->  UE.REQ --> (UE.RECONN or UE.IDLE)    (T301 always resolves: re-established or RRC_IDLE)
+  PASS  E<>  E<> rec310 == 1    (link recovery via N311 consecutive in-syncs is reachable)
+        witness: [UE.C, L1.Active, Net.Wait] oos_left=4, is_left=2, ra_left=1, rlc_left=1, cell_left=1, n310=0, n311=2, rlf_cause=0, rlf_report=0, exp310=0, rec310=1, reest_ok=0, went_idle=0
+  PASS  E<>  E<> exp310 == 1    (T310 expiry leading to RLF is reachable)
+        witness: [UE.RLF, L1.Active, Net.Wait] oos_left=4, is_left=4, ra_left=1, rlc_left=1, cell_left=1, n310=2, n311=0, rlf_cause=1, rlf_report=0, exp310=1, rec310=0, reest_ok=0, went_idle=0
+  PASS  E<>  E<> UE.RECONN    (full re-establishment success is reachable)
+        witness: [UE.RECONN, L1.Active, Net.Wait] oos_left=5, is_left=4, ra_left=0, rlc_left=1, cell_left=0, n310=0, n311=0, rlf_cause=2, rlf_report=1, exp310=0, rec310=0, reest_ok=1, went_idle=0
+  PASS  E<>  E<> UE.IDLE    (falling back to RRC_IDLE is reachable)
+        witness: [UE.IDLE, L1.Active, Net.Wait] oos_left=5, is_left=4, ra_left=0, rlc_left=1, cell_left=0, n310=0, n311=0, rlf_cause=2, rlf_report=1, exp310=0, rec310=0, reest_ok=0, went_idle=1
+  PASS  E<>  E<> rlf_cause == 3    (RLF triggered by the RLC max-retx indication is reachable)
+        witness: [UE.RLF, L1.Active, Net.Wait] oos_left=5, is_left=4, ra_left=1, rlc_left=0, cell_left=1, n310=1, n311=0, rlf_cause=3, rlf_report=0, exp310=0, rec310=0, reest_ok=0, went_idle=0
+  PASS  E<>  E<> rlf_cause == 2    (RLF triggered by a random-access problem is reachable)
+        witness: [UE.RLF, L1.Active, Net.Wait] oos_left=5, is_left=4, ra_left=0, rlc_left=1, cell_left=1, n310=1, n311=0, rlf_cause=2, rlf_report=0, exp310=0, rec310=0, reest_ok=0, went_idle=0

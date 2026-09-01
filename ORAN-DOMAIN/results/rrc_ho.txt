@@ -1,0 +1,20 @@
+model: models/rrc_ho.xml
+processes: UE, Src, Tgt, Net   clocks: 3 (t304, t311, t301)
+zone-graph states: 31
+  PASS  A[]  A[] not deadlock    (the handover machinery never gets stuck)
+  PASS  A[]  A[] not (ho_completed == 1 && hf_report == 1)    (the T304 race has at most one outcome: success or failure)
+  PASS  A[]  A[] (UE.REQ imply hf_report == 1)    (RRCReestablishmentRequest is only sent after the handover failure is stored in VarRLF-Report, and carries cause handoverFailure (5.3.7.4))
+  PASS  A[]  A[] (hf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))    (after a failed handover the UE is inside the re-establishment chain)
+  PASS  A<>  A<> (UE.C_tgt or UE.REEST or UE.IDLE)    (every handover attempt ends in a terminal outcome: connected on target, re-established, or RRC_IDLE)
+  PASS  -->  UE.HO_Exec --> (UE.C_tgt or hf_report == 1)    (T304 always resolves: the target is reached or the sync failure is declared)
+  PASS  -->  hf_report == 1 --> (UE.REEST or UE.IDLE)    (every declared handover failure ends in re-establishment or RRC_IDLE)
+  PASS  -->  UE.RES --> (UE.REQ or UE.IDLE)    (T311 always resolves: a cell is found and T301 starts, or the UE goes idle)
+  PASS  -->  UE.REQ --> (UE.REEST or UE.IDLE)    (T301 always resolves: re-established or RRC_IDLE)
+  PASS  E<>  E<> UE.C_tgt    (a successful handover within T304 is reachable)
+        witness: [UE.C_tgt, Src.Done, Tgt.Wait, Net.Wait] ra_left=0, cell_left=1, ho_completed=1, hf_report=0, reest_ok=0, went_idle=0
+  PASS  E<>  E<> hf_report == 1    (T304 expiry with the failure stored in VarRLF-Report is reachable)
+        witness: [UE.RES, Src.Done, Tgt.Wait, Net.Wait] ra_left=1, cell_left=1, ho_completed=0, hf_report=1, reest_ok=0, went_idle=0
+  PASS  E<>  E<> UE.REEST    (recovery by re-establishment after a failed handover is reachable)
+        witness: [UE.REEST, Src.Done, Tgt.Wait, Net.Wait] ra_left=1, cell_left=0, ho_completed=0, hf_report=1, reest_ok=1, went_idle=0
+  PASS  E<>  E<> UE.IDLE    (ending in RRC_IDLE is reachable)
+        witness: [UE.IDLE, Src.Done, Tgt.Wait, Net.Wait] ra_left=1, cell_left=0, ho_completed=0, hf_report=1, reest_ok=0, went_idle=1

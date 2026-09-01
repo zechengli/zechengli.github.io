@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Timed Automata 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/uta-1_1.dtd'>
+<nta>
+  <declaration>// NR RRC radio link failure and re-establishment, TS 38.331.
+// Clauses modelled:
+//   5.3.10.1  start T310 after N310 consecutive out-of-sync indications
+//             (while none of T300/T301/T304/T311/T316/T319 is running)
+//   5.3.10.2  stop T310 after N311 consecutive in-sync indications
+//   5.3.10.3  RLF declared: T310 expiry, RA-problem indication from MCG MAC,
+//             or max-retransmissions-reached indication from MCG RLC
+//   5.3.7.2   re-establishment: stop T310/T304, start T311, store
+//             VarRLF-Report (kept for the report on request)
+//   5.3.7.3   suitable cell found: stop T311, start T301,
+//             send RRCReestablishmentRequest on the cell
+//   5.3.7.5   RRCReestablishment received: connection is back
+//   5.3.7.6   T311 expiry: go to RRC_IDLE
+//   5.3.7.7   T301 expiry: go to RRC_IDLE
+//             (RRCReestablishmentReject likewise -> RRC_IDLE)
+// Abstractions (documented on the site):
+//   - AS security is already activated, so RLF leads to re-establishment
+//     (not straight to RRC_IDLE, as 5.3.10.3 would require otherwise)
+//   - L1 emits out-of-sync / in-sync indications with finite budgets;
+//     the first out-of-sync is forced, so every run sees one episode
+//   - with OOS_BUDGET=6, IS_BUDGET=4, N310=2 even a fully adversarial L1
+//     cannot avoid two consecutive out-of-syncs forever (pigeonhole:
+//     4 in-syncs split 6 out-of-syncs into at most 5 streaks)
+
+const int N310 = 2;
+const int N311 = 2;
+const int T310 = 4;
+const int T311 = 5;
+const int T301 = 3;
+const int OOS_BUDGET = 6;
+const int IS_BUDGET = 4;
+const int RA_BUDGET = 1;
+const int RLC_BUDGET = 1;
+const int CELL_BUDGET = 1;
+
+// L1 / network budgets
+int oos_left = OOS_BUDGET;
+int is_left = IS_BUDGET;
+int ra_left = RA_BUDGET;
+int rlc_left = RLC_BUDGET;
+int cell_left = CELL_BUDGET;
+
+// UE state variables
+int n310 = 0;
+int n311 = 0;
+// which 5.3.10.3 trigger fired: 1 = T310 expiry, 2 = RA problem, 3 = RLC max-retx
+// (the reestablishmentCause sent in RRCReestablishmentRequest is otherFailure
+//  for all of these, per 5.3.7.4)
+int rlf_cause = 0;
+// VarRLF-Report is stored when RLF is declared (5.3.10.3 / 5.3.7.2)
+int rlf_report = 0;
+// outcome flags of the current T310 episode
+int exp310 = 0;
+int rec310 = 0;
+// terminal outcome bookkeeping
+int reest_ok = 0;
+int went_idle = 0;
+
+clock t310;
+clock t311;
+clock t301;
+
+chan oos;
+chan isync;
+chan ra_problem;
+chan rlc_maxretx;
+chan cell_found;
+chan rr_ok;
+chan rr_reject;</declaration>
+  <template>
+    <name x="0" y="0">UE</name>
+    <location id="u0" x="0" y="0">
+      <name x="-10" y="-34">C</name>
+      <label kind="comment" x="-10" y="14">connected, no RLF-detection timer running</label>
+    </location>
+    <location id="u1" x="170" y="0">
+      <name x="160" y="-34">P</name>
+      <label kind="invariant" x="160" y="-12">t310 &lt;= T310</label>
+      <label kind="comment" x="160" y="14">T310 running after N310 out-of-syncs</label>
+    </location>
+    <location id="u2" x="340" y="0">
+      <name x="330" y="-34">RLF</name>
+      <committed/>
+      <label kind="comment" x="330" y="14">declare RLF, store VarRLF-Report (5.3.10.3)</label>
+    </location>
+    <location id="u3" x="510" y="0">
+      <name x="500" y="-34">RES</name>
+      <label kind="invariant" x="500" y="-12">t311 &lt;= T311</label>
+      <label kind="comment" x="500" y="14">re-establishment: T311 running, cell selection (5.3.7.2)</label>
+    </location>
+    <location id="u4" x="680" y="0">
+      <name x="670" y="-34">REQ</name>
+      <label kind="invariant" x="670" y="-12">t301 &lt;= T301</label>
+      <label kind="comment" x="670" y="14">T301 running, RRCReestablishmentRequest sent (5.3.7.3)</label>
+    </location>
+    <location id="u5" x="850" y="-40">
+      <name x="840" y="-74">RECONN</name>
+      <label kind="comment" x="840" y="14">RRCReestablishment received (5.3.7.5)</label>
+    </location>
+    <location id="u6" x="850" y="60">
+      <name x="840" y="94">IDLE</name>
+      <label kind="comment" x="840" y="130">RRC_IDLE after failed re-establishment</label>
+    </location>
+    <init ref="u0"/>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u0"/>
+      <label kind="guard" x="30" y="-120">n310 &lt; N310 - 1</label>
+      <label kind="comment" x="30" y="-100">out-of-sync: streak grows, still &lt; N310</label>
+      <label kind="synchronisation" x="30" y="-80">oos?</label>
+      <label kind="assignment" x="30" y="-60">n310 = n310 + 1</label>
+      <nail x="60" y="-120"/>
+    </transition>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u0"/>
+      <label kind="comment" x="30" y="60">in-sync: out-of-sync streak broken</label>
+      <label kind="synchronisation" x="30" y="80">isync?</label>
+      <label kind="assignment" x="30" y="100">n310 = 0</label>
+      <nail x="60" y="60"/>
+    </transition>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u1"/>
+      <label kind="guard" x="60" y="-30">n310 == N310 - 1</label>
+      <label kind="comment" x="60" y="-10">N310 consecutive out-of-syncs: start T310 (5.3.10.1)</label>
+      <label kind="synchronisation" x="60" y="10">oos?</label>
+      <label kind="assignment" x="60" y="30">n310 = N310, t310 = 0, exp310 = 0, rec310 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u1"/>
+      <label kind="guard" x="200" y="60">n311 &lt; N311 - 1</label>
+      <label kind="comment" x="200" y="80">in-sync while T310 runs: streak grows</label>
+      <label kind="synchronisation" x="200" y="100">isync?</label>
+      <label kind="assignment" x="200" y="120">n311 = n311 + 1</label>
+      <nail x="230" y="60"/>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u1"/>
+      <label kind="comment" x="200" y="180">out-of-sync again: in-sync streak broken</label>
+      <label kind="synchronisation" x="200" y="200">oos?</label>
+      <label kind="assignment" x="200" y="220">n311 = 0</label>
+      <nail x="230" y="180"/>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u0"/>
+      <label kind="guard" x="150" y="-140">n311 == N311 - 1</label>
+      <label kind="comment" x="150" y="-120">N311 consecutive in-syncs: stop T310, link recovered (5.3.10.2)</label>
+      <label kind="synchronisation" x="150" y="-100">isync?</label>
+      <label kind="assignment" x="150" y="-80">n311 = N311, n310 = 0, rec310 = 1</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u2"/>
+      <label kind="guard" x="240" y="-60">t310 == T310</label>
+      <label kind="comment" x="240" y="-40">T310 expiry: radioLinkFailure, cause t310-Expiry (5.3.10.3)</label>
+      <label kind="assignment" x="240" y="-20">exp310 = 1, rlf_cause = 1</label>
+    </transition>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u2"/>
+      <label kind="comment" x="120" y="-200">RA-problem indication from MCG MAC (5.3.10.3)</label>
+      <label kind="synchronisation" x="120" y="-180">ra_problem?</label>
+      <label kind="assignment" x="120" y="-160">rlf_cause = 2</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u2"/>
+      <label kind="comment" x="260" y="-240">RA-problem indication while T310 runs</label>
+      <label kind="synchronisation" x="260" y="-220">ra_problem?</label>
+      <label kind="assignment" x="260" y="-200">rlf_cause = 2</label>
+    </transition>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u2"/>
+      <label kind="comment" x="60" y="170">max-retx indication from MCG RLC (5.3.10.3)</label>
+      <label kind="synchronisation" x="60" y="190">rlc_maxretx?</label>
+      <label kind="assignment" x="60" y="210">rlf_cause = 3</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u2"/>
+      <label kind="comment" x="200" y="280">max-retx indication from MCG RLC while T310 runs</label>
+      <label kind="synchronisation" x="200" y="300">rlc_maxretx?</label>
+      <label kind="assignment" x="200" y="320">rlf_cause = 3</label>
+    </transition>
+    <transition>
+      <source ref="u2"/>
+      <target ref="u3"/>
+      <label kind="comment" x="360" y="-40">initiate re-establishment: stop T310, start T311, store VarRLF-Report (5.3.7.2)</label>
+      <label kind="assignment" x="360" y="-20">rlf_report = 1, t311 = 0, n310 = 0, n311 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u4"/>
+      <label kind="comment" x="530" y="-30">suitable cell found: stop T311, start T301, send RRCReestablishmentRequest (5.3.7.3)</label>
+      <label kind="synchronisation" x="530" y="-10">cell_found?</label>
+      <label kind="assignment" x="530" y="10">t301 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u6"/>
+      <label kind="guard" x="560" y="70">t311 == T311</label>
+      <label kind="comment" x="560" y="90">T311 expiry: go to RRC_IDLE (5.3.7.6)</label>
+      <label kind="assignment" x="560" y="110">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u4"/>
+      <target ref="u5"/>
+      <label kind="comment" x="700" y="-80">RRCReestablishment received: stop T301 (5.3.7.5)</label>
+      <label kind="synchronisation" x="700" y="-60">rr_ok?</label>
+      <label kind="assignment" x="700" y="-40">reest_ok = 1</label>
+    </transition>
+    <transition>
+      <source ref="u4"/>
+      <target ref="u6"/>
+      <label kind="comment" x="730" y="60">RRCReestablishmentReject: go to RRC_IDLE</label>
+      <label kind="synchronisation" x="730" y="80">rr_reject?</label>
+      <label kind="assignment" x="730" y="100">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u4"/>
+      <target ref="u6"/>
+      <label kind="guard" x="730" y="140">t301 == T301</label>
+      <label kind="comment" x="730" y="160">T301 expiry: go to RRC_IDLE (5.3.7.7)</label>
+      <label kind="assignment" x="730" y="180">went_idle = 1</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">L1</name>
+    <location id="l0" x="0" y="0">
+      <name x="-10" y="-34">Boot</name>
+      <urgent/>
+    </location>
+    <location id="l1" x="170" y="0">
+      <name x="160" y="-34">Active</name>
+    </location>
+    <init ref="l0"/>
+    <transition>
+      <source ref="l0"/>
+      <target ref="l1"/>
+      <label kind="comment" x="30" y="-30">the radio starts degrading: first out-of-sync is forced</label>
+      <label kind="synchronisation" x="30" y="-10">oos!</label>
+      <label kind="assignment" x="30" y="10">oos_left = oos_left - 1</label>
+    </transition>
+    <transition>
+      <source ref="l1"/>
+      <target ref="l1"/>
+      <label kind="guard" x="200" y="-80">oos_left &gt; 0</label>
+      <label kind="synchronisation" x="200" y="-60">oos!</label>
+      <label kind="assignment" x="200" y="-40">oos_left = oos_left - 1</label>
+      <nail x="230" y="-80"/>
+    </transition>
+    <transition>
+      <source ref="l1"/>
+      <target ref="l1"/>
+      <label kind="guard" x="200" y="20">is_left &gt; 0</label>
+      <label kind="synchronisation" x="200" y="40">isync!</label>
+      <label kind="assignment" x="200" y="60">is_left = is_left - 1</label>
+      <nail x="230" y="20"/>
+    </transition>
+    <transition>
+      <source ref="l1"/>
+      <target ref="l1"/>
+      <label kind="guard" x="260" y="120">ra_left &gt; 0</label>
+      <label kind="comment" x="260" y="140">random-access problem reported by MCG MAC</label>
+      <label kind="synchronisation" x="260" y="160">ra_problem!</label>
+      <label kind="assignment" x="260" y="180">ra_left = ra_left - 1</label>
+      <nail x="290" y="120"/>
+    </transition>
+    <transition>
+      <source ref="l1"/>
+      <target ref="l1"/>
+      <label kind="guard" x="260" y="220">rlc_left &gt; 0</label>
+      <label kind="comment" x="260" y="240">RLC max-retx reached, reported by MCG RLC</label>
+      <label kind="synchronisation" x="260" y="260">rlc_maxretx!</label>
+      <label kind="assignment" x="260" y="280">rlc_left = rlc_left - 1</label>
+      <nail x="290" y="220"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Net</name>
+    <location id="n0" x="0" y="0">
+      <name x="-10" y="-34">Wait</name>
+    </location>
+    <init ref="n0"/>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="-30">cell_left &gt; 0</label>
+      <label kind="comment" x="30" y="-10">a suitable cell is found during cell selection</label>
+      <label kind="synchronisation" x="30" y="10">cell_found!</label>
+      <label kind="assignment" x="30" y="30">cell_left = cell_left - 1</label>
+      <nail x="60" y="-30"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="80">cell_left == 0</label>
+      <label kind="comment" x="30" y="100">the network accepts the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="120">rr_ok!</label>
+      <nail x="60" y="80"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="150">cell_left == 0</label>
+      <label kind="comment" x="30" y="170">the network rejects the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="190">rr_reject!</label>
+      <nail x="60" y="150"/>
+    </transition>
+  </template>
+  <system>UE = UE();
+L1 = L1();
+Net = Net();
+system UE, L1, Net;</system>
+  <queries>
+    <query>
+      <formula>A[] not deadlock</formula>
+      <comment>the RRC machinery never gets stuck</comment>
+    </query>
+    <query>
+      <formula>A[] n310 &lt;= N310 &amp;&amp; n311 &lt;= N311</formula>
+      <comment>counters never exceed their thresholds</comment>
+    </query>
+    <query>
+      <formula>A[] not (exp310 == 1 &amp;&amp; rec310 == 1)</formula>
+      <comment>each T310 episode has at most one outcome: expiry or recovery</comment>
+    </query>
+    <query>
+      <formula>A[] (UE.REQ imply rlf_report == 1)</formula>
+      <comment>RRCReestablishmentRequest is only sent after VarRLF-Report is stored (5.3.7.4)</comment>
+    </query>
+    <query>
+      <formula>A[] (UE.REQ imply rlf_cause &gt; 0)</formula>
+      <comment>the request is only sent after a concrete RLF trigger, and 5.3.7.4 maps it to reestablishmentCause = otherFailure</comment>
+    </query>
+    <query>
+      <formula>A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.RECONN or UE.IDLE))</formula>
+      <comment>once RLF is declared the UE is inside the re-establishment chain</comment>
+    </query>
+    <query>
+      <formula>UE.P --&gt; (rec310 == 1 or rlf_report == 1)</formula>
+      <comment>every T310 episode resolves: N311 in-syncs recover the link, or RLF is declared</comment>
+    </query>
+    <query>
+      <formula>rlf_report == 1 --&gt; (UE.RECONN or UE.IDLE)</formula>
+      <comment>every declared RLF ends in re-establishment or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>UE.RES --&gt; (UE.REQ or UE.IDLE)</formula>
+      <comment>T311 always resolves: a cell is found and T301 starts, or the UE goes idle</comment>
+    </query>
+    <query>
+      <formula>UE.REQ --&gt; (UE.RECONN or UE.IDLE)</formula>
+      <comment>T301 always resolves: re-established or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; rec310 == 1</formula>
+      <comment>link recovery via N311 consecutive in-syncs is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; exp310 == 1</formula>
+      <comment>T310 expiry leading to RLF is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; UE.RECONN</formula>
+      <comment>full re-establishment success is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; UE.IDLE</formula>
+      <comment>falling back to RRC_IDLE is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; rlf_cause == 3</formula>
+      <comment>RLF triggered by the RLC max-retx indication is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; rlf_cause == 2</formula>
+      <comment>RLF triggered by a random-access problem is reachable</comment>
+    </query>
+  </queries>
+</nta>

@@ -1,0 +1,8 @@
+model: models/smoke2.xml
+processes: Coord, Listener   clocks: 0 ()
+zone-graph states: 8
+  PASS  E<>  E<> Coord.After    (after committed burst)
+        witness: [Coord.After, Listener.Heard] c0=1, c1=0, total=1
+  PASS  A[]  A[] forall (i : int[0,1]) i < N    (forall bound)
+  PASS  A[]  A[] not deadlock    (no deadlock)
+  PASS  A<>  A<> (Coord.After or Coord.Idle)    (coord settles)

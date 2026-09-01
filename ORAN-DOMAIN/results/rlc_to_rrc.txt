@@ -1,0 +1,21 @@
+model: models/rlc_to_rrc.xml
+processes: Tx, Rx, RxStatus, Air, UE, Net   clocks: 4 (tpoll, tstatus, t311, t301)
+zone-graph states: 2087
+  PASS  A[]  A[] not deadlock    (the composed system never gets stuck)
+  PASS  A[]  A[] dl0 <= 1    (the SDU is delivered at most once, even across RLF (5.2.3.2.3))
+  PASS  A[]  A[] retx_count <= MAX_RETX    (RETX_COUNT respects maxRetxThreshold)
+  PASS  A[]  A[] (UE.REQ imply rlf_report == 1)    (RRCReestablishmentRequest only after VarRLF-Report is stored (5.3.7.4))
+  PASS  A[]  A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))    (once RLF is declared the UE is inside the re-establishment chain)
+  PASS  A<>  A<> ((Tx.T_Done && UE.C) or UE.REEST or UE.IDLE)    (composed termination: either the SDU gets through, or RLC escalates to RRC and the UE recovers or falls idle)
+  PASS  -->  Tx.T_Wait --> (Tx.T_Done or Tx.T_Reported)    (the RLC episode always resolves under bounded loss: delivered or escalated)
+  PASS  -->  rlc_reported == 1 --> (UE.REEST or UE.IDLE)    (once RLC indicates max-retx, the RRC chain always ends in re-establishment or RRC_IDLE)
+  PASS  -->  UE.RES --> (UE.REQ or UE.IDLE)    (T311 always resolves)
+  PASS  -->  UE.REQ --> (UE.REEST or UE.IDLE)    (T301 always resolves)
+  PASS  E<>  E<> Tx.T_Done    (a lossless run delivers the SDU and RRC stays connected)
+        witness: [Tx.T_Done, Rx.R_Wait, RxStatus.S_Wait, Air.A_Idle, UE.C, Net.Wait] dl_budget=3, ul_budget=2, cell_left=1, sn_send=0, sn_recv=0, status_ack=1, status_nack=-1, retx_count=0, dl0=1, status_wanted=0, rlc_reported=0, rlf_report=0, reest_ok=0, went_idle=0
+  PASS  E<>  E<> rlc_reported == 1    (the cross-spec indication (38.322 5.3.2 to 38.331 5.3.10.3) is reachable)
+        witness: [Tx.T_Reported, Rx.R_Wait, RxStatus.S_Free, Air.A_Idle, UE.RLF, Net.Wait] dl_budget=3, ul_budget=2, cell_left=1, sn_send=0, sn_recv=0, status_ack=0, status_nack=-1, retx_count=2, dl0=1, status_wanted=1, rlc_reported=1, rlf_report=0, reest_ok=0, went_idle=0
+  PASS  E<>  E<> (rlc_reported == 1 && UE.REEST)    (full composed recovery: RLC escalation to successful re-establishment)
+        witness: [Tx.T_Reported, Rx.R_Wait, RxStatus.S_Free, Air.A_Idle, UE.REEST, Net.Wait] dl_budget=3, ul_budget=2, cell_left=0, sn_send=0, sn_recv=0, status_ack=0, status_nack=-1, retx_count=2, dl0=1, status_wanted=1, rlc_reported=1, rlf_report=1, reest_ok=1, went_idle=0
+  PASS  E<>  E<> (rlc_reported == 1 && UE.IDLE)    (RLC escalation ending in RRC_IDLE is reachable)
+        witness: [Tx.T_Reported, Rx.R_Wait, RxStatus.S_Free, Air.A_Idle, UE.IDLE, Net.Wait] dl_budget=3, ul_budget=2, cell_left=0, sn_send=0, sn_recv=0, status_ack=0, status_nack=-1, retx_count=2, dl0=1, status_wanted=1, rlc_reported=1, rlf_report=1, reest_ok=0, went_idle=1

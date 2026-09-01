@@ -1,0 +1,8 @@
+model: models/smoke.xml
+processes: Tick, Env   clocks: 1 (t)
+zone-graph states: 6
+  PASS  E<>  E<> Tick.Ok    (ok reachable)
+        witness: [Tick.Ok, Env.Idle] x=1
+  PASS  A[]  A[] not deadlock    (no deadlock)
+  PASS  A[]  A[] not (done and timedout)    (race has one outcome)
+  PASS  A[]  A[] t <= T    (clock bounded)

@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORAN-DOMAIN · 3GPP timers as timed automata</title>
+<meta name="description" content="RLC AM, RRC radio link failure and RRC handover from 3GPP TS 38.322 / 38.331, converted into UPPAAL timed automata and machine-checked.">
+<style>
+:root {
+  --bg: #f7f1e8;
+  --card: #fffaf2;
+  --text: #3f2f1f;
+  --muted: #7c6a58;
+  --accent: #b4552d;
+  --border: #e0d2bd;
+  --green: #3e7a4e;
+  --red: #b0392e;
+  --blue: #35618f;
+  --shadow: 0 1px 3px rgba(63,47,31,.08);
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.62;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px 22px 70px; }
+header { border-bottom: 3px double var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+.eyebrow {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--accent); font-weight: bold; margin-bottom: 6px;
+}
+h1 { font-size: 2.2rem; margin: 0 0 10px; line-height: 1.2; }
+h2 { font-size: 1.5rem; margin: 44px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { font-size: 1.12rem; margin: 26px 0 8px; color: var(--accent); }
+p { margin: 10px 0; }
+.lede, .note, .paper-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  margin: 14px 0;
+  width: 100%;
+}
+.note { border-left: 4px solid var(--blue); }
+.note.warn { border-left-color: var(--red); }
+.note.good { border-left-color: var(--green); }
+pre.paper {
+  background: #fbf6ec;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 10px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: #4a3a28;
+}
+pre.paper .q { color: var(--red); font-weight: bold; }
+.spec-tag {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 2px;
+}
+table { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+th, td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: Verdana, Arial, sans-serif; font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+tr:last-child td { border-bottom: none; }
+td.q { font-family: 'Courier New', Courier, monospace; font-size: .8rem; white-space: pre-wrap; }
+td.verdict { font-family: Verdana, Arial, sans-serif; font-size: .74rem; font-weight: bold;
+  white-space: nowrap; }
+.pass { color: var(--green); }
+.fail { color: var(--red); }
+code {
+  font-family: 'Courier New', Courier, monospace; font-size: .86em;
+  background: #f2e9d8; border-radius: 4px; padding: 1px 5px;
+}
+svg { display: block; margin: 18px auto; max-width: 100%; height: auto; }
+.svg-cap {
+  text-align: center; font-size: .82rem; color: var(--muted); font-style: italic; margin: -8px 0 16px;
+}
+.dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 14px 0; }
+.dl {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 18px;
+}
+.dl h4 { margin: 0 0 4px; font-size: .95rem; }
+.dl p { margin: 2px 0; font-size: .85rem; color: var(--muted); }
+.dl a { color: var(--accent); font-weight: bold; text-decoration: none; }
+.dl a:hover { text-decoration: underline; }
+.badge {
+  display: inline-block; font-family: Verdana, Arial, sans-serif; font-size: .66rem;
+  letter-spacing: .1em; text-transform: uppercase; border-radius: 20px;
+  border: 1px solid var(--border); padding: 2px 10px; margin-right: 6px; color: var(--muted);
+}
+.badge.b-green { color: var(--green); border-color: var(--green); }
+.badge.b-red { color: var(--red); border-color: var(--red); }
+.badge.b-blue { color: var(--blue); border-color: var(--blue); }
+footer { border-top: 3px double var(--border); margin-top: 46px; padding-top: 18px;
+  font-size: .84rem; color: var(--muted); }
+ul { margin: 8px 0; padding-left: 24px; }
+li { margin: 4px 0; }
+.statrow { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.stat {
+  flex: 1 1 150px; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 16px; text-align: center;
+}
+.stat .n { font-size: 1.6rem; font-weight: bold; color: var(--accent); }
+.stat .l { font-family: Verdana, Arial, sans-serif; font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Protocol verification · UPPAAL timed automata</div>
+  <h1>ORAN-DOMAIN — three 3GPP timer machines, model-checked</h1>
+  <p style="font-size:1.06rem; color:var(--muted); margin:0;">
+    RLC Acknowledged Mode (TS 38.322), RRC radio link failure (TS 38.331 §5.3.10 + §5.3.7),
+    and RRC handover (TS 38.331 §5.3.5) — read out of the specification prose,
+    translated into <b>UPPAAL timed automata</b>, and checked:
+    <b>54 queries, 54 passes, 0 failures</b>.
+  </p>
+</header>
+
+<div class="lede">
+  <p><b>What UPPAAL is.</b> UPPAAL is a model checker for <i>timed automata</i> — finite state
+  machines whose transitions carry guards and assignments over real-valued clocks
+  (<code>t == T310</code>, <code>t311 = 0</code>), and whose locations carry invariants
+  (<code>t310 &lt;= T310</code>). It explores not just the states of the machine but the
+  <i>zones</i> of clock valuations reachable in each state, so it can answer questions a plain FSM
+  checker cannot: <i>can the handover race between &ldquo;random access succeeds&rdquo; and
+  &ldquo;T304 expires&rdquo; end in both outcomes at once?</i> — <i>does every declared radio link
+  failure eventually resolve into re-establishment or idle?</i> 3GPP RRC and RLC behaviour is
+  dominated by exactly this kind of counting (N310 out-of-syncs) plus hard timers
+  (T310, T311, T301, T304, t-PollRetransmit, t-Reassembly, t-StatusProhibit), which makes the
+  mapping natural: <b>every timer becomes a clock with a guard-on-expiry edge, every counter
+  becomes an integer, every indication between layers becomes a rendezvous channel.</b></p>
+  <p><b>What is on this page.</b> Four genuine UPPAAL XML models (loadable in the UPPAAL GUI,
+  re-checkable with <code>verifyta</code>), the exact spec sentences each transition encodes, the
+  full verification results, and the story of two real bugs the checker caught in the first
+  draft of the RLC model. Everything is downloadable.</p>
+</div>
+
+<div class="note warn">
+  <p><b>Honesty about the verifier (read this first).</b> The UPPAAL command-line verifier
+  <code>verifyta</code> requires an academic license key that we do not have on this machine
+  (the free registration flow was gated). So every result reported here was produced by
+  <a href="checker/uta_check.py"><code>checker/uta_check.py</code></a>, a ~1,300-line Python
+  verifier built for this project that implements UPPAAL's semantics directly:
+  the DBM (difference-bound matrix) zone representation with the standard half-bound encoding,
+  Floyd–Warshall canonical closure, delay (<code>up</code>) and invariant intersection,
+  clock resets, per-clock <i>k</i>-extrapolation (Behrmann et al.) for a finite state space,
+  rendezvous and broadcast synchronisation, urgent/committed location priority, and the query
+  forms <code>E&lt;&gt;</code>, <code>A[]</code>, <code>A&lt;&gt;</code>, <code>deadlock</code>,
+  and leads-to <code>p --&gt; q</code> (checked as &ldquo;no p-state can avoid q forever&rdquo;,
+  i.e. a greatest-fixpoint computation over the zone graph). The XML files themselves are
+  standard UPPAAL 5.0 format — anyone with an academic license can re-run everything with:
+  </p>
+  <pre class="paper">verifyta --lease 168 --key &lt;KEY&gt; models/rlc_am.xml models/rrc_rlf.xml models/rrc_ho.xml models/rlc_to_rrc.xml</pre>
+  <p style="margin:8px 0 0;">The checker was validated against hand-computed smoke models
+  (timer race, invariant, committed locations, broadcast, forall) before being trusted on the
+  protocol models; the two RLC bugs below are themselves evidence that it does real work.</p>
+</div>
+
+<div class="statrow">
+  <div class="stat"><div class="n">4</div><div class="l">UPPAAL models</div></div>
+  <div class="stat"><div class="n">54</div><div class="l">queries checked</div></div>
+  <div class="stat"><div class="n">54</div><div class="l">passes</div></div>
+  <div class="stat"><div class="n">23,850</div><div class="l">zone-graph states</div></div>
+  <div class="stat"><div class="n">2</div><div class="l">model bugs caught</div></div>
+</div>
+
+<!-- ======================= RLC AM ======================= -->
+<h2>1 · RLC Acknowledged Mode — TS 38.322</h2>
+
+<div class="lede">
+  <p>The AM entity is 3GPP's ARQ workhorse: the transmitter polls, retransmits on NACK or
+  t-PollRetransmit expiry, and gives up after <code>maxRetxThreshold</code> retransmissions; the
+  receiver reorders, detects gaps with t-Reassembly, and reports STATUS under t-StatusProhibit.
+  The model is the uplink AM entity of a UE: three SDUs buffered at t=0, a send window of 2,
+  <code>pollPDU = 1</code> (every AMD PDU carries a poll), and a nondeterministic air interface
+  that may lose each AMD PDU or STATUS PDU within finite budgets. Four processes:
+  <code>Tx</code> (transmitting side), <code>Rx</code> (reception buffer + in-order delivery),
+  <code>RxStatus</code> (STATUS construction under t-StatusProhibit), and <code>Air</code>
+  (the lossy channel).</p>
+</div>
+
+<pre class="paper"><span class="spec-tag">TS 38.322 V17.2.0, clause 5.3.2 (retransmission)</span>if RETX_COUNT = maxRetxThreshold:
+  indicate to upper layers that max retransmission has been reached.
+<span class="spec-tag">clause 5.3.3.4 (expiry of t-PollRetransmit)</span>Upon expiry of t-PollRetransmit, the transmitting side of an AM RLC entity shall:
+  consider the RLC SDU with the highest SN among the RLC SDUs submitted to lower layer for
+  retransmission; or consider any RLC SDU which has not been positively acknowledged for
+  retransmission. include a poll in an AMD PDU as described in clause 5.3.3.2.
+<span class="spec-tag">clause 5.2.3.2.4 (actions when t-Reassembly expires)</span>When t-Reassembly expires, the receiving side of an AM RLC entity shall:
+  update RX_Highest_Status to the SN of the first RLC SDU with SN &gt;= RX_Next_Status_Trigger for
+  which not all bytes have been received; if RX_Next_Highest &gt; RX_Highest_Status + 1: or ...
+  start t-Reassembly; set RX_Next_Status_Trigger to RX_Next_Highest.
+<span class="spec-tag">clause 5.3.4 (status reporting)</span>An AM RLC entity sends STATUS PDUs to its peer AM RLC entity in order to provide positive
+and/or negative acknowledgements of RLC SDUs (or portions of them). ... at the first transmission
+opportunity indicated by lower layer after t-StatusProhibit expires, construct a single STATUS PDU
+even if status reporting was triggered several times while t-StatusProhibit was running and submit
+it to lower layer.</pre>
+
+<svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RLC AM model structure">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c6a58"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill:#fffaf2; stroke:#b4552d; stroke-width:1.4; rx:9; }
+    .lab { font: 12px Verdana,sans-serif; fill:#3f2f1f; text-anchor:middle; }
+    .sub { font: 9.5px Verdana,sans-serif; fill:#7c6a58; text-anchor:middle; }
+    .edge { stroke:#7c6a58; stroke-width:1.3; fill:none; }
+    .elab { font: 10px Verdana,sans-serif; fill:#b4552d; }
+  </style>
+  <!-- Tx lane -->
+  <rect class="box" x="20" y="20" width="140" height="52" rx="9"/>
+  <text class="lab" x="90" y="42">T_Idle (urgent)</text>
+  <text class="sub" x="90" y="60">submit SDU + poll</text>
+  <rect class="box" x="220" y="20" width="140" height="52" rx="9"/>
+  <text class="lab" x="290" y="42">T_Wait</text>
+  <text class="sub" x="290" y="60">invariant tpoll &lt;= T_POLL</text>
+  <rect class="box" x="420" y="20" width="140" height="52" rx="9"/>
+  <text class="lab" x="490" y="42">T_Retx (committed)</text>
+  <text class="sub" x="490" y="60">NACK retransmission</text>
+  <rect class="box" x="620" y="20" width="120" height="52" rx="9"/>
+  <text class="lab" x="680" y="42">T_Done</text>
+  <text class="sub" x="680" y="60">all SDUs acked</text>
+  <rect class="box" x="620" y="100" width="120" height="52" rx="9"/>
+  <text class="lab" x="680" y="122">T_RLF</text>
+  <text class="sub" x="680" y="140">indicate to upper layers</text>
+  <path class="edge" d="M160 46 L220 46" marker-end="url(#arr)"/>
+  <path class="edge" d="M360 46 L420 46" marker-end="url(#arr)"/>
+  <text class="elab" x="368" y="38">NACK</text>
+  <path class="edge" d="M560 46 L620 46" marker-end="url(#arr)"/>
+  <text class="elab" x="568" y="38">data!</text>
+  <path class="edge" d="M700 100 L700 72" marker-end="url(#arr)"/>
+  <text class="elab" x="708" y="90">RETX_COUNT = max</text>
+  <!-- Air lane -->
+  <rect class="box" x="20" y="180" width="140" height="52" rx="9"/>
+  <text class="lab" x="90" y="202">A_Idle</text>
+  <text class="sub" x="90" y="220">the air interface</text>
+  <path class="edge" d="M290 72 C 250 130, 160 150, 105 180" marker-end="url(#arr)"/>
+  <text class="elab" x="180" y="128">data?</text>
+  <path class="edge" d="M90 180 C 130 120, 230 100, 285 72" marker-end="url(#arr)"/>
+  <text class="elab" x="150" y="110">rcv! or drop (budget)</text>
+  <!-- Rx lane -->
+  <rect class="box" x="220" y="180" width="140" height="52" rx="9"/>
+  <text class="lab" x="290" y="202">R_Wait</text>
+  <text class="sub" x="290" y="220">deliver in order</text>
+  <rect class="box" x="420" y="180" width="150" height="52" rx="9"/>
+  <text class="lab" x="495" y="202">R_GapWait</text>
+  <text class="sub" x="495" y="220">invariant treasm &lt;= T_REASM</text>
+  <path class="edge" d="M290 180 C 340 130, 400 130, 465 180" marker-end="url(#arr)"/>
+  <text class="elab" x="360" y="142">out-of-order: buffer, start t-Reassembly</text>
+  <!-- RxStatus lane -->
+  <rect class="box" x="620" y="180" width="120" height="52" rx="9"/>
+  <text class="lab" x="680" y="202">S_Wait</text>
+  <text class="sub" x="680" y="220">t-StatusProhibit</text>
+  <path class="edge" d="M570 206 L620 206" marker-end="url(#arr)"/>
+  <text class="elab" x="578" y="198">STATUS</text>
+  <path class="edge" d="M680 180 C 500 120, 380 90, 305 72" marker-end="url(#arr)"/>
+  <text class="elab" x="440" y="112">ul_status! -&gt; status? (ACK/NACK)</text>
+</svg>
+<div class="svg-cap">The rlc_am.xml processes: Tx retransmits on poll expiry or NACK; Air loses packets
+within budgets; Rx reorders and starts t-Reassembly on gaps; RxStatus answers every poll with one
+STATUS PDU, throttled by t-StatusProhibit.</div>
+
+<h3>Two real bugs the checker caught in the first draft</h3>
+<div class="note good">
+  <p><b>Bug 1 — retransmitting a PDU that was never sent.</b> The safety query
+  <code>A[] rx_next &lt;= tx_next</code> (&ldquo;the receiver never advances past what was
+  transmitted&rdquo;) failed with a witness in which the receiver had delivered SN 1 although the
+  transmitter had only ever sent SN 0. Cause: the t-PollRetransmit-expiry edge retransmitted
+  <code>sn_send = tx_ack</code> even when <code>tx_ack == tx_next</code> — i.e. it
+  &ldquo;re&rdquo;-transmitted a sequence number that had never been transmitted. Fixed by guarding
+  the edge with <code>tx_ack &lt; tx_next</code> (retransmit only what is actually outstanding).</p>
+  <p><b>Bug 2 — an infinite retransmission loop, invisible until the zone engine was fixed.</b>
+  The liveness query <code>A&lt;&gt; Tx.T_Done or Tx.T_RLF</code> failed with a genuine
+  counterexample cycle: with the STATUS-loss budget exhausted, the transmitter retransmitted the
+  same PDU on every poll expiry forever, and the receiver never had to answer. The spec says
+  every retransmission — poll-driven or NACK-driven — increments RETX_COUNT, and at
+  <code>maxRetxThreshold</code> the entity must <i>indicate to upper layers</i> instead of
+  retransmitting again (clause 5.3.2, quoted above). The first draft only counted NACK-driven
+  retransmissions; the fixed model counts both and reaches <code>T_RLF</code> either way.
+  Both bugs were surfaced only after correcting a soundness flaw in the zone extrapolation
+  (the checker's first k-normalisation cut reachable time — see the
+  <a href="results/rlc_am.txt">raw results</a>).</p>
+</div>
+
+<h3>Verification results — 11/11 pass, 13,369 zone-graph states</h3>
+<table>
+<tr><th>Query</th><th>Meaning (spec clause)</th><th>Result</th></tr>
+<tr><td class="q">A[] not deadlock</td><td>the protocol never gets stuck</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] dl0 &lt;= 1 &amp;&amp; dl1 &lt;= 1 &amp;&amp; dl2 &lt;= 1</td><td>every SDU delivered to upper layer at most once (5.2.3.2.3)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] rx_next &lt;= tx_next</td><td>receiver never advances past what was transmitted</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] tx_ack &lt;= rx_next</td><td>transmitter never acks past what the receiver has</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] retx_count &lt;= MAX_RETX</td><td>RETX_COUNT respects maxRetxThreshold (5.3.2)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] not Tx.T_Wait or tx_ack &lt; NUM_SDU</td><td>transmitter only waits while something is unacked</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] have_gap == 0 or rx_next &lt; rx_highest</td><td>a gap is always a real hole below the buffered PDU (5.2.3.2.3)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A&lt;&gt; Tx.T_Done or Tx.T_RLF</td><td>under bounded loss the AM entity always reaches an outcome</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; Tx.T_Done</td><td>a lossless run delivers every SDU — witness: dl0=dl1=dl2=1, tx_ack=3</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; Tx.T_RLF</td><td>the max-retx indication to upper layers is reachable — witness: retx_count=2, hole=1</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; have_gap == 1</td><td>out-of-order buffering with t-Reassembly is reachable</td><td class="verdict pass">PASS</td></tr>
+</table>
+
+<!-- ======================= RRC RLF ======================= -->
+<h2>2 · RRC radio link failure — TS 38.331 §5.3.10 + §5.3.7</h2>
+
+<div class="lede">
+  <p>RLF is a pure timer-and-counter machine. Layer 1 streams out-of-sync and in-sync
+  indications; RRC counts. N310 consecutive out-of-syncs start T310; N311 consecutive in-syncs
+  stop it; T310 expiry — or a random-access problem, or the RLC max-retransmission indication —
+  declares the link failed. Then the UE stores a failure report, starts T311, hunts for a
+  suitable cell; finding one starts T301 and sends RRCReestablishmentRequest; the network
+  answers with RRCReestablishment (reconnected) or the timers expire (RRC_IDLE).</p>
+  <p>The model keeps the whole chain in one <code>UE</code> automaton with clocks
+  <code>t310</code>, <code>t311</code>, <code>t301</code> and counters <code>n310</code>,
+  <code>n311</code>, plus an adversarial <code>L1</code> process (out/in-sync indications on
+  finite budgets — with N310=2, OOS budget 6 and IS budget 4, even a fully adversarial L1
+  cannot avoid two consecutive out-of-syncs forever: four in-syncs can split six out-of-syncs
+  into at most five streaks) and a <code>Net</code> process (cell found / request accepted /
+  request rejected).</p>
+</div>
+
+<pre class="paper"><span class="spec-tag">TS 38.331 V17.2.0, clause 5.3.10.1 (detection of physical layer problems)</span>upon receiving N310 consecutive "out-of-sync" indications for the SpCell from lower layers while
+neither T300, T301, T304, T311, T316 nor T319 are running: start timer T310 for the corresponding SpCell.
+<span class="spec-tag">clause 5.3.10.2 (recovery of physical layer problems)</span>Upon receiving N311 consecutive "in-sync" indications for the SpCell from lower layers while T310
+is running, the UE shall: stop timer T310 for the corresponding SpCell.
+<span class="spec-tag">clause 5.3.10.3 (detection of radio link failure)</span>2&gt; upon T310 expiry in PCell; or ... upon random access problem indication from MCG MAC while
+neither T300, T301, T304, T311 nor T319 are running; or upon indication from MCG RLC that the
+maximum number of retransmissions has been reached; or ...: 3&gt; consider radio link failure to be
+detected for the MCG, i.e. MCG RLF; ... 5&gt; store the radio link failure information in the
+VarRLF-Report as described in clause 5.3.10.5;
+<span class="spec-tag">clause 5.3.7.2 (re-establishment, initiation)</span>upon detecting radio link failure of the MCG and t316 is not configured, in accordance with
+5.3.10; or upon re-configuration with sync failure of the MCG, in accordance with clause 5.3.5.8.3;
+or ... Upon initiation of the procedure, the UE shall: stop timer T310, if running; stop timer T312,
+if running; stop timer T304, if running; ... start timer T311;
+<span class="spec-tag">clause 5.3.7.3 (cell selection while T311 runs)</span>Upon selecting a suitable NR cell, the UE shall: ... stop timer T311;
+<span class="spec-tag">clause 5.3.7.6 / 5.3.7.7 (timer expiry)</span>Upon T311 expiry, the UE shall: ... perform the actions upon going to RRC_IDLE as specified in
+5.3.11, with release cause 'RRC connection failure'. ... if timer T301 expires ... perform the
+actions upon going to RRC_IDLE as specified in 5.3.11, with release cause 'RRC connection failure'.</pre>
+
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RRC RLF state machine">
+  <style>
+    .box { fill:#fffaf2; stroke:#b4552d; stroke-width:1.4; }
+    .boxc { fill:#f9e8dc; stroke:#b4552d; stroke-width:1.6; }
+    .lab { font: 12px Verdana,sans-serif; fill:#3f2f1f; text-anchor:middle; }
+    .sub { font: 9.5px Verdana,sans-serif; fill:#7c6a58; text-anchor:middle; }
+    .edge { stroke:#7c6a58; stroke-width:1.3; fill:none; }
+    .elab { font: 10px Verdana,sans-serif; fill:#b4552d; }
+  </style>
+  <rect class="box" x="15" y="110" width="110" height="52" rx="9"/>
+  <text class="lab" x="70" y="132">C</text>
+  <text class="sub" x="70" y="150">connected</text>
+  <rect class="box" x="175" y="110" width="120" height="52" rx="9"/>
+  <text class="lab" x="235" y="132">P</text>
+  <text class="sub" x="235" y="150">T310 running</text>
+  <rect class="boxc" x="345" y="110" width="110" height="52" rx="9"/>
+  <text class="lab" x="400" y="132">RLF</text>
+  <text class="sub" x="400" y="150">committed</text>
+  <rect class="box" x="505" y="110" width="110" height="52" rx="9"/>
+  <text class="lab" x="560" y="132">RES</text>
+  <text class="sub" x="560" y="150">T311 running</text>
+  <rect class="box" x="660" y="110" width="110" height="52" rx="9"/>
+  <text class="lab" x="715" y="132">REQ</text>
+  <text class="sub" x="715" y="150">T301 running</text>
+  <rect class="box" x="810" y="40" width="80" height="46" rx="9"/>
+  <text class="lab" x="850" y="60">RECONN</text>
+  <text class="sub" x="850" y="76">reconnected</text>
+  <rect class="box" x="810" y="190" width="80" height="46" rx="9"/>
+  <text class="lab" x="850" y="210">IDLE</text>
+  <text class="sub" x="850" y="226">RRC_IDLE</text>
+  <path class="edge" d="M125 136 L175 136" marker-end="url(#arr)"/>
+  <text class="elab" x="122" y="126">N310 x oos? (5.3.10.1)</text>
+  <path class="edge" d="M175 155 C 160 205, 80 205, 68 162" marker-end="url(#arr)"/>
+  <text class="elab" x="88" y="215">N311 x is? (5.3.10.2)</text>
+  <path class="edge" d="M70 110 C 110 30, 300 30, 395 110" marker-end="url(#arr)"/>
+  <text class="elab" x="150" y="42">ra_problem? / rlc_maxretx? (5.3.10.3)</text>
+  <path class="edge" d="M295 136 L345 136" marker-end="url(#arr)"/>
+  <text class="elab" x="296" y="126">t310 == T310</text>
+  <path class="edge" d="M455 136 L505 136" marker-end="url(#arr)"/>
+  <text class="elab" x="456" y="126">store VarRLF-Report, t311 = 0</text>
+  <path class="edge" d="M615 136 L660 136" marker-end="url(#arr)"/>
+  <text class="elab" x="616" y="126">cell_found?</text>
+  <path class="edge" d="M770 110 L818 80" marker-end="url(#arr)"/>
+  <text class="elab" x="745" y="88">rr_ok?</text>
+  <path class="edge" d="M770 165 L818 205" marker-end="url(#arr)"/>
+  <text class="elab" x="770" y="200">rr_reject? / t301 == T301</text>
+  <path class="edge" d="M560 162 C 560 260, 720 262, 830 236" marker-end="url(#arr)"/>
+  <text class="elab" x="600" y="262">t311 == T311 (5.3.7.6)</text>
+</svg>
+<div class="svg-cap">rrc_rlf.xml: the N310 → T310 → RLF chain of §5.3.10 feeding the T311 → T301
+re-establishment chain of §5.3.7. RLF is committed: the report is stored and T311 started in
+zero time.</div>
+
+<h3>Verification results — 16/16 pass, 8,363 zone-graph states</h3>
+<table>
+<tr><th>Query</th><th>Meaning (spec clause)</th><th>Result</th></tr>
+<tr><td class="q">A[] not deadlock</td><td>the RRC machinery never gets stuck</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] n310 &lt;= N310 &amp;&amp; n311 &lt;= N311</td><td>counters never exceed their thresholds</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] not (exp310 == 1 &amp;&amp; rec310 == 1)</td><td>each T310 episode has at most one outcome: expiry or recovery</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (UE.REQ imply rlf_report == 1)</td><td>RRCReestablishmentRequest only sent after VarRLF-Report is stored (5.3.7.4)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (UE.REQ imply rlf_cause &gt; 0)</td><td>request only sent after a concrete RLF trigger, mapped to cause otherFailure (5.3.7.4)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.RECONN or UE.IDLE))</td><td>once RLF is declared the UE is inside the re-establishment chain</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.P --&gt; (rec310 == 1 or rlf_report == 1)</td><td>every T310 episode resolves: recovery or declared RLF</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">rlf_report == 1 --&gt; (UE.RECONN or UE.IDLE)</td><td>every declared RLF ends in re-establishment or RRC_IDLE</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.RES --&gt; (UE.REQ or UE.IDLE)</td><td>T311 always resolves: cell found and T301 starts, or idle (5.3.7.3/5.3.7.6)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.REQ --&gt; (UE.RECONN or UE.IDLE)</td><td>T301 always resolves: re-established or idle (5.3.7.5/5.3.7.7)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; rec310 == 1</td><td>link recovery via N311 consecutive in-syncs is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; exp310 == 1</td><td>T310 expiry leading to RLF is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; UE.RECONN</td><td>full re-establishment success is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; UE.IDLE</td><td>falling back to RRC_IDLE is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; rlf_cause == 3</td><td>RLF triggered by the RLC max-retx indication is reachable (5.3.10.3)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; rlf_cause == 2</td><td>RLF triggered by a random-access problem is reachable (5.3.10.3)</td><td class="verdict pass">PASS</td></tr>
+</table>
+
+<div class="note">
+  <p><b>The four leads-to queries are the point of using a timed model checker.</b>
+  <code>UE.P --&gt; (rec310 == 1 or rlf_report == 1)</code> reads: <i>from every state where T310
+  is running, the episode cannot avoid ending</i> — the adversarial L1 may interleave indications
+  however it likes, but the clock guard <code>t310 == T310</code> plus the invariant
+  <code>t310 &lt;= T310</code> force progress. A tester would need to enumerate schedules to
+  gain this confidence; the zone-based reachability check gets it in one query.</p>
+</div>
+
+<!-- ======================= RRC HO ======================= -->
+<h2>3 · RRC handover (reconfiguration with sync) — TS 38.331 §5.3.5</h2>
+
+<div class="lede">
+  <p>A handover is a reconfiguration message carrying <code>reconfigurationWithSync</code>: the
+  UE stops T310, starts T304, and random-accesses the target cell. If the target answers within
+  T304 the UE is connected on the new cell; if T304 expires, the UE reverts to the source
+  configuration, stores the failure, and runs the same re-establishment chain as after RLF —
+  with <code>reestablishmentCause = handoverFailure</code>. The model keeps the not-activated-security
+  branch of the spec as a guarded (disabled) edge, exactly as §5.3.5.5.2 defines it.</p>
+</div>
+
+<pre class="paper"><span class="spec-tag">TS 38.331 V17.2.0, clause 5.3.5.5.2 (reconfiguration with sync)</span>1&gt; if the AS security is not activated, perform the actions upon going to RRC_IDLE as specified
+in 5.3.11 with the release cause 'other' upon which the procedure ends;
+1&gt; if no DAPS bearer is configured: 2&gt; stop timer T310 for the corresponding SpCell, if running;
+... 3&gt; start timer T304 for the corresponding SpCell with the timer value set to t304, as included
+in the reconfigurationWithSync;
+<span class="spec-tag">clause 5.3.5.8.3 (T304 expiry — reconfiguration with sync failure)</span>1&gt; if T304 of the MCG expires ...: 2&gt; ... else: 3&gt; revert back to the UE configuration used
+in the source PCell; 3&gt; if the associated T304 was not initiated upon cell selection performed while
+timer T311 was running, as defined in clause 5.3.7.3: 4&gt; store the handover failure information in
+VarRLF-Report as described in the clause 5.3.10.5; 3&gt; initiate the connection re-establishment
+procedure as specified in clause 5.3.7.
+<span class="spec-tag">clause 5.3.7.4 (reestablishmentCause)</span>else if the re-establishment procedure was initiated due to reconfiguration with sync failure as
+specified in 5.3.5.8.3 (intra-NR handover failure) ...: set the reestablishmentCause to the value
+handoverFailure; else: set the reestablishmentCause to the value otherFailure;</pre>
+
+<svg viewBox="0 0 900 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RRC handover state machine">
+  <style>
+    .box { fill:#fffaf2; stroke:#b4552d; stroke-width:1.4; }
+    .boxc { fill:#f9e8dc; stroke:#b4552d; stroke-width:1.6; }
+    .lab { font: 12px Verdana,sans-serif; fill:#3f2f1f; text-anchor:middle; }
+    .sub { font: 9.5px Verdana,sans-serif; fill:#7c6a58; text-anchor:middle; }
+    .edge { stroke:#7c6a58; stroke-width:1.3; fill:none; }
+    .elab { font: 10px Verdana,sans-serif; fill:#b4552d; }
+  </style>
+  <rect class="box" x="15" y="110" width="120" height="52" rx="9"/>
+  <text class="lab" x="75" y="132">C_src</text>
+  <text class="sub" x="75" y="150">source PCell</text>
+  <rect class="box" x="195" y="110" width="130" height="52" rx="9"/>
+  <text class="lab" x="260" y="132">HO_Exec</text>
+  <text class="sub" x="260" y="150">T304 running (5.3.5.5.2)</text>
+  <rect class="box" x="390" y="30" width="120" height="52" rx="9"/>
+  <text class="lab" x="450" y="52">C_tgt</text>
+  <text class="sub" x="450" y="70">handover complete</text>
+  <rect class="boxc" x="390" y="180" width="120" height="52" rx="9"/>
+  <text class="lab" x="450" y="202">HO_Fail</text>
+  <text class="sub" x="450" y="220">committed (5.3.5.8.3)</text>
+  <rect class="box" x="570" y="110" width="100" height="52" rx="9"/>
+  <text class="lab" x="620" y="132">RES</text>
+  <text class="sub" x="620" y="150">T311 running</text>
+  <rect class="box" x="710" y="110" width="80" height="52" rx="9"/>
+  <text class="lab" x="750" y="132">REQ</text>
+  <text class="sub" x="750" y="150">T301 running</text>
+  <rect class="box" x="825" y="60" width="70" height="46" rx="9"/>
+  <text class="lab" x="860" y="80">REEST</text>
+  <text class="sub" x="860" y="96">recovered</text>
+  <rect class="box" x="825" y="170" width="70" height="46" rx="9"/>
+  <text class="lab" x="860" y="190">IDLE</text>
+  <text class="sub" x="860" y="206">RRC_IDLE</text>
+  <path class="edge" d="M135 136 L195 136" marker-end="url(#arr)"/>
+  <text class="elab" x="140" y="126">ho_cmd?, t304 = 0</text>
+  <path class="edge" d="M325 110 L395 82" marker-end="url(#arr)"/>
+  <text class="elab" x="330" y="86">ra_success? within T304</text>
+  <path class="edge" d="M325 162 L390 200" marker-end="url(#arr)"/>
+  <text class="elab" x="330" y="196">t304 == T304</text>
+  <path class="edge" d="M510 190 C 560 180, 580 170, 592 162" marker-end="url(#arr)"/>
+  <text class="elab" x="505" y="172">revert + store hf_report</text>
+  <path class="edge" d="M670 136 L710 136" marker-end="url(#arr)"/>
+  <text class="elab" x="672" y="126">cell_found?</text>
+  <path class="edge" d="M790 110 L828 106" marker-end="url(#arr)"/>
+  <text class="elab" x="780" y="96">rr_ok?</text>
+  <path class="edge" d="M790 162 L828 190" marker-end="url(#arr)"/>
+  <text class="elab" x="780" y="190">reject / t301==T301</text>
+  <path class="edge" d="M620 162 C 620 260, 760 258, 832 216" marker-end="url(#arr)"/>
+  <text class="elab" x="650" y="258">t311 == T311</text>
+</svg>
+<div class="svg-cap">rrc_ho.xml: the T304 race between &ldquo;random access succeeds&rdquo; and
+&ldquo;timer expires&rdquo;, and the failure path reusing the §5.3.7 re-establishment chain with
+cause handoverFailure.</div>
+
+<h3>Verification results — 13/13 pass, 31 zone-graph states</h3>
+<table>
+<tr><th>Query</th><th>Meaning (spec clause)</th><th>Result</th></tr>
+<tr><td class="q">A[] not deadlock</td><td>the handover machinery never gets stuck</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] not (ho_completed == 1 &amp;&amp; hf_report == 1)</td><td>the T304 race has at most one outcome: success or failure</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (UE.REQ imply hf_report == 1)</td><td>request only sent after handover failure stored in VarRLF-Report, cause handoverFailure (5.3.7.4)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (hf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))</td><td>after a failed handover the UE is inside the re-establishment chain</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A&lt;&gt; (UE.C_tgt or UE.REEST or UE.IDLE)</td><td>every handover attempt ends in a terminal outcome: connected on target, re-established, or RRC_IDLE</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.HO_Exec --&gt; (UE.C_tgt or hf_report == 1)</td><td>T304 always resolves: target reached or sync failure declared</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">hf_report == 1 --&gt; (UE.REEST or UE.IDLE)</td><td>every declared handover failure ends in re-establishment or RRC_IDLE</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.RES --&gt; (UE.REQ or UE.IDLE)</td><td>T311 always resolves</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.REQ --&gt; (UE.REEST or UE.IDLE)</td><td>T301 always resolves</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; UE.C_tgt</td><td>a successful handover within T304 is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; hf_report == 1</td><td>T304 expiry with failure stored is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; UE.REEST</td><td>recovery by re-establishment after a failed handover is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; UE.IDLE</td><td>ending in RRC_IDLE is reachable</td><td class="verdict pass">PASS</td></tr>
+</table>
+
+<!-- ======================= capstone ======================= -->
+<h2>4 · Composition: RLC max-retx escalating into RRC — 38.322 §5.3.2 meets 38.331 §5.3.10.3</h2>
+
+<div class="lede">
+  <p>The two specifications are usually read separately, but they interlock through one
+  sentence each. TS 38.322 says the AM entity, on hitting <code>maxRetxThreshold</code>,
+  &ldquo;indicates to upper layers that max retransmission has been reached&rdquo;. TS 38.331
+  says RLF is declared &ldquo;upon indication from MCG RLC that the maximum number of
+  retransmissions has been reached&rdquo;. The capstone model wires that indication to a
+  rendezvous channel <code>rlc_maxretx</code>: a one-SDU AM entity fights the lossy air, and if
+  its retransmission budget runs out, RRC hears it, declares RLF, stores VarRLF-Report, and runs
+  the T311/T301 chain to re-establishment or idle.</p>
+</div>
+
+<pre class="paper"><span class="spec-tag">The bridge, verbatim</span>TS 38.322 clause 5.3.2:  if RETX_COUNT = maxRetxThreshold: indicate to upper layers that max
+retransmission has been reached.
+TS 38.331 clause 5.3.10.3:  upon indication from MCG RLC that the maximum number of retransmissions
+has been reached ... consider radio link failure to be detected for the MCG, i.e. MCG RLF;
+store the radio link failure information in the VarRLF-Report as described in clause 5.3.10.5;</pre>
+
+<svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RLC to RRC composition">
+  <style>
+    .bigbox { fill:#fffaf2; stroke:#35618f; stroke-width:1.6; rx:12; }
+    .lab { font: 13px Verdana,sans-serif; fill:#3f2f1f; text-anchor:middle; font-weight:bold; }
+    .sub { font: 10px Verdana,sans-serif; fill:#7c6a58; text-anchor:middle; }
+    .edge { stroke:#b0392e; stroke-width:2.2; fill:none; }
+    .elab { font: 11px Verdana,sans-serif; fill:#b0392e; font-weight:bold; }
+  </style>
+  <rect class="bigbox" x="20" y="30" width="360" height="150" rx="12"/>
+  <text class="lab" x="200" y="60">RLC AM entity · TS 38.322</text>
+  <text class="sub" x="200" y="82">Tx: poll, retransmit, RETX_COUNT &lt;= maxRetxThreshold</text>
+  <text class="sub" x="200" y="100">Rx + RxStatus: in-order delivery, STATUS under t-StatusProhibit</text>
+  <text class="sub" x="200" y="118">Air: bounded loss of AMD PDU / STATUS PDU</text>
+  <text class="sub" x="200" y="150">outcome: T_Done (delivered) or T_Reported (gave up)</text>
+  <rect class="bigbox" x="520" y="30" width="360" height="150" rx="12"/>
+  <text class="lab" x="700" y="60">RRC · TS 38.331</text>
+  <text class="sub" x="700" y="82">C —(rlc_maxretx)—&gt; RLF (committed)</text>
+  <text class="sub" x="700" y="100">RES: T311 cell selection —&gt; REQ: T301 + request</text>
+  <text class="sub" x="700" y="118">cause otherFailure, VarRLF-Report stored (5.3.7.4)</text>
+  <text class="sub" x="700" y="150">outcome: REEST (reconnected) or IDLE</text>
+  <path class="edge" d="M380 105 L520 105" marker-end="url(#arr)"/>
+  <text class="elab" x="400" y="95">rlc_maxretx!</text>
+  <text class="sub" x="450" y="125">rendezvous channel</text>
+</svg>
+<div class="svg-cap">rlc_to_rrc.xml: the two timed automata share the channel
+<code>rlc_maxretx</code>; everything else is exactly the machinery of sections 1 and 2.</div>
+
+<h3>Verification results — 14/14 pass, 2,087 zone-graph states</h3>
+<table>
+<tr><th>Query</th><th>Meaning</th><th>Result</th></tr>
+<tr><td class="q">A[] not deadlock</td><td>the composed system never gets stuck</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] dl0 &lt;= 1</td><td>the SDU is delivered at most once, even across RLF (5.2.3.2.3)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] retx_count &lt;= MAX_RETX</td><td>RETX_COUNT respects maxRetxThreshold</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (UE.REQ imply rlf_report == 1)</td><td>request only after VarRLF-Report stored (5.3.7.4)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))</td><td>once RLF is declared the UE is inside the re-establishment chain</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">A&lt;&gt; ((Tx.T_Done &amp;&amp; UE.C) or UE.REEST or UE.IDLE)</td><td>composed termination: the SDU gets through, or RLC escalates to RRC and the UE recovers or falls idle</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">Tx.T_Wait --&gt; (Tx.T_Done or Tx.T_Reported)</td><td>the RLC episode always resolves under bounded loss: delivered or escalated</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">rlc_reported == 1 --&gt; (UE.REEST or UE.IDLE)</td><td>once RLC indicates max-retx, the RRC chain always ends in re-establishment or RRC_IDLE</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.RES --&gt; (UE.REQ or UE.IDLE)</td><td>T311 always resolves</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">UE.REQ --&gt; (UE.REEST or UE.IDLE)</td><td>T301 always resolves</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; Tx.T_Done</td><td>a lossless run delivers the SDU and RRC stays connected</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; rlc_reported == 1</td><td>the cross-spec indication is reachable</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; (rlc_reported == 1 &amp;&amp; UE.REEST)</td><td>full composed recovery: RLC escalation to successful re-establishment</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">E&lt;&gt; (rlc_reported == 1 &amp;&amp; UE.IDLE)</td><td>RLC escalation ending in RRC_IDLE is reachable</td><td class="verdict pass">PASS</td></tr>
+</table>
+
+<div class="note">
+  <p><b>Reading the witnesses.</b> The re-establishment-success witness is a full cross-spec
+  story: <code>[Tx.T_Reported, Rx.R_Wait, RxStatus.S_Free, Air.A_Idle, UE.REEST]</code> with
+  <code>retx_count = 2, rlc_reported = 1, rlf_report = 1, reest_ok = 1</code> — the AM entity
+  exhausted its retransmissions, RRC declared RLF, stored the report, found a cell, sent the
+  request, and was accepted. The idle witness is the same story ending in
+  <code>went_idle = 1</code>.</p>
+</div>
+
+<!-- ======================= downloads ======================= -->
+<h2>Downloads &amp; re-running</h2>
+
+<div class="dl-grid">
+  <div class="dl">
+    <h4>Models (UPPAAL 5.0 XML)</h4>
+    <p><a href="models/rlc_am.xml">rlc_am.xml</a> — RLC AM, 4 processes, 11 queries</p>
+    <p><a href="models/rrc_rlf.xml">rrc_rlf.xml</a> — RLF + re-establishment, 16 queries</p>
+    <p><a href="models/rrc_ho.xml">rrc_ho.xml</a> — handover + T304 race, 13 queries</p>
+    <p><a href="models/rlc_to_rrc.xml">rlc_to_rrc.xml</a> — composed capstone, 14 queries</p>
+  </div>
+  <div class="dl">
+    <h4>Checker</h4>
+    <p><a href="checker/uta_check.py">uta_check.py</a> — Python DBM/zone verifier implementing
+    UPPAAL semantics (queries embedded in each XML are checked by default):</p>
+    <p><code>python3 uta_check.py ../models/rlc_am.xml</code></p>
+    <p>Re-run with genuine UPPAAL (license required):</p>
+    <p><code>verifyta --lease 168 --key &lt;KEY&gt; models/*.xml</code></p>
+  </div>
+  <div class="dl">
+    <h4>Raw verification output</h4>
+    <p><a href="results/rlc_am.txt">results/rlc_am.txt</a> · <a href="results/rrc_rlf.txt">results/rrc_rlf.txt</a></p>
+    <p><a href="results/rrc_ho.txt">results/rrc_ho.txt</a> · <a href="results/rlc_to_rrc.txt">results/rlc_to_rrc.txt</a></p>
+    <p>State counts, per-query PASS/FAIL, and witness traces exactly as produced.</p>
+  </div>
+  <div class="dl">
+    <h4>Modeling conventions</h4>
+    <p>Timer outcome = guard <code>t == T</code> + invariant <code>t &lt;= T</code> on a
+    dedicated location, so queries stay clock-free and liveness is exact. Rendezvous
+    <code>chan</code> for layer indications; committed locations for zero-time actions
+    (store report, start next timer); finite nondeterministic budgets for the environment
+    (lossy air, adversarial L1, network answers) so liveness queries are meaningful.</p>
+  </div>
+</div>
+
+<div class="note warn">
+  <p><b>Abstractions, stated plainly.</b> Each model shrinks the data plane so the timer logic
+  is exactly checkable: 3 SDUs with a send window of 2 (RLC), <code>pollPDU = 1</code>, STATUS
+  abstracted to (ACK up to rx_next, NACK hole), byte-segment segmentation and HARQ invisible,
+  DAPS bearers not modelled, AS security assumed activated for RLF re-establishment (the
+  not-activated branch is kept as a disabled guarded edge in the handover model), no T316/T312,
+  and physical-layer indications as atomic rendezvous events with finite budgets. Constants are
+  shrunk (T310=4, T311=5, T301=3, T304=4, maxRetx=2, N310=2, N311=2) — the automaton structure,
+  not the values, is what the specs fix; every value is a named constant at the top of each
+  model, so changing them is a one-line edit.</p>
+</div>
+
+<footer>
+  <p>ORAN-DOMAIN · built 2026-09-01 · models from 3GPP TS 38.322 V17.2.0 (RLC) and
+  TS 38.331 V17.2.0 (RRC), Release 17, as published by ARIB STD-T120 mirror.
+  Zone-graph exploration, DBM operations and query evaluation by
+  <code>uta_check.py</code>; all 54 queries pass. Not affiliated with 3GPP, ARIB,
+  or the UPPAAL team.</p>
+</footer>
+
+</div>
+</body>
+</html>

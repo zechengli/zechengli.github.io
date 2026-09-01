@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Timed Automata 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/uta-1_1.dtd'>
+<nta>
+  <declaration>// Capstone composition: RLC Acknowledged Mode (TS 38.322) escalating into
+// RRC radio link failure and re-establishment (TS 38.331).
+// The bridge is the sentence in 38.322 clause 5.3.2:
+//     "if the RETX_COUNT is equal to maxRetxThreshold ... indicate to
+//      upper layers that the max number of retransmissions has been
+//      reached"
+// meeting 38.331 clause 5.3.10.3:
+//     RLF is declared upon "max number of retransmissions ... indication
+//      from MCG RLC", which feeds the re-establishment chain of 5.3.7.
+// Model: a single uplink SDU (SN 0) is transmitted with a poll; the air
+// interface may lose AMD PDUs and STATUS PDUs within finite budgets; when
+// RETX_COUNT hits maxRetxThreshold the RLC entity raises rlc_maxretx to
+// RRC, which declares RLF, stores VarRLF-Report, and runs the T311/T301
+// re-establishment chain to REESTABLISHED or RRC_IDLE.
+
+const int MAX_RETX = 2;
+const int T_POLL = 3;
+const int T_STATP = 2;
+const int T311 = 5;
+const int T301 = 3;
+const int DL_BUDGET = 3;
+const int UL_BUDGET = 2;
+const int CELL_BUDGET = 1;
+
+int dl_budget = DL_BUDGET;
+int ul_budget = UL_BUDGET;
+int cell_left = CELL_BUDGET;
+
+// RLC AM data plane
+int sn_send = 0;
+int sn_recv = 0;
+int status_ack = 0;
+int status_nack = -1;
+int retx_count = 0;
+int dl0 = 0;
+int status_wanted = 0;
+
+// the cross-spec indication and RRC bookkeeping
+int rlc_reported = 0;
+int rlf_report = 0;
+int reest_ok = 0;
+int went_idle = 0;
+
+clock tpoll;
+clock tstatus;
+clock t311;
+clock t301;
+
+chan data;
+chan rcv;
+chan ul_status;
+chan status;
+chan rlc_maxretx;
+chan cell_found;
+chan rr_ok;
+chan rr_reject;</declaration>
+  <template>
+    <name x="0" y="0">Tx</name>
+    <location id="t0" x="0" y="0">
+      <name x="-10" y="-34">T_Idle</name>
+      <urgent/>
+    </location>
+    <location id="t1" x="170" y="0">
+      <name x="160" y="-34">T_Wait</name>
+      <label kind="invariant" x="160" y="-12">tpoll &lt;= T_POLL</label>
+    </location>
+    <location id="t2" x="340" y="0">
+      <name x="330" y="-34">T_Done</name>
+      <label kind="comment" x="330" y="14">SDU acked and delivered</label>
+    </location>
+    <location id="t3" x="170" y="130">
+      <name x="160" y="96">T_Ind</name>
+      <committed/>
+    </location>
+    <location id="t4" x="340" y="130">
+      <name x="330" y="96">T_Reported</name>
+      <label kind="comment" x="330" y="160">max-retx indicated to upper layers (38.322 5.3.2)</label>
+    </location>
+    <init ref="t0"/>
+    <transition>
+      <source ref="t0"/>
+      <target ref="t1"/>
+      <label kind="comment" x="30" y="-40">submit SN0 with a poll (P=1, 5.3.3.2)</label>
+      <label kind="synchronisation" x="30" y="-20">data!</label>
+      <label kind="assignment" x="30" y="0">sn_send = 0, tpoll = 0</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="200" y="-70">tpoll == T_POLL &amp;&amp; retx_count + 1 &lt; MAX_RETX</label>
+      <label kind="comment" x="200" y="-50">t-PollRetransmit expiry (5.3.3.4): RETX_COUNT++, retransmit with poll (5.3.2)</label>
+      <label kind="synchronisation" x="200" y="-30">data!</label>
+      <label kind="assignment" x="200" y="-10">sn_send = 0, retx_count = retx_count + 1, tpoll = 0</label>
+      <nail x="230" y="-70"/>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t3"/>
+      <label kind="guard" x="190" y="110">tpoll == T_POLL &amp;&amp; retx_count + 1 &gt;= MAX_RETX</label>
+      <label kind="comment" x="190" y="130">RETX_COUNT = maxRetxThreshold: do not retransmit again</label>
+      <label kind="assignment" x="190" y="150">retx_count = retx_count + 1</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="40" y="200">status_nack &gt;= 0 &amp;&amp; retx_count + 1 &lt; MAX_RETX</label>
+      <label kind="comment" x="40" y="220">STATUS NACKs SN0: RETX_COUNT++, retransmit (5.3.2)</label>
+      <label kind="synchronisation" x="40" y="240">status?</label>
+      <label kind="assignment" x="40" y="260">retx_count = retx_count + 1, sn_send = 0, tpoll = 0</label>
+      <nail x="70" y="200"/>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t3"/>
+      <label kind="guard" x="120" y="300">status_nack &gt;= 0 &amp;&amp; retx_count + 1 &gt;= MAX_RETX</label>
+      <label kind="comment" x="120" y="320">retransmission budget exhausted on NACK too</label>
+      <label kind="synchronisation" x="120" y="340">status?</label>
+      <label kind="assignment" x="120" y="360">retx_count = retx_count + 1</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t2"/>
+      <label kind="guard" x="250" y="20">status_nack &lt; 0 &amp;&amp; status_ack &gt;= 1</label>
+      <label kind="comment" x="250" y="40">STATUS acks SN0: stop t-PollRetransmit (5.3.3.3)</label>
+      <label kind="synchronisation" x="250" y="60">status?</label>
+    </transition>
+    <transition>
+      <source ref="t1"/>
+      <target ref="t1"/>
+      <label kind="guard" x="320" y="-140">status_nack &lt; 0 &amp;&amp; status_ack == 0</label>
+      <label kind="comment" x="320" y="-120">STATUS carries nothing new: ignore</label>
+      <label kind="synchronisation" x="320" y="-100">status?</label>
+      <nail x="350" y="-140"/>
+    </transition>
+    <transition>
+      <source ref="t3"/>
+      <target ref="t4"/>
+      <label kind="comment" x="210" y="100">indicate to upper layers that max retransmissions</label>
+      <label kind="comment" x="210" y="120">has been reached (38.322 5.3.2) -&gt; RRC hears it (38.331 5.3.10.3)</label>
+      <label kind="synchronisation" x="210" y="140">rlc_maxretx!</label>
+      <label kind="assignment" x="210" y="160">rlc_reported = 1</label>
+    </transition>
+    <transition>
+      <source ref="t2"/>
+      <target ref="t2"/>
+      <label kind="synchronisation" x="370" y="40">status?</label>
+      <label kind="comment" x="370" y="60">absorb late STATUS</label>
+      <nail x="370" y="40"/>
+    </transition>
+    <transition>
+      <source ref="t4"/>
+      <target ref="t4"/>
+      <label kind="synchronisation" x="200" y="200">status?</label>
+      <label kind="comment" x="200" y="220">absorb STATUS after the indication</label>
+      <nail x="200" y="200"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Rx</name>
+    <location id="r0" x="0" y="0">
+      <name x="-10" y="-34">R_Wait</name>
+    </location>
+    <init ref="r0"/>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="-80">sn_recv == 0 &amp;&amp; dl0 == 0</label>
+      <label kind="comment" x="30" y="-60">in-order delivery of SN0 (5.2.3.2.3), STATUS wanted</label>
+      <label kind="synchronisation" x="30" y="-40">rcv?</label>
+      <label kind="assignment" x="30" y="-20">dl0 = 1, status_wanted = 1</label>
+      <nail x="60" y="-80"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="60">dl0 == 1</label>
+      <label kind="comment" x="30" y="80">duplicate: discard (5.2.3.2.2), but answer the poll</label>
+      <label kind="synchronisation" x="30" y="100">rcv?</label>
+      <label kind="assignment" x="30" y="120">status_wanted = 1</label>
+      <nail x="60" y="60"/>
+    </transition>
+    <transition>
+      <source ref="r0"/>
+      <target ref="r0"/>
+      <label kind="guard" x="30" y="170">sn_recv != 0</label>
+      <label kind="comment" x="30" y="190">outside the reception window: discard</label>
+      <label kind="synchronisation" x="30" y="210">rcv?</label>
+      <label kind="assignment" x="30" y="230">status_wanted = 1</label>
+      <nail x="60" y="170"/>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">RxStatus</name>
+    <location id="s0" x="0" y="0">
+      <name x="-10" y="-34">S_Free</name>
+    </location>
+    <location id="s1" x="170" y="0">
+      <name x="160" y="-34">S_Wait</name>
+      <label kind="invariant" x="160" y="-12">tstatus &lt;= T_STATP</label>
+    </location>
+    <init ref="s0"/>
+    <transition>
+      <source ref="s0"/>
+      <target ref="s1"/>
+      <label kind="guard" x="30" y="-60">status_wanted == 1 &amp;&amp; dl0 == 1</label>
+      <label kind="comment" x="30" y="-40">poll response: ACK SN0 (5.3.4)</label>
+      <label kind="synchronisation" x="30" y="-20">ul_status!</label>
+      <label kind="assignment" x="30" y="0">status_ack = 1, status_nack = -1, status_wanted = 0, tstatus = 0</label>
+    </transition>
+    <transition>
+      <source ref="s0"/>
+      <target ref="s1"/>
+      <label kind="guard" x="30" y="60">status_wanted == 1 &amp;&amp; dl0 == 0</label>
+      <label kind="comment" x="30" y="80">poll response: SN0 missing, NACK it</label>
+      <label kind="synchronisation" x="30" y="100">ul_status!</label>
+      <label kind="assignment" x="30" y="120">status_ack = 0, status_nack = 0, status_wanted = 0, tstatus = 0</label>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s1"/>
+      <label kind="guard" x="200" y="-60">tstatus == T_STATP &amp;&amp; status_wanted == 1 &amp;&amp; dl0 == 1</label>
+      <label kind="synchronisation" x="200" y="-40">ul_status!</label>
+      <label kind="assignment" x="200" y="-20">status_ack = 1, status_nack = -1, status_wanted = 0, tstatus = 0</label>
+      <nail x="230" y="-60"/>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s1"/>
+      <label kind="guard" x="200" y="60">tstatus == T_STATP &amp;&amp; status_wanted == 1 &amp;&amp; dl0 == 0</label>
+      <label kind="synchronisation" x="200" y="80">ul_status!</label>
+      <label kind="assignment" x="200" y="100">status_ack = 0, status_nack = 0, status_wanted = 0, tstatus = 0</label>
+      <nail x="230" y="60"/>
+    </transition>
+    <transition>
+      <source ref="s1"/>
+      <target ref="s0"/>
+      <label kind="guard" x="200" y="160">tstatus == T_STATP &amp;&amp; status_wanted == 0</label>
+      <label kind="comment" x="200" y="180">t-StatusProhibit expiry, nothing pending</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Air</name>
+    <location id="a0" x="0" y="0">
+      <name x="-10" y="-34">A_Idle</name>
+    </location>
+    <location id="a1" x="170" y="0">
+      <name x="160" y="-34">A_HoldD</name>
+      <committed/>
+    </location>
+    <location id="a2" x="340" y="0">
+      <name x="330" y="-34">A_HoldU</name>
+      <committed/>
+    </location>
+    <init ref="a0"/>
+    <transition>
+      <source ref="a0"/>
+      <target ref="a1"/>
+      <label kind="synchronisation" x="30" y="-20">data?</label>
+    </transition>
+    <transition>
+      <source ref="a1"/>
+      <target ref="a0"/>
+      <label kind="synchronisation" x="200" y="-40">rcv!</label>
+      <label kind="assignment" x="200" y="-20">sn_recv = sn_send</label>
+    </transition>
+    <transition>
+      <source ref="a1"/>
+      <target ref="a0"/>
+      <label kind="guard" x="200" y="20">dl_budget &gt; 0</label>
+      <label kind="comment" x="200" y="40">the AMD PDU is lost on the air interface</label>
+      <label kind="assignment" x="200" y="60">dl_budget = dl_budget - 1</label>
+    </transition>
+    <transition>
+      <source ref="a0"/>
+      <target ref="a2"/>
+      <label kind="synchronisation" x="30" y="60">ul_status?</label>
+    </transition>
+    <transition>
+      <source ref="a2"/>
+      <target ref="a0"/>
+      <label kind="synchronisation" x="200" y="60">status!</label>
+    </transition>
+    <transition>
+      <source ref="a2"/>
+      <target ref="a0"/>
+      <label kind="guard" x="200" y="100">ul_budget &gt; 0</label>
+      <label kind="comment" x="200" y="120">the STATUS PDU is lost on the air interface</label>
+      <label kind="assignment" x="200" y="140">ul_budget = ul_budget - 1</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">UE</name>
+    <location id="u0" x="0" y="0">
+      <name x="-10" y="-34">C</name>
+      <label kind="comment" x="-10" y="14">RRC_CONNECTED, listening for lower-layer indications</label>
+    </location>
+    <location id="u1" x="170" y="0">
+      <name x="160" y="-34">RLF</name>
+      <committed/>
+      <label kind="comment" x="160" y="14">RLF declared: max-retx indication from MCG RLC (5.3.10.3)</label>
+    </location>
+    <location id="u2" x="340" y="0">
+      <name x="330" y="-34">RES</name>
+      <label kind="invariant" x="330" y="-12">t311 &lt;= T311</label>
+      <label kind="comment" x="330" y="14">T311 running, cell selection (5.3.7.2)</label>
+    </location>
+    <location id="u3" x="510" y="0">
+      <name x="500" y="-34">REQ</name>
+      <label kind="invariant" x="500" y="-12">t301 &lt;= T301</label>
+      <label kind="comment" x="500" y="14">T301 running, RRCReestablishmentRequest sent, cause otherFailure (5.3.7.3-4)</label>
+    </location>
+    <location id="u4" x="680" y="-40">
+      <name x="670" y="-74">REEST</name>
+      <label kind="comment" x="670" y="14">RRCReestablishment received (5.3.7.5)</label>
+    </location>
+    <location id="u5" x="680" y="60">
+      <name x="670" y="94">IDLE</name>
+      <label kind="comment" x="670" y="130">RRC_IDLE after failed re-establishment</label>
+    </location>
+    <init ref="u0"/>
+    <transition>
+      <source ref="u0"/>
+      <target ref="u1"/>
+      <label kind="comment" x="60" y="-30">RLC says max retransmissions reached (38.322 5.3.2 -&gt; 38.331 5.3.10.3)</label>
+      <label kind="synchronisation" x="60" y="-10">rlc_maxretx?</label>
+    </transition>
+    <transition>
+      <source ref="u1"/>
+      <target ref="u2"/>
+      <label kind="comment" x="200" y="30">declare RLF, store VarRLF-Report, start T311 (5.3.7.2)</label>
+      <label kind="assignment" x="200" y="50">rlf_report = 1, t311 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u2"/>
+      <target ref="u3"/>
+      <label kind="comment" x="370" y="-30">suitable cell found: stop T311, start T301, send RRCReestablishmentRequest (5.3.7.3)</label>
+      <label kind="synchronisation" x="370" y="-10">cell_found?</label>
+      <label kind="assignment" x="370" y="10">t301 = 0</label>
+    </transition>
+    <transition>
+      <source ref="u2"/>
+      <target ref="u5"/>
+      <label kind="guard" x="400" y="70">t311 == T311</label>
+      <label kind="comment" x="400" y="90">T311 expiry: go to RRC_IDLE (5.3.7.6)</label>
+      <label kind="assignment" x="400" y="110">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u4"/>
+      <label kind="comment" x="540" y="-60">RRCReestablishment received: stop T301 (5.3.7.5)</label>
+      <label kind="synchronisation" x="540" y="-40">rr_ok?</label>
+      <label kind="assignment" x="540" y="-20">reest_ok = 1</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u5"/>
+      <label kind="comment" x="570" y="60">RRCReestablishmentReject: go to RRC_IDLE</label>
+      <label kind="synchronisation" x="570" y="80">rr_reject?</label>
+      <label kind="assignment" x="570" y="100">went_idle = 1</label>
+    </transition>
+    <transition>
+      <source ref="u3"/>
+      <target ref="u5"/>
+      <label kind="guard" x="570" y="140">t301 == T301</label>
+      <label kind="comment" x="570" y="160">T301 expiry: go to RRC_IDLE (5.3.7.7)</label>
+      <label kind="assignment" x="570" y="180">went_idle = 1</label>
+    </transition>
+  </template>
+  <template>
+    <name x="0" y="0">Net</name>
+    <location id="n0" x="0" y="0">
+      <name x="-10" y="-34">Wait</name>
+    </location>
+    <init ref="n0"/>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="-30">cell_left &gt; 0</label>
+      <label kind="comment" x="30" y="-10">a suitable cell is found during cell selection</label>
+      <label kind="synchronisation" x="30" y="10">cell_found!</label>
+      <label kind="assignment" x="30" y="30">cell_left = cell_left - 1</label>
+      <nail x="60" y="-30"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="80">cell_left == 0</label>
+      <label kind="comment" x="30" y="100">the network accepts the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="120">rr_ok!</label>
+      <nail x="60" y="80"/>
+    </transition>
+    <transition>
+      <source ref="n0"/>
+      <target ref="n0"/>
+      <label kind="guard" x="30" y="150">cell_left == 0</label>
+      <label kind="comment" x="30" y="170">the network rejects the re-establishment request</label>
+      <label kind="synchronisation" x="30" y="190">rr_reject!</label>
+      <nail x="60" y="150"/>
+    </transition>
+  </template>
+  <system>Tx = Tx();
+Rx = Rx();
+RxStatus = RxStatus();
+Air = Air();
+UE = UE();
+Net = Net();
+system Tx, Rx, RxStatus, Air, UE, Net;</system>
+  <queries>
+    <query>
+      <formula>A[] not deadlock</formula>
+      <comment>the composed system never gets stuck</comment>
+    </query>
+    <query>
+      <formula>A[] dl0 &lt;= 1</formula>
+      <comment>the SDU is delivered at most once, even across RLF (5.2.3.2.3)</comment>
+    </query>
+    <query>
+      <formula>A[] retx_count &lt;= MAX_RETX</formula>
+      <comment>RETX_COUNT respects maxRetxThreshold</comment>
+    </query>
+    <query>
+      <formula>A[] (UE.REQ imply rlf_report == 1)</formula>
+      <comment>RRCReestablishmentRequest only after VarRLF-Report is stored (5.3.7.4)</comment>
+    </query>
+    <query>
+      <formula>A[] (rlf_report == 1 imply (UE.RES or UE.REQ or UE.REEST or UE.IDLE))</formula>
+      <comment>once RLF is declared the UE is inside the re-establishment chain</comment>
+    </query>
+    <query>
+      <formula>A&lt;&gt; ((Tx.T_Done &amp;&amp; UE.C) or UE.REEST or UE.IDLE)</formula>
+      <comment>composed termination: either the SDU gets through, or RLC escalates to RRC and the UE recovers or falls idle</comment>
+    </query>
+    <query>
+      <formula>Tx.T_Wait --&gt; (Tx.T_Done or Tx.T_Reported)</formula>
+      <comment>the RLC episode always resolves under bounded loss: delivered or escalated</comment>
+    </query>
+    <query>
+      <formula>rlc_reported == 1 --&gt; (UE.REEST or UE.IDLE)</formula>
+      <comment>once RLC indicates max-retx, the RRC chain always ends in re-establishment or RRC_IDLE</comment>
+    </query>
+    <query>
+      <formula>UE.RES --&gt; (UE.REQ or UE.IDLE)</formula>
+      <comment>T311 always resolves</comment>
+    </query>
+    <query>
+      <formula>UE.REQ --&gt; (UE.REEST or UE.IDLE)</formula>
+      <comment>T301 always resolves</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; Tx.T_Done</formula>
+      <comment>a lossless run delivers the SDU and RRC stays connected</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; rlc_reported == 1</formula>
+      <comment>the cross-spec indication (38.322 5.3.2 to 38.331 5.3.10.3) is reachable</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; (rlc_reported == 1 &amp;&amp; UE.REEST)</formula>
+      <comment>full composed recovery: RLC escalation to successful re-establishment</comment>
+    </query>
+    <query>
+      <formula>E&lt;&gt; (rlc_reported == 1 &amp;&amp; UE.IDLE)</formula>
+      <comment>RLC escalation ending in RRC_IDLE is reachable</comment>
+    </query>
+  </queries>
+</nta>
