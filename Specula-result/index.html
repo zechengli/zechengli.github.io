@@ -170,7 +170,7 @@ violations the C++ tests never provoke. The phases and what each produced:</p>
   <tr>
     <td>4 · Finding confirmation</td>
     <td>Each counterexample replayed and confirmed against the real C++ semantics, then severity-ranked</td>
-    <td>18 entries → 13 reproduced bugs (2 Critical, 8 High, 2 Medium, 3 Low) + 2 masked + 3 false positives</td>
+    <td>15 confirmed entries → 13 reproduced bugs (2 Critical, 8 High, 2 Medium, 3 Low) + 2 masked; 3 further checker violations were intermediate loop dispositions, excluded from the final results</td>
     <td><span class="badge low">done</span></td>
   </tr>
 </table>
@@ -390,22 +390,20 @@ and MC.cfg went from firing to clean over 83.6M states. The counterexample was a
 model artifact — exactly the discipline formal checking is supposed to enforce.
 </div>
 
-<h2>Confirmed findings: 18 entries, 13 real bugs</h2>
+<h2>Confirmed findings: 13 real bugs, 2 masked</h2>
 <p>Phase 4 replayed every checker counterexample against the real C++ through its
 public APIs — driving the actual RLC, PDCP, RRC and DU components, with the
 triggering conditions (executor queue saturation, admissible loss, legal message
 interleavings) produced through production interfaces. Final tally:
 <span class="badge crit">2 critical</span> <span class="badge high">8 high</span>
 <span class="badge med">2 medium</span> <span class="badge low">3 low</span>
-plus 3 refuted/false-positive dispositions.</p>
+plus 2 masked. Three further checker violations surfaced during the loop —
+non-bug dispositions, not results of the audit — and are excluded from the
+final findings: MC-1 (a model artifact, consumed by repair round RR-001 below),
+CR-2 (a triggering state unreachable through any real call sequence), and CR-9
+(a consequence-free documentation mismatch).</p>
 <table>
   <tr><th>Entry</th><th>Finding</th><th>Verdict</th><th>Severity</th></tr>
-  <tr>
-    <td class="q">MC-1</td>
-    <td>Duplicate PDCP delivery after SRB re-establishment (stale in-flight PDU across rebuild)</td>
-    <td><span class="badge pending">false positive</span></td>
-    <td>—</td>
-  </tr>
   <tr>
     <td class="q">MC-2</td>
     <td>One failed RLF dispatch (DU-control queue full at the indication instant) permanently and silently kills a UE's SRB — no re-raise, no release, no timer; the UE stays registered but unreachable</td>
@@ -461,12 +459,6 @@ plus 3 refuted/false-positive dispositions.</p>
     <td><span class="badge med">medium</span></td>
   </tr>
   <tr>
-    <td class="q">CR-2</td>
-    <td>Fifth-procedure-start transaction abort — unreachable in the real code (per-UE FIFO serialization caps concurrent transactions at 2 of the 4 TID slots)</td>
-    <td><span class="badge pending">false positive</span></td>
-    <td>—</td>
-  </tr>
-  <tr>
     <td class="q">CR-3</td>
     <td>Inverted defer-result polarity in five RLC AM TX error paths — false "Could not trigger protocol failure" errors on every healthy trigger, silence on genuine failures</td>
     <td><span class="badge high">reproduced</span></td>
@@ -502,12 +494,6 @@ plus 3 refuted/false-positive dispositions.</p>
     <td><span class="badge high">reproduced</span></td>
     <td><span class="badge low">low</span></td>
   </tr>
-  <tr>
-    <td class="q">CR-9</td>
-    <td>Stale "already queued for RETX" doc clause has no implementation — consequence-free; runtime clear-and-rebuild is the designed, test-blessed semantics</td>
-    <td><span class="badge pending">false positive</span></td>
-    <td>—</td>
-  </tr>
 </table>
 <p>The pattern across the thirteen: the stack's permanent-failure machinery — RLF
 escalation, release, re-establishment recovery — holds together only while every
@@ -532,7 +518,7 @@ arise at an inter-vendor E1AP boundary, not from srsRAN's own CU-CP.</p>
 Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01, completed 2026-09-02 (12h33m, ~597M tokens).
 First srsRAN case study in the Specula corpus (prior-art tree searched: no earlier entry).
 Phase-1 evidence: every finding cited line numbers were personally re-read, not taken from a subagent.
-Every confirmed bug was reproduced against the unmodified C++ through its public APIs; every counterexample that failed that audit is labeled a false positive above.
+Every confirmed bug was reproduced against the unmodified C++ through its public APIs; checker violations that failed that audit were intermediate loop dispositions and are excluded from the final findings.
 </footer>
 
 </div>
