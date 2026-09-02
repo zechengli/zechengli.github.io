@@ -112,10 +112,18 @@ a { color: var(--accent); }
 <header>
   <div class="eyebrow">Formal methods · Specula × srsRAN Project</div>
   <h1>TLA<sup>+</sup> model checking the 5G L2/L3 stack</h1>
-  <div class="kv">
-    <div class="k">Resources</div>
-    <div><strong>11h 18m runtime · 597.0M tokens · ≈$3,052 estimated cost</strong> — reasoning effort max, all tokens uncached. By phase: 1&nbsp;·&nbsp;code analysis 1h21m / 37.2M / $193 &nbsp;·&nbsp; 2&nbsp;·&nbsp;spec generation 87.6M / $444 &nbsp;·&nbsp; 2.5&nbsp;·&nbsp;harness 1h45m / 128.3M / $648 &nbsp;·&nbsp; 3&nbsp;·&nbsp;validation 4h34m / 49.4M / $251 &nbsp;·&nbsp; 4a&nbsp;·&nbsp;confirmation 3h27m / 291.1M / $1,498 &nbsp;·&nbsp; 4b&nbsp;·&nbsp;classification 9m48s / 3.4M / $18. Checker: TLC, bounded BFS, 30-min time-box per config.</div>
-  </div>
+  <h3 style="margin-top:14px">Run resources</h3>
+  <table>
+    <tr><th>Phase</th><th style="text-align:right">Runtime</th><th style="text-align:right">Tokens</th><th style="text-align:right">Est. cost</th></tr>
+    <tr><td>1 · Code analysis</td><td style="text-align:right">1h 21m</td><td style="text-align:right">37.2M</td><td style="text-align:right">$193.36</td></tr>
+    <tr><td>2 · Spec generation</td><td style="text-align:right">—</td><td style="text-align:right">87.6M</td><td style="text-align:right">$444.19</td></tr>
+    <tr><td>2.5 · Trace harness</td><td style="text-align:right">1h 45m</td><td style="text-align:right">128.3M</td><td style="text-align:right">$648.13</td></tr>
+    <tr><td>3 · Validation (TLC)</td><td style="text-align:right">4h 34m</td><td style="text-align:right">49.4M</td><td style="text-align:right">$250.59</td></tr>
+    <tr><td>4a · Bug confirmation</td><td style="text-align:right">3h 27m</td><td style="text-align:right">291.1M</td><td style="text-align:right">$1,497.72</td></tr>
+    <tr><td>4b · Classification</td><td style="text-align:right">9m 48s</td><td style="text-align:right">3.4M</td><td style="text-align:right">$17.83</td></tr>
+    <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>11h 18m</strong></td><td style="text-align:right"><strong>597.0M</strong></td><td style="text-align:right"><strong>$3,051.83</strong></td></tr>
+  </table>
+  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Reasoning effort max; all tokens uncached. Checker: TLC, bounded BFS, 30-min time-box per config. Phase 2 runtime is not separately recorded (the run was interrupted mid-phase and resumed).</p>
   <div class="lede">
     <p><a href="https://github.com/specula-org/Specula">Specula</a> was pointed at the
     <a href="https://github.com/srsran/srsRAN_Project">srsRAN Project</a> gNB — the RLC AM, PDCP and RRC
