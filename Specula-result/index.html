@@ -116,14 +116,14 @@ a { color: var(--accent); }
   <table>
     <tr><th>Phase</th><th style="text-align:right">Runtime</th><th style="text-align:right">Tokens</th><th style="text-align:right">Est. cost</th></tr>
     <tr><td>1 · Code analysis</td><td style="text-align:right">1h 21m</td><td style="text-align:right">37.2M</td><td style="text-align:right">$193.36</td></tr>
-    <tr><td>2 · Spec generation</td><td style="text-align:right">—</td><td style="text-align:right">87.6M</td><td style="text-align:right">$444.19</td></tr>
+    <tr><td>2 · Spec generation</td><td style="text-align:right">1h 15m</td><td style="text-align:right">87.6M</td><td style="text-align:right">$444.19</td></tr>
     <tr><td>2.5 · Trace harness</td><td style="text-align:right">1h 45m</td><td style="text-align:right">128.3M</td><td style="text-align:right">$648.13</td></tr>
     <tr><td>3 · Validation (TLC)</td><td style="text-align:right">4h 34m</td><td style="text-align:right">49.4M</td><td style="text-align:right">$250.59</td></tr>
     <tr><td>4a · Bug confirmation</td><td style="text-align:right">3h 27m</td><td style="text-align:right">291.1M</td><td style="text-align:right">$1,497.72</td></tr>
     <tr><td>4b · Classification</td><td style="text-align:right">9m 48s</td><td style="text-align:right">3.4M</td><td style="text-align:right">$17.83</td></tr>
-    <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>11h 18m</strong></td><td style="text-align:right"><strong>597.0M</strong></td><td style="text-align:right"><strong>$3,051.83</strong></td></tr>
+    <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>12h 33m</strong></td><td style="text-align:right"><strong>597.0M</strong></td><td style="text-align:right"><strong>$3,051.83</strong></td></tr>
   </table>
-  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Reasoning effort max; all tokens uncached. Checker: TLC, bounded BFS, 30-min time-box per config. Phase 2 runtime is not separately recorded (the run was interrupted mid-phase and resumed).</p>
+  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Reasoning effort max; all tokens uncached. Checker: TLC, bounded BFS, 30-min time-box per config. Phase 2 runtime is the resumed attempt's recorded wall time (4,507 s); an initial 16-minute attempt was cut short by a provider quota limit, produced no output, and is excluded.</p>
   <div class="lede">
     <p><a href="https://github.com/specula-org/Specula">Specula</a> was pointed at the
     <a href="https://github.com/srsran/srsRAN_Project">srsRAN Project</a> gNB — the RLC AM, PDCP and RRC
@@ -138,7 +138,7 @@ a { color: var(--accent); }
     <div class="k">Target</div><div>srsRAN Project, release_25_10 (commit <code>d2f4b70</code>, 2025-11-11 — the final upstream <code>main</code> state; repo archived 2026-06)</div>
     <div class="k">Scope</div><div>RLC AM TX/RX, PDCP TX/RX, RRC per-UE procedures, DU RLF escalation — ~5.5k LOC of core protocol logic (≈8k with containers/glue)</div>
     <div class="k">Tooling</div><div>Specula (TLA<sup>+</sup> spec generation) · TLC 2026.09.01 model checker · JDK 21</div>
-    <div class="k">Run</div><div><code>specula run --run-id=srsran5g</code>, reasoning effort max — completed 2026-09-02 after 11h18m across all five phases (~597M tokens end to end)</div>
+    <div class="k">Run</div><div><code>specula run --run-id=srsran5g</code>, reasoning effort max — completed 2026-09-02 after 12h33m across all five phases (~597M tokens end to end)</div>
   </div>
 </header>
 
@@ -529,7 +529,7 @@ arise at an inter-vendor E1AP boundary, not from srsRAN's own CU-CP.</p>
 </div>
 
 <footer>
-Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01, completed 2026-09-02 (11h18m, ~597M tokens).
+Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01, completed 2026-09-02 (12h33m, ~597M tokens).
 First srsRAN case study in the Specula corpus (prior-art tree searched: no earlier entry).
 Phase-1 evidence: every finding cited line numbers were personally re-read, not taken from a subagent.
 Every confirmed bug was reproduced against the unmodified C++ through its public APIs; every counterexample that failed that audit is labeled a false positive above.
