@@ -89,6 +89,7 @@ code {
   border-radius: 99px; padding: 2px 10px; white-space: nowrap;
 }
 .badge.high { background: #f6e3da; color: var(--red); }
+.badge.crit { background: var(--red); color: #fffaf2; }
 .badge.med { background: #f3ead6; color: #8a6d1f; }
 .badge.low { background: #e8ecdf; color: var(--green); }
 .badge.pending { background: #e5e0d4; color: var(--muted); }
@@ -125,7 +126,7 @@ a { color: var(--accent); }
     <div class="k">Target</div><div>srsRAN Project, release_25_10 (commit <code>d2f4b70</code>, 2025-11-11 — the final upstream <code>main</code> state; repo archived 2026-06)</div>
     <div class="k">Scope</div><div>RLC AM TX/RX, PDCP TX/RX, RRC per-UE procedures, DU RLF escalation — ~5.5k LOC of core protocol logic (≈8k with containers/glue)</div>
     <div class="k">Tooling</div><div>Specula (TLA<sup>+</sup> spec generation) · TLC 2026.09.01 model checker · JDK 21</div>
-    <div class="k">Run</div><div><code>specula run --run-id=srsran5g</code>, reasoning effort max, guidance focused on RLC retx accounting, PDCP reordering, RRC procedure terminal states</div>
+    <div class="k">Run</div><div><code>specula run --run-id=srsran5g</code>, reasoning effort max — completed 2026-09-02 after 11h18m across all five phases (~597M tokens end to end)</div>
   </div>
 </header>
 
@@ -145,20 +146,20 @@ violations the C++ tests never provoke. The phases and what each produced:</p>
   <tr>
     <td>2 · Spec generation</td>
     <td>TLA<sup>+</sup> base model + MC config + trace instrumentation from the brief's scenarios</td>
-    <td><code>*.tla</code> modules in the run directory</td>
-    <td><span class="badge pending">in progress</span></td>
+    <td><code>base.tla</code> (2,720 lines, 166 definitions) + <code>MC.tla</code> + <code>Trace.tla</code>, 14 model-checking configs; 7 instrumented C++ scenarios emitting NDJSON traces</td>
+    <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>3 · TLC verification</td>
     <td>Bounded model checking of the invariants; counterexample traces on violation</td>
-    <td>Checker statistics + verdicts per invariant</td>
-    <td><span class="badge pending">pending</span></td>
+    <td>2-round convergence, 6 spec defects fixed; 9 implementation bugs confirmed by checker counterexample; largest clean space 94.6M generated states</td>
+    <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>4 · Finding confirmation</td>
     <td>Each counterexample replayed and confirmed against the real C++ semantics, then severity-ranked</td>
-    <td>Confirmed bug report</td>
-    <td><span class="badge pending">pending</span></td>
+    <td>18 entries → 13 reproduced bugs (2 Critical, 8 High, 2 Medium, 3 Low) + 2 masked + 3 false positives</td>
+    <td><span class="badge low">done</span></td>
   </tr>
 </table>
 
@@ -279,26 +280,247 @@ modeling brief. Six TV items are directly unit-testable — including TV1 (the S
 defer failure) and TV5 (silent end-to-end SDU loss at re-establishment without discardTimer).</p>
 
 <h2>TLA<sup>+</sup> model &amp; TLC results</h2>
-<div class="paper-box">
-<p><em>This section fills in when the verification phases complete: the generated spec modules,
-the bounded MC configuration, per-invariant TLC verdicts, state-space statistics, and every
-counterexample trace confirmed or refuted against the real C++ semantics.</em></p>
-<p>Check back after run <code>srsran5g</code> finishes; the run summary, checker logs and
-confirmed-bug report will be published here verbatim.</p>
+<p>Phase 2 generated the spec in one pass; verification then ran three rounds of
+trace validation and bounded model checking — 30-minute time-boxed BFS per config,
+with every fault-injection action (loss, internal drop, rebuild, executor
+queue-full) bounded in the hunt configs. The spec converged in two rounds; a third
+performed the one model repair the results demanded. No invariant was weakened,
+removed, or made vacuous at any point.</p>
+
+<div class="kv">
+  <div class="k">Spec modules</div><div><code>base.tla</code> (2,720 lines, 166 definitions) + <code>MC.tla</code> (285) + <code>Trace.tla</code> (530); 14 model-checking configs (<code>MC.cfg</code> baseline + <code>MC_hunt_S1..S5</code> with peeled step variants)</div>
+  <div class="k">Model bounds</div><div>AM window 4 over an 8-SN space (12-bit in the product), maxRetxThreshold 2, 3 accepted SDUs, 2 concurrent RRC procedures — small enough for exhaustive BFS exploration</div>
+  <div class="k">Trace validation</div><div>7/7 instrumented C++ scenarios validate against the model end-to-end (51–64 states each); the traces themselves exposed 5 base-spec encoding defects, all fixed with the C++ as ground truth</div>
+  <div class="k">Model checking</div><div>9 real implementation bugs confirmed by checker counterexample; the largest clean explorations covered 94.6M generated / 30.2M distinct states at depth 30</div>
+  <div class="k">Spec repairs</div><div>5 encoding defects + 1 completeness defect fixed from trace/TLC evidence; 1 model repair (RR-001) after a counterexample was refuted against the real C++</div>
 </div>
+
+<h3>What a checked invariant looks like</h3>
+<p>Two of the detectors, verbatim from the generated spec — the first is the
+MC-3 suspect formalized (a latched t-StatusProhibit flag with no timer running,
+no pending run and no queued expiry means the defer <em>failed</em> and STATUS is
+disabled forever); the second is MC-2's (a failure-indicated UE resting in a
+quiescent, non-terminal state):</p>
+<pre class="paper"><span class="spec-tag">base.tla — bug detectors</span>
+ProhibitLatchConsistency ==
+    prohibit_latch =>
+        (timers[tStatusProhibit] = tRun
+         \/ tStatusProhibit \in exp
+         \/ prohibit_run_pending
+         \/ StatusProhibitCfg /= spOn)
+
+RlfTerminalityInv ==
+    (failure_indicated /\ Quiescent) =>
+        (ue_released \/ ue_release_req \/ reest_pc = reestAccepted)</pre>
+<p>Each is paired with a <code>Quiescent</code> predicate pinning down "no timer
+running, no pending callback, no in-flight work, no procedure active" — the exact
+states an idle test system never leaves a UE in.</p>
+
+<h3>Verdicts per hunt config</h3>
+<table>
+  <tr><th>Run</th><th>Focus</th><th>Exploration</th><th>Fired invariants → outcome</th></tr>
+  <tr>
+    <td class="q">MC.cfg</td>
+    <td>whole stack, full invariant set</td>
+    <td>84.4M gen / 19.4M distinct, depth 14</td>
+    <td><code>PdcpExactlyOnce</code> fired (14-state CE: stale in-flight PDU re-delivered after rebuild) → <em>refuted</em> against the C++ in the repair round; post-repair re-run 83.6M states, <span class="verdict pass">ZERO violations</span></td>
+  </tr>
+  <tr>
+    <td class="q">S1 max_retx</td>
+    <td>RETX accounting &amp; RLF escalation</td>
+    <td>~42k states, depth 17</td>
+    <td><code>MaxRetxFinality</code> ×35, <code>RlfTerminality</code> ×1 — all 36 traces carry the swallowed adapter dispatch → <span class="verdict fail">MC-2</span></td>
+  </tr>
+  <tr>
+    <td class="q">S2 status races</td>
+    <td>reorder / STATUS timer races</td>
+    <td>10.7M+ states (peeled, post-fix)</td>
+    <td><code>ProhibitLatchConsistency</code> ×1,136, every one containing <code>PullStatusDeferFail</code> → <span class="verdict fail">MC-3</span></td>
+  </tr>
+  <tr>
+    <td class="q">S3 internal drop</td>
+    <td>loss between RLC and PDCP</td>
+    <td>47.2M gen / 10.5M distinct, depth 30</td>
+    <td><code>NoSilentLoss</code> (14 states) and <code>SrbNoStuck</code> (17 states) → <span class="verdict fail">MC-4</span>; core safety clean over the full space</td>
+  </tr>
+  <tr>
+    <td class="q">S4 rebuild</td>
+    <td>rebuild, re-establishment &amp; discard</td>
+    <td>80.5M gen / 16.4M distinct, depth 20</td>
+    <td><code>NoSilentLoss</code> (4 states) → <span class="verdict fail">MC-5</span>; <code>TxWindowConsistency</code> (19 states) → <span class="verdict fail">MC-6</span></td>
+  </tr>
+  <tr>
+    <td class="q">S5 RRC transactions</td>
+    <td>procedure lifecycle &amp; TIDs</td>
+    <td>94.6M gen / 30.2M distinct</td>
+    <td><code>TransactionSoundness</code> ×19,338, <code>RlfTerminality</code> ×71 → <span class="verdict fail">MC-7</span>, <span class="verdict fail">MC-8</span>; <code>ReestReleaseConsistency</code> (8 states) → <span class="verdict fail">MC-9</span></td>
+  </tr>
+</table>
+<p><code>PdcpInOrder</code> and all structural invariants held over every completed
+exploration. One coverage note recorded in the changelog: the two temporal
+properties were never evaluated — TLC checks them only after state-space
+completion, and the 30-minute budget expired first; both are single-action
+monotonicity facts. TV3 (<code>AllocFailureHandled</code>) was proven vacuous in
+every config: the unhandled transaction-allocation failure needs a 5th procedure
+start, but model procedures cannot restart — it stays a code-review finding.</p>
+
+<div class="note good">
+<span class="spec-tag">The counterexample that died — repair round RR-001</span>
+The very first MC violation (<code>PdcpExactlyOnce</code>: a stale in-flight AMD PDU
+surviving a bearer rebuild and being re-delivered by the fresh PDCP) was audited
+against the implementation before being believed — and refuted. Every real
+bearer-rebuild path cancels pending HARQ retransmissions
+(<code>ue_cell.cpp:100–116</code>) <em>before</em> the RRC container is forwarded, and a
+transmitted TB is slot-locked, so no stale PDU can reach the fresh RLC RX. The
+model was repaired (<code>RebuildBearer</code> now flushes the DL channel), the
+hand-carried trace scenario regenerated (58 → 51 events), all 7 traces re-passed,
+and MC.cfg went from firing to clean over 83.6M states. The counterexample was a
+model artifact — exactly the discipline formal checking is supposed to enforce.
+</div>
+
+<h2>Confirmed findings: 18 entries, 13 real bugs</h2>
+<p>Phase 4 replayed every checker counterexample against the real C++ through its
+public APIs — driving the actual RLC, PDCP, RRC and DU components, with the
+triggering conditions (executor queue saturation, admissible loss, legal message
+interleavings) produced through production interfaces. Final tally:
+<span class="badge crit">2 critical</span> <span class="badge high">8 high</span>
+<span class="badge med">2 medium</span> <span class="badge low">3 low</span>
+plus 3 refuted/false-positive dispositions.</p>
+<table>
+  <tr><th>Entry</th><th>Finding</th><th>Verdict</th><th>Severity</th></tr>
+  <tr>
+    <td class="q">MC-1</td>
+    <td>Duplicate PDCP delivery after SRB re-establishment (stale in-flight PDU across rebuild)</td>
+    <td><span class="badge pending">false positive</span></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td class="q">MC-2</td>
+    <td>One failed RLF dispatch (DU-control queue full at the indication instant) permanently and silently kills a UE's SRB — no re-raise, no release, no timer; the UE stays registered but unreachable</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-3</td>
+    <td>One failed t-StatusProhibit defer permanently disables STATUS reporting on an AM DRB — the hole is never NACKed, the peer never retransmits, no RLF can ever fire</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-4</td>
+    <td>An executor queue-full drop inside PDCP RX after RLC already ACKed leaves a permanent SRB reorder hole (t-Reordering = ∞) — every later signaling PDU parks undelivered, forever</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-5</td>
+    <td>On a 3GPP-valid AM DRB without discardTimer, a bearer rebuild silently loses the RLC-buffered SDU and then bricks the DRB — the window never frees, every further SDU is dropped</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-6</td>
+    <td>A fully conformant peer's STATUS report with NACK_SN == TX_Next (a stale report surviving a rebuild, with ordinary DL loss) passes every validation layer and dereferences an absent <code>tx_window</code> slot — <strong>aborting the whole DU process</strong>; every served UE/cell loses service with no recovery</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge crit">critical</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-7</td>
+    <td>Any of six tid-bearing UL-DCCH messages completes an awaiting RRC procedure as success — the CU-CP proceeds with a DRB the UE never applied and reports success to the AMF; silent CU-vs-UE divergence</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-8</td>
+    <td>One failed defer at the consecutive-KO threshold swallows the MAC RLF notification and resets the counter — a radio-dead UE stays admitted indefinitely; permanent context leak</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-9</td>
+    <td>The AMF's mandatory reply to a stale RLF-driven release is routed by the transferred RAN-UE-ID and tears down the freshly re-established, radio-connected UE; a named variant trips the upstream CU-CP/NGAP assert family (#1395/#1307/#1347)</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-1</td>
+    <td>At the UM SN wrap, raw non-modular stop comparisons slide the t-Reassembly deadline — a live conformance divergence (late data delivered where a conformant receiver discards), masked to exactly-once by the same-call modular timer restart</td>
+    <td><span class="badge med">masked</span></td>
+    <td><span class="badge med">medium</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-2</td>
+    <td>Fifth-procedure-start transaction abort — unreachable in the real code (per-UE FIFO serialization caps concurrent transactions at 2 of the 4 TID slots)</td>
+    <td><span class="badge pending">false positive</span></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td class="q">CR-3</td>
+    <td>Inverted defer-result polarity in five RLC AM TX error paths — false "Could not trigger protocol failure" errors on every healthy trigger, silence on genuine failures</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge low">low</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-4</td>
+    <td>One invalid NACK fires 2–3 cross-executor protocol-failure notifications where the design sends one — masked today by the adapter once-latch, whose reset path MC-2 shows can swallow an indication</td>
+    <td><span class="badge med">masked</span></td>
+    <td><span class="badge med">medium</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-5</td>
+    <td>A poll piggybacked on a retx PDU leaves <code>poll_sn</code> stale (TS 38.322 5.3.3.2 requires the highest submitted SN) — lost tail SDUs are stranded forever with no retransmission and no RLF</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-6</td>
+    <td>A protocol-decodable F1AP UE Context Modification adding a DRB without the optional DL PDCP SN length reaches a fatal assert in the RLC constructor — <strong>aborting the entire DU process</strong>; the maintainers fixed the identical Setup-path crash (issue #1019) but left Modification unguarded</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge crit">critical</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-7</td>
+    <td><code>discard_all_sdus</code> logs <code>st.rx_next</code> instead of the loop variable as the discarded COUNT — the same false value on every iteration, on the exact SRB re-establishment debug surface</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge low">low</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-8</td>
+    <td>Three retx-count helpers document "Caller must hold the mutex" — no mutex exists anywhere in the RLC library (compiler-verified); the shipped documentation contract is wrong on the max-retx escalation path</td>
+    <td><span class="badge high">reproduced</span></td>
+    <td><span class="badge low">low</span></td>
+  </tr>
+  <tr>
+    <td class="q">CR-9</td>
+    <td>Stale "already queued for RETX" doc clause has no implementation — consequence-free; runtime clear-and-rebuild is the designed, test-blessed semantics</td>
+    <td><span class="badge pending">false positive</span></td>
+    <td>—</td>
+  </tr>
+</table>
+<p>The pattern across the thirteen: the stack's permanent-failure machinery — RLF
+escalation, release, re-establishment recovery — holds together only while every
+deferred dispatch succeeds. Under executor saturation (a production load race an
+idle system never hits), the failures don't crash loudly; they silently strand a
+UE's signaling, data, or cleanup with no timer and no terminal state. The two
+criticals are the exceptions: peer-reachable inputs that take down the whole DU.
+Phase 4's validation limits are recorded alongside each entry — notably, the
+queue-full preconditions of MC-2/3/4/8 were produced deliberately through the
+executors' public interfaces, and MC-5's no-discardTimer configuration can only
+arise at an inter-vendor E1AP boundary, not from srsRAN's own CU-CP.</p>
 
 <h2>Reproducibility</h2>
 <div class="kv">
   <div class="k">Specula</div><div>github.com/specula-org/Specula, commit <code>c6aa3df</code> (arXiv 2607.25333)</div>
   <div class="k">Target</div><div>github.com/srsran/srsRAN_Project, commit <code>d2f4b70</code> (snapshot; live checkout untouched)</div>
   <div class="k">Checker</div><div>TLC 2026.09.01, bounded model checking, auto memory limit</div>
-  <div class="k">Run id</div><div><code>srsran5g</code> — resumable; phases 2–4 land in this page as they complete</div>
+  <div class="k">Run id</div><div><code>srsran5g</code> — complete; all phase outputs (spec modules, hunt configs, TLC logs, confirmation and severity reports) live under <code>runs/srsran5g/srsran5g/.specula-output/</code></div>
 </div>
 
 <footer>
-Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01.
+Specula × srsRAN Project · run <code>srsran5g</code> · started 2026-09-01, completed 2026-09-02 (11h18m, ~597M tokens).
 First srsRAN case study in the Specula corpus (prior-art tree searched: no earlier entry).
 Phase-1 evidence: every finding cited line numbers were personally re-read, not taken from a subagent.
+Every confirmed bug was reproduced against the unmodified C++ through its public APIs; every counterexample that failed that audit is labeled a false positive above.
 </footer>
 
 </div>
