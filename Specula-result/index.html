@@ -123,7 +123,7 @@ a { color: var(--accent); }
     <tr><td>4b · Classification</td><td style="text-align:right">9m 48s</td><td style="text-align:right">3.4M</td><td style="text-align:right">$17.83</td></tr>
     <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>12h 33m</strong></td><td style="text-align:right"><strong>597.0M</strong></td><td style="text-align:right"><strong>$3,051.83</strong></td></tr>
   </table>
-  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Reasoning effort max; all tokens uncached. Checker: TLC, bounded BFS, 30-min time-box per config. Phase 2 runtime is the resumed attempt's recorded wall time (4,507 s); an initial 16-minute attempt was cut short by a provider quota limit, produced no output, and is excluded.</p>
+  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Reasoning effort max; all tokens uncached. Checker: TLC, bounded BFS, 30-min time-box per config. Runtimes and token counts are the agent harness's own per-phase usage records; Phase 2 is the resumed attempt's recorded wall time (4,507 s), excluding a first 16-minute attempt cut short by a provider quota limit that produced no output. Costs are the harness's estimate at its default-model list rate — $5 per M input, $25 per M output (Claude Sonnet 5 list prices) — applied because the serving model (glm-5.3:cloud, behind a local gateway) has no price row; dollar figures are list-price equivalents, not actual provider billing.</p>
   <div class="lede">
     <p><a href="https://github.com/specula-org/Specula">Specula</a> was pointed at the
     <a href="https://github.com/srsran/srsRAN_Project">srsRAN Project</a> gNB — the RLC AM, PDCP and RRC
