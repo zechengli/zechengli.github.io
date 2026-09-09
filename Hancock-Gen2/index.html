@@ -146,13 +146,13 @@ a { color: var(--accent); }
   <tr>
     <td>3 · TLC verification</td>
     <td>Bounded model checking of the invariants; counterexample traces on violation</td>
-    <td>9 configs run; <strong>8 invariants violated</strong> with concrete counterexamples, <code>TypeOK</code> clean throughout; largest exploration 56.6M states</td>
+    <td>9 configs run; <strong>all 9 violated</strong> with concrete counterexamples, <code>TypeOK</code> clean throughout; largest exploration 56.6M states</td>
     <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>4 · Finding confirmation</td>
     <td>Each counterexample replayed and confirmed against the real code semantics, then severity-ranked</td>
-    <td>8 findings confirmed (Tier B: counterexample + source audit, not executed) — 2 critical, 5 high, 2 medium; 1 priority question (Q5) closed as a negative result</td>
+    <td>9 findings confirmed (Tier B: counterexample + source audit, not executed) — 2 critical, 5 high, 2 medium; 1 priority question (Q5) closed as a negative result</td>
     <td><span class="badge low">done</span></td>
   </tr>
 </table>
@@ -283,9 +283,10 @@ observable outcome and the intended contract:</p>
 <p>Phase 2 produced three specs rather than one monolith, because the three
 questions are independent and small specs finish. Every action and condition
 carries a <code>file:line</code> annotation to the VB.NET or T-SQL it encodes.
-Phase 3 ran nine configs under TLC 2026.09.09 on JDK&nbsp;21: <strong>eight of the
-nine invariants were violated</strong>, each with a concrete counterexample.
-<code>TypeOK</code> held throughout.</p>
+Phase 3 ran nine configs under TLC 2026.09.09 on JDK&nbsp;21: <strong>all nine
+property invariants were violated</strong>, each with a concrete counterexample.
+<code>TypeOK</code>, checked separately as a structural sanity invariant, held
+throughout.</p>
 
 <div class="kv">
   <div class="k">Spec modules</div><div><code>eligibility.tla</code> (Scenarios 1–2, Q1) · <code>budget.tla</code> (Scenario 3, Q2) · <code>scoring.tla</code> (Scenarios 4–5, Q3/Q4); 9 invariants, 9 configs</div>
@@ -336,7 +337,7 @@ which emits browser-side JavaScript, not a server-side check — it was never a
 persistence gate. Q5 closes as a negative result: this correction was made after
 the original Phase 1 pass had wrongly assumed the framework was live.</p>
 
-<h2>Findings: 8 confirmed, by code semantics</h2>
+<h2>Findings: 9 confirmed, by code semantics</h2>
 <div class="note warn">
 <span class="spec-tag">How these were confirmed — read this before the table</span>
 Every finding below was produced by a TLC counterexample and then traced back to
@@ -405,7 +406,7 @@ rather than on a reproduction.
     <td><span class="badge med">medium</span></td>
   </tr>
 </table>
-<p>The pattern across all eight is one mechanism, not eight: <strong>the same
+<p>The pattern across all nine is one mechanism, not nine: <strong>the same
 program rule is implemented more than once, and the copies have drifted.</strong>
 Eligibility is decided twice on different family-size columns; the budget is
 recomputed by two methods that disagree on rounding, atomicity and coverage;
@@ -419,7 +420,9 @@ record through two different screens, which is what the application is for.</p>
 <p>本次运行把一套运行了十五年的 LIHEAP(低收入家庭能源补助)业务系统——约 1,400 个文件的
 VB.NET / ASP.NET WebForms 加 T-SQL 存储过程——中决定"谁能拿到取暖补助、拿多少"的逻辑,
 翻译成 TLA<sup>+</sup> 并用 TLC 做有界模型检验。共写了三个规约、九条不变式,
-<strong>其中八条被证伪</strong>,每条都有具体反例;最大状态空间 5,660 万个状态。</p>
+<strong>全部九条都被证伪</strong>,每条都有具体反例;结构性检查 <code>TypeOK</code>
+单独验证,全程未破;最大状态空间 5,660 万个状态。最终确认 <strong>9 个 bug</strong>
+(2 严重、5 高、2 中),另有 1 个优先问题(Q5,动态校验框架)被判定为"根本无法触发"而结案。</p>
 <p>核心结论只有一句:<strong>同一条业务规则被实现了不止一次,而这些副本已经彼此漂移。</strong>
 资格审核有两套实现——VB 用 <code>count(FamilyMemberID)</code> 统计家庭人数,存储过程用
 <code>tblClientInfo.Occupants</code>;两者不一致时,结论就不一致,而数据库里留下的是"最后写入者"的判断。
@@ -432,6 +435,24 @@ VB.NET / ASP.NET WebForms 加 T-SQL 存储过程——中决定"谁能拿到取�
 不开事务的那条路径还会把"中间状态"直接提交:此刻余额列里存的是<em>支出</em>而不是<em>余额</em>,
 若请求在两条语句之间失败,这个错误状态就永久留在库里。2013 年 2 月加的
 <code>CheckNegativeBalance</code>(注释写着"Balance should not be negative")只是事后探测,并不能阻止。</p>
+
+<h3>确认的 9 个 bug</h3>
+<table>
+  <tr><th>编号</th><th>问题</th><th>严重程度</th></tr>
+  <tr><td class="q">MC-3</td><td><code>Occupants</code> 字段为空或过期,导致 <code>Isnull(IncomeLine,0)</code> 把收入线读成零,任何收入都"超标"——静默拒绝一个另一条路径已判定合格的申请人</td><td><span class="badge crit">严重</span></td></tr>
+  <tr><td class="q">MC-1</td><td>两套资格审核逻辑对同一客户给出相反结论;数据库里存的是"最后写入者"的判断</td><td><span class="badge crit">严重</span></td></tr>
+  <tr><td class="q">MC-2</td><td>被拒绝的客户记录里仍然写着一个 <code>AllocationID</code>——拒绝分支的兜底写入是无条件的,而拒绝结果本身只通过 <code>ByRef</code> 参数传出,调用方可以忽略</td><td><span class="badge high">高</span></td></tr>
+  <tr><td class="q">MC-5b</td><td>两个 <code>UpdateBalance</code> 实现四舍五入顺序不同(先算后舍入 vs 先舍入后算),同样的发票算出不同的结余,不需要任何并发</td><td><span class="badge high">高</span></td></tr>
+  <tr><td class="q">MC-5c</td><td>未开事务的 <code>UpdateBalance</code> 会把"中间态"(此刻余额列存的其实是支出)直接提交,付款界面正是走这条路径</td><td><span class="badge high">高</span></td></tr>
+  <tr><td class="q">MC-4</td><td>县级余额可以变成负数并被读到;2013 年加的检测函数只报告,不阻止</td><td><span class="badge high">高</span></td></tr>
+  <tr><td class="q">MC-8</td><td>补助窗口已过期的申请仍可付款成功,有三条独立路径绕过审批检查</td><td><span class="badge high">高</span></td></tr>
+  <tr><td class="q">MC-6</td><td>评分函数 <code>ByRef</code> 参数在功能关闭时直接返回调用方传入的旧值;函数声明的整数返回值也从未被赋值,恒为 0</td><td><span class="badge med">中</span></td></tr>
+  <tr><td class="q">MC-7</td><td>零收入客户同时被一个评分器判为"最高负担"、被另一个判为"最低贫困等级"</td><td><span class="badge med">中</span></td></tr>
+</table>
+<p>Q5(动态校验框架)复查后发现 <code>ValidityCommand</code>/<code>ValidityConditions</code>
+在全部 1,399 个文件里从未被实例化过——属于死代码,不构成安全问题,因此结案为"无此漏洞",
+不再建模。</p>
+
 <p><strong>必须说明的限制:</strong>本次没有做执行级复现。该系统是 .NET Framework WebForms,
 需要 Windows + IIS + SQL Server 才能构建运行,本次运行的主机做不到。
 所有结论都是"模型检验反例 + 逐行源码核对",而不是像上一个 srsRAN 案例那样在真实运行的代码上复现。
