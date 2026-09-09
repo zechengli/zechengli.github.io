@@ -120,11 +120,19 @@ a { color: var(--accent); }
     business logic into TLA<sup>+</sup> and machine-checks it with TLC, hunting for
     contract violations that fifteen years of patches never surfaced.</p>
   </div>
+  <div class="note">
+  <span class="spec-tag">中文说明</span>
+  这次运行把 Specula（一个用 TLA<sup>+</sup> 做代码正确性检验的工具链）指向
+  <em>OldSource2</em>——一套运行了十五年的老旧 ASP.NET(VB.NET)低收入家庭能源补助
+  (LIHEAP)系统:决定"谁能拿补助、拿多少、县预算够不够、要不要州审批"的核心业务逻辑。
+  整条流水线把这些业务规则翻译成 TLA<sup>+</sup> 形式化模型,再用模型检验器 TLC
+  做穷举式搜索,专门找十五年补丁都没能发现的逻辑矛盾。全文各节下方都配有中文说明。
+  </div>
   <div class="kv">
     <div class="k">Target</div><div>OldSource2.zip — legacy ASP.NET web application (VB.NET, ~1,460 files, 16&nbsp;MB): web forms <code>Liheap/</code>, business layer <code>BLLLiheap*</code>/<code>App_Code/Business</code>, data layer <code>DALLiheap</code>/ADO.NET, SQL stored procedures, PowerDesigner UML artifact</div>
     <div class="k">Domain</div><div>LIHEAP (Low-Income Home Energy Assistance Program): income-line eligibility, benefit allocation, county budget balances, priority scoring, state approval workflow</div>
     <div class="k">Tooling</div><div>Specula (TLA<sup>+</sup> spec generation) · TLC model checker · JDK 21</div>
-    <div class="k">Run</div><div><code>specula run --run-id=hancockgen2</code> — started 2026-09-06; Phase 1 complete 2026-09-08, Phases 2–4 in progress</div>
+    <div class="k">Run</div><div><code>specula run --run-id=hancockgen2</code> — started 2026-09-06; all four phases complete 2026-09-09</div>
   </div>
 </header>
 
@@ -156,6 +164,15 @@ a { color: var(--accent); }
     <td><span class="badge low">done</span></td>
   </tr>
 </table>
+<div class="note">
+<span class="spec-tag">中文说明</span>
+四个阶段全部完成。第一阶段代码分析产出 17 条已核实的发现,归入 6 类场景(其中 1 类后来
+判定并不成立),提炼出 9 个可用模型检验去验证的疑点。第二阶段写出 3 份 TLA<sup>+</sup> 规约,
+共 9 条不变式、9 个检验配置。第三阶段用 TLC 跑完全部 9 个配置,<strong>全部 9 条不变式都被
+推翻</strong>(即找到了违反规则的具体反例)。第四阶段把每个反例都回溯到具体的 VB.NET / T-SQL
+源码行,确认为 9 个真实缺陷(2 个严重、5 个高、2 个中),另有 1 个优先问题(Q5)经复查判定
+"根本不构成漏洞"而结案。
+</div>
 
 <h2>What Phase 1 found: the same rule, implemented more than once</h2>
 <p>This is the first Specula case study on <em>business</em> software rather than a
@@ -246,6 +263,15 @@ Description</code> change-history headers carrying Mantis issue numbers (#1247, 
 #1227, #0002213, #0008214). A patch comment tells us <em>that</em> a fix was made and
 <em>when</em>, rarely the failing scenario, so each is used only for what it literally
 says.</p>
+<div class="note">
+<span class="spec-tag">中文说明</span>
+本次审计发现的核心问题不是并发竞态,而是<strong>"同一条业务规则被实现了不止一次"</strong>——
+资格审核、预算结算、贫困等级评分各有两三套互相独立、且已经彼此产生偏差的实现,谁最后运行谁的
+结果就留在数据库里。目标程序没有 Git 历史也没有 issue 跟踪系统,只是一份私有源码打包,所以
+"考古"改用源码里 <strong>2,262 条带日期的补丁注释</strong>,以及每个文件自带的"修改记录"表头
+(含 Mantis 缺陷编号,如 #1247、#2177、#1227)作为证据基础——补丁注释只能说明"改过、什么时候
+改的",很少说明"当初为什么要改",因此每条都只按字面意思使用,不做推断。
+</div>
 
 <h2>What the run was asked to verify</h2>
 <p>The five priority questions in the guidance file, each pairing a trigger with an
@@ -278,6 +304,15 @@ observable outcome and the intended contract:</p>
     <td>Every persisted record satisfies all applicable configured validity conditions</td>
   </tr>
 </table>
+<div class="note">
+<span class="spec-tag">中文说明</span>
+这五个优先问题来自需求指导文件:①收入超过所有收入线时,资格标记和实际记录的补助档位会不会
+互相矛盾(该拒绝的却仍持有一个合格档位,或反过来);②发票记入县预算、<code>UpdateBalance</code>
+重新结算后,余额会不会和"预算减去已四舍五入的发票总额"对不上,甚至变成负数;③年收入为零、
+或缺少收入/用气量记录时,不同评分逻辑会不会给出不一致的分类;④补助窗口已过期或还没开始的
+申请,能不能绕开州审批直接进入付款;⑤动态校验框架在保存记录时,会不会让不满足配置检查条件的
+记录被保存下来,或者被检查顺序绕过。
+</div>
 
 <h2>TLA<sup>+</sup> model &amp; TLC results</h2>
 <p>Phase 2 produced three specs rather than one monolith, because the three
@@ -336,6 +371,16 @@ reachable, the surviving use of a checker instance is <code>GetClientScript</cod
 which emits browser-side JavaScript, not a server-side check — it was never a
 persistence gate. Q5 closes as a negative result: this correction was made after
 the original Phase 1 pass had wrongly assumed the framework was live.</p>
+<div class="note">
+<span class="spec-tag">中文说明</span>
+第二阶段没有写一份大规约,而是拆成三份互相独立的小规约(资格、预算、评分),因为这三类问题
+彼此无关,小规约也能更快跑完;每一条动作和条件都标注了对应的 VB.NET 或 T-SQL 源码行号。
+第三阶段用 TLC 对 9 个配置做有界模型检验:<strong>全部 9 条属性不变式都被违反</strong>,
+各自都有具体反例;另外单独检查的结构性不变式 <code>TypeOK</code>(类型完整性)全程保持成立。
+Q5(动态校验框架)没有建模——不是因为数据不够,而是顺着调用链查完后发现这个机制根本不会被
+执行到,是一段死代码,因此直接结案为"不构成漏洞",没有必要为一个用不到的机制花模型检验的
+算力。
+</div>
 
 <h2>Findings: 9 confirmed, by code semantics</h2>
 <div class="note warn">
@@ -467,9 +512,19 @@ VB.NET / ASP.NET WebForms 加 T-SQL 存储过程——中决定"谁能拿到取�
   <div class="k">Not done</div><div>Phase 2.5 harness generation and trace validation — permanently unavailable, WebForms cannot build on macOS. (Q5 is closed, not incomplete: the named mechanism is dead code, confirmed by call-graph trace, not left unmodeled for lack of data.)</div>
   <div class="k">Run id</div><div><code>hancockgen2</code> — outputs under <code>runs/hancockgen2/hancockgen2/.specula-output/</code></div>
 </div>
+<div class="note">
+<span class="spec-tag">中文说明</span>
+本次运行用 Specula 1.1.0(commit <code>a0242cf</code>)分析 <code>OldSource2.zip</code>
+(约 1,460 个文件的 VB.NET ASP.NET LIHEAP 系统),模型检验用 TLC(JDK 21,有界广度优先搜索)。
+运行方式是 Specula 的<strong>"交互模式"</strong>——在已登录的会话里手动依次执行各阶段技能,
+而不是 <code>specula run</code> 自动派发子代理的模式(该自动模式在本机因 Claude CLI 的登录
+配置目录不匹配而被阻塞)。第 2.5 阶段的"插桩取样"和"真实执行复现"永久无法进行——因为该系统是
+.NET Framework WebForms,需要 Windows + IIS + SQL Server 才能构建运行,这台 Mac 主机做不到;
+Q5 的结案则是因为查完调用链后确认那段机制根本不存在,不是数据不够。
+</div>
 
 <footer>
-Specula × OldSource2 · run <code>hancockgen2</code> · started 2026-09-06, Phases 1–3 completed 2026-09-08.
+Specula × OldSource2 · run <code>hancockgen2</code> · started 2026-09-06, all four phases completed 2026-09-09.
 Second Specula case study (first: <a href="/Specula-result/">srsRAN Project 5G stack</a>);
 first on business software rather than a protocol stack.
 Phase-1 evidence: 2,262 dated patch comments and per-file change-history headers stand in for the git history and issue tracker this target does not have; every cited line was read directly.
