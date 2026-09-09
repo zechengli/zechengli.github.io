@@ -134,7 +134,7 @@ a { color: var(--accent); }
   <tr>
     <td>1 · Code analysis</td>
     <td>Structural map, deep reading of the scoped business logic, patch-comment archaeology</td>
-    <td>193-line analysis report + 321-line modeling brief; 17 verified findings (F1–F17) grouped into 6 scenarios; 12 model-checkable suspects (MC-1…MC-9 + MC-5b/5c), 3 test-verifiable, 4 code-review</td>
+    <td>193-line analysis report + 321-line modeling brief; 17 verified findings (F1–F17, F17 revised after deeper tracing) grouped into 6 scenarios (1 closed negative); 9 model-checkable suspects (MC-1…MC-8 + MC-5b/5c), 3 test-verifiable, 5 code-review</td>
     <td><span class="badge low">done</span></td>
   </tr>
   <tr>
@@ -152,8 +152,8 @@ a { color: var(--accent); }
   <tr>
     <td>4 · Finding confirmation</td>
     <td>Each counterexample replayed and confirmed against the real code semantics, then severity-ranked</td>
-    <td>8 counterexamples traced back to source; severity assigned. No execution-based reproduction — see the Phase 2.5 note below</td>
-    <td><span class="badge med">partial</span></td>
+    <td>8 findings confirmed (Tier B: counterexample + source audit, not executed) — 2 critical, 5 high, 2 medium; 1 priority question (Q5) closed as a negative result</td>
+    <td><span class="badge low">done</span></td>
   </tr>
 </table>
 
@@ -324,10 +324,17 @@ BurdenIndependentOfCaller ==
   <tr><td class="q">mc_zero</td><td><code>ZeroIncomeConsistent</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-7</td></tr>
   <tr><td class="q">mc_approval</td><td><code>PaymentRequiresApproval</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-8</td></tr>
 </table>
-<p>MC-9 (the validity framework, Q5) has no spec in this round: the fail-open
-mechanisms are real and recorded, but whether a misconfigured <code>propName</code>
-is reachable depends on configuration data that is not in the source drop. Stating
-that honestly is better than checking a model of data we do not have.</p>
+<p>MC-9 (the validity framework, Q5) has no spec, and will not get one — not
+because the data was unavailable, but because the mechanism turned out not to
+exist as a live code path. Full call-graph tracing found that
+<code>ValidityCommand</code> and <code>ValidityConditions</code>, the only two
+places that call <code>ValidityCheck.GetInstance</code>, are <strong>never
+instantiated anywhere</strong> in the 1,399-file source tree — no direct
+construction, no reflection, no <code>.aspx</code> markup reference. Even were it
+reachable, the surviving use of a checker instance is <code>GetClientScript</code>,
+which emits browser-side JavaScript, not a server-side check — it was never a
+persistence gate. Q5 closes as a negative result: this correction was made after
+the original Phase 1 pass had wrongly assumed the framework was live.</p>
 
 <h2>Findings: 8 confirmed, by code semantics</h2>
 <div class="note warn">
@@ -436,7 +443,7 @@ VB.NET / ASP.NET WebForms 加 T-SQL 存储过程——中决定"谁能拿到取�
   <div class="k">Target</div><div>OldSource2.zip (VB.NET ASP.NET LIHEAP system, ~1,460 files; private copy taken under <code>runs/hancockgen2</code>, original untouched)</div>
   <div class="k">Checker</div><div>TLC 2026.09.09.012042 on JDK 21.0.12.1, bounded BFS, 2–4 workers, 2–4&nbsp;GB heap</div>
   <div class="k">Mode</div><div>Specula <em>interactive mode</em> — the skill sequence driven in an authenticated session, rather than <code>specula run</code>'s spawned agents</div>
-  <div class="k">Not done</div><div>Phase 2.5 harness generation and trace validation (WebForms cannot build on macOS); MC-9 / Q5 has no spec</div>
+  <div class="k">Not done</div><div>Phase 2.5 harness generation and trace validation — permanently unavailable, WebForms cannot build on macOS. (Q5 is closed, not incomplete: the named mechanism is dead code, confirmed by call-graph trace, not left unmodeled for lack of data.)</div>
   <div class="k">Run id</div><div><code>hancockgen2</code> — outputs under <code>runs/hancockgen2/hancockgen2/.specula-output/</code></div>
 </div>
 
