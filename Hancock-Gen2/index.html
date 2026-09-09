@@ -124,7 +124,7 @@ a { color: var(--accent); }
     <div class="k">Target</div><div>OldSource2.zip — legacy ASP.NET web application (VB.NET, ~1,460 files, 16&nbsp;MB): web forms <code>Liheap/</code>, business layer <code>BLLLiheap*</code>/<code>App_Code/Business</code>, data layer <code>DALLiheap</code>/ADO.NET, SQL stored procedures, PowerDesigner UML artifact</div>
     <div class="k">Domain</div><div>LIHEAP (Low-Income Home Energy Assistance Program): income-line eligibility, benefit allocation, county budget balances, priority scoring, state approval workflow</div>
     <div class="k">Tooling</div><div>Specula (TLA<sup>+</sup> spec generation) · TLC model checker · JDK 21</div>
-    <div class="k">Run</div><div><code>specula run --run-id=hancockgen2</code> — started 2026-09-06</div>
+    <div class="k">Run</div><div><code>specula run --run-id=hancockgen2</code> — started 2026-09-06; Phase 1 complete 2026-09-08, Phases 2–4 in progress</div>
   </div>
 </header>
 
@@ -134,8 +134,8 @@ a { color: var(--accent); }
   <tr>
     <td>1 · Code analysis</td>
     <td>Structural map, deep reading of the scoped business logic, patch-comment archaeology</td>
-    <td>—</td>
-    <td><span class="badge pending">running</span></td>
+    <td>193-line analysis report + 321-line modeling brief; 17 verified findings (F1–F17) grouped into 6 scenarios; 12 model-checkable suspects (MC-1…MC-9 + MC-5b/5c), 3 test-verifiable, 4 code-review</td>
+    <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>2 · Spec generation</td>
@@ -157,38 +157,95 @@ a { color: var(--accent); }
   </tr>
 </table>
 
-<h2>Why this target is interesting</h2>
+<h2>What Phase 1 found: the same rule, implemented more than once</h2>
 <p>This is the first Specula case study on <em>business</em> software rather than a
 protocol stack — the contracts are not 3GPP specifications but the eligibility rules,
-budget arithmetic and approval gates of a public benefits program, written as
-string-concatenated SQL inside VB.NET code-behind. Two things make it a promising
-formal-methods target:</p>
-<div class="note">
-<span class="spec-tag">Discovery 1 — eligibility is a fallback chain, not a check</span>
-When a client's income exceeds every allocation income line, the code does not deny —
-it <em>falls back</em> to the lowest allocation and writes the eligibility flag by
-reference (<code>ClientAllocationLogic.UpdateClientAllocationID</code>). Whether the
-denial flag and the assigned allocation can ever disagree is exactly the kind of
-two-variable consistency question a checker answers.
-</div>
-<div class="note">
-<span class="spec-tag">Discovery 2 — the negative-balance patch is a confession</span>
-<code>CheckNegativeBalance</code> was added 02/12/2013 with the comment
-"Balance should not be negative" — a runtime guard bolted on after the fact.
-<code>UpdateBalance</code> recomputes <code>tgCountyBudget</code> from
-<code>tblLHAgencyInvoice</code> in three separate statements, several write paths run
-without an explicit transaction, and every sum is rounded at two decimals. Whether
-balances can diverge from budget&nbsp;−&nbsp;spend, or go negative between recomputes,
-is a genuine state-space question.
-</div>
+budget arithmetic and approval gates of a public benefits program. The audit's central
+result is that the dominant defect mechanism here is not classical concurrency at all.
+It is <strong>duplicate authority</strong>: the same program rule is implemented two or
+three times — once in VB.NET as string-concatenated SQL, again as a T-SQL stored
+procedure, again in a program-year fork — and the copies have drifted apart. Whichever
+runs last wins.</p>
+
 <div class="note warn">
-<span class="spec-tag">Discovery 3 — zero income hard-codes a high-burden flag</span>
-<code>HighUseHighBurden.GetHighUseAndHighBurden</code> emits <code>1 As HighBurden</code>
-when annual income is zero — one scoring path inflates a client's priority while the
-poverty-level lookup may classify the same client into group 0. Inconsistent
-classification of the same record by different scorers is a classic
-cross-checkable invariant.
+<span class="spec-tag">Discovery 1 — eligibility is decided twice, on different inputs</span>
+<code>ClientAllocationLogic.UpdateClientAllocationID</code> (<code>:45</code>) decides
+eligibility using family size = <code>count(FamilyMemberID)</code> over
+<code>tblLHFamilyInfo</code>, scanning every allocation in the program year, and yields
+<code>PriorityLevel</code> ∈ {1, −1}. <code>SP_CalcPriorityLevel.sql</code> re-decides the
+same flag using <code>tblClientInfo.Occupants</code> and only the client's
+<em>already-stored</em> <code>AllocationID</code>, yielding {1, 0, −1}. Both
+<code>UPDATE tblClientInfo</code>. When the two family-size sources disagree, so can the
+verdict.
 </div>
+
+<div class="note warn">
+<span class="spec-tag">Discovery 2 — the denial path still writes an allocation</span>
+When a client's income exceeds every income line, the code does not stop: it falls back
+to the <em>lowest</em> allocation (<code>:47</code>), sets <code>PriorityLevel = -1</code>
+(<code>:74</code>), and then reaches an <strong>unconditional</strong>
+<code>update tblClientInfo set AllocationID=…</code> (<code>:84</code>). The denial is
+returned only <code>ByRef</code>, for the caller to persist or ignore — while the
+allocation write is immediate. <code>SP_CalcPriorityLevel</code> then reads that fallback
+value back as the basis of its own eligibility test.
+</div>
+
+<div class="note warn">
+<span class="spec-tag">Discovery 3 — there are two different <code>UpdateBalance</code> methods</span>
+<code>ClientAllocationLogic.UpdateBalance</code> (<code>:207</code>) runs
+<strong>three</strong> statements on the caller's transaction, sums as
+<code>sum(round(x,2))</code>, and inserts missing county rows.
+<code>frmParishBudget.UpdateBalance</code> (<code>frmParishBudget.aspx.vb:855</code>) runs
+<strong>two</strong> statements with <strong>no transaction at all</strong>, sums as
+<code>round(sum(x),2)</code>, and inserts nothing. They disagree on atomicity, on
+rounding order, and on coverage — and a payment screen
+(<code>frmRequestPayment.aspx.vb:207</code>) calls the untransacted one. In that path the
+spend-valued intermediate state is <em>committed</em>: if the request dies between the two
+statements, the column reads as a balance but holds the spend, permanently.
+</div>
+
+<div class="note">
+<span class="spec-tag">Discovery 4 — the negative-balance patch is a confession</span>
+<code>CheckNegativeBalance</code> was added 02/12/2013 with the comment
+"Balance should not be negative" — a runtime guard bolted on after the fact, evidence
+that negative balances were seen in production. It is a <em>detector</em>: it runs a
+<code>SELECT</code> and returns a value. Whether anything is prevented depends entirely on
+each caller acting on it.
+</div>
+
+<div class="note warn">
+<span class="spec-tag">Discovery 5 — a scorer that can return the caller's own input</span>
+<code>HighUseHighBurden.GetHighUseAndHighBurden</code> emits a literal
+<code>1 As HighBurden</code> when income is zero (<code>:33</code>), bypassing the
+threshold comparison entirely. Its legacy branch sets high-burden on zero income and
+<code>Exit Function</code>s <em>before</em> the feature gate (<code>:78</code>), so the flag
+is set even when the rule is switched off. And when <code>isHighBurdenActive()</code> is
+false there is <strong>no <code>Else</code></strong> (<code>:86</code>) — <code>HighBurden</code>
+is <code>ByRef</code>, so the scorer silently returns whatever the caller passed in.
+The function is declared <code>As Integer</code> and never assigns a return value: it is
+always 0.
+</div>
+
+<div class="note">
+<span class="spec-tag">Discovery 6 — a correction applied to one copy only</span>
+<code>BenefitMatrixOf108.vb</code>'s own change history records item 4 (12/04/2012, Karen):
+"The income should be the total income not only one single family member's income." That
+fix uses <code>SUM(tblClientIncome.AnnualIncome)</code>. <code>CalPovertyLevel.vb</code> and
+<code>SP_UpdateClientPovertyLevelCal.sql</code> still read the single
+<code>tblClientInfo.AnnualIncome</code> column. The same pattern repeats with family size:
+a 8/12/2010 patch changed <code>count(*)</code> to <code>count(FamilyMemberID)</code> in
+<code>ClientAllocationLogic</code>, while <code>BenefitMatrixOf108</code> still uses
+<code>COUNT(*)</code>.
+</div>
+
+<h3>Archaeology without a repository</h3>
+<p>There is no git history and no issue tracker here — this is a private source drop, not a
+checkout. The equivalent evidence base is the in-source patch record: <strong>2,262 dated
+patch comments</strong> plus per-file <code>Item / Date / Author / Bugs Fixed /
+Description</code> change-history headers carrying Mantis issue numbers (#1247, #2177,
+#1227, #0002213, #0008214). A patch comment tells us <em>that</em> a fix was made and
+<em>when</em>, rarely the failing scenario, so each is used only for what it literally
+says.</p>
 
 <h2>What the run was asked to verify</h2>
 <p>The five priority questions in the guidance file, each pairing a trigger with an
@@ -224,7 +281,23 @@ observable outcome and the intended contract:</p>
 
 <h2>TLA<sup>+</sup> model &amp; TLC results</h2>
 <p><span class="badge pending">pending</span> — this section will be filled from the
-modeling brief, the generated spec, and the TLC verdict table when the run completes.</p>
+modeling brief, the generated spec, and the TLC verdict table when the run completes.
+The toolchain is in place and verified: JDK 21, TLC 2026.09.09, the Specula CFA tool,
+and the three Specula MCP servers. The nine model-checkable suspects above
+(MC-1…MC-9, plus MC-5b/5c) are what Phase 3 will be asked to settle.</p>
+
+<div class="note">
+<span class="spec-tag">A note on Phase 2.5</span>
+Harness generation — instrumenting the target to emit execution traces — is
+<strong>skipped</strong> for this run, and not by preference. OldSource2 is .NET Framework
+WebForms: building and running it needs Windows, IIS and SQL Server, which this
+macOS host cannot provide. Trace validation against real executions is therefore
+unavailable, and Phase 4 confirmation will be <em>code-semantics</em> confirmation —
+each counterexample replayed against the VB.NET and T-SQL source with
+<code>file:line</code> citations, not executed. That is a real limitation of this run and
+is stated here rather than buried: the srsRAN case study reproduced every confirmed bug
+against running C++; this one cannot.
+</div>
 
 <h2>Confirmed findings</h2>
 <p><span class="badge pending">pending</span> — final tally, per-finding table and
