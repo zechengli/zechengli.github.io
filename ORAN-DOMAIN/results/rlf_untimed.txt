@@ -1,0 +1,137 @@
+=== TLC run: rlf_safety.cfg (module rlf_untimed) ===
+Starting... (2026-09-08 20:57:42)
+Computing initial states...
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 5.7E-15
+656 states generated, 282 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 15.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 3 and the 95th percentile is 2).
+Finished in 00s at (2026-09-08 20:57:42)
+=== TLC run: rlf_rlf_witness.cfg (module rlf_untimed) ===
+Starting... (2026-09-08 20:57:43)
+Computing initial states...
+Error: Invariant NoRLF is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ started = FALSE
+/\ oosLeft = 6
+/\ phase = "C"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = -1
+/\ nOOS = 0
+
+State 2: <OOS line 28, col 8 to line 40, col 38 of module rlf_untimed>
+/\ started = FALSE
+/\ oosLeft = 5
+/\ phase = "C"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = -1
+/\ nOOS = 1
+
+State 3: <OOS line 28, col 8 to line 40, col 38 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 0
+/\ nOOS = 2
+
+State 4: <Tick line 86, col 9 to line 93, col 29 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 1
+/\ nOOS = 2
+
+State 5: <Tick line 86, col 9 to line 93, col 29 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 2
+/\ nOOS = 2
+
+State 6: <Tick line 86, col 9 to line 93, col 29 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 3
+/\ nOOS = 2
+
+State 7: <Tick line 86, col 9 to line 93, col 29 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "RLF"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 4
+/\ nOOS = 2
+
+120 states generated, 69 distinct states found, 28 states left on queue.
+The depth of the complete state graph search is 7.
+Finished in 00s at (2026-09-08 20:57:43)
+Trace exploration spec path: ./rlf_untimed_TTrace_1788915462.tla
+=== TLC run: rlf_recovery_witness.cfg (module rlf_untimed) ===
+Starting... (2026-09-08 20:57:43)
+Computing initial states...
+Error: Invariant NoRecovery is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ started = FALSE
+/\ oosLeft = 6
+/\ phase = "C"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = -1
+/\ nOOS = 0
+
+State 2: <OOS line 28, col 8 to line 40, col 38 of module rlf_untimed>
+/\ started = FALSE
+/\ oosLeft = 5
+/\ phase = "C"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = -1
+/\ nOOS = 1
+
+State 3: <OOS line 28, col 8 to line 40, col 38 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 4
+/\ nIS = 0
+/\ t310 = 0
+/\ nOOS = 2
+
+State 4: <IS_wait line 72, col 12 to line 81, col 32 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "P"
+/\ isLeft = 3
+/\ nIS = 1
+/\ t310 = 0
+/\ nOOS = 2
+
+State 5: <IS_stop line 61, col 12 to line 70, col 32 of module rlf_untimed>
+/\ started = TRUE
+/\ oosLeft = 4
+/\ phase = "C"
+/\ isLeft = 2
+/\ nIS = 0
+/\ t310 = -1
+/\ nOOS = 0
+
+27 states generated, 19 distinct states found, 9 states left on queue.
+The depth of the complete state graph search is 5.
+Finished in 00s at (2026-09-08 20:57:43)
+Trace exploration spec path: ./rlf_untimed_TTrace_1788915463.tla

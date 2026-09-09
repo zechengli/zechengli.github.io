@@ -610,6 +610,79 @@ store the radio link failure information in the VarRLF-Report as described in cl
   <code>went_idle = 1</code>.</p>
 </div>
 
+<!-- ======================= TLA+ ======================= -->
+<h2>5 · The untimed half — the same domain in TLA+ / TLC</h2>
+
+<div class="lede">
+  <p>TLC and UPPAAL answer different questions on the same domain, and the split is worth making
+  explicit. <b>General situations</b> — which states are reachable at all, which interleavings of
+  events the spec text permits, which counting rules are consistent — are pure logic, with no
+  number in sight. That is TLA+ territory: a state machine plus actions, checked exhaustively by
+  TLC over <i>every</i> interleaving. <b>Timer-critical subareas</b> — whether T310 expires
+  before the N311 in-syncs arrive, whether T304 beats the random-access response — depend on how
+  much time fits inside a window, and no enumeration of untimed steps can settle them. That is
+  UPPAAL territory. A counterexample from either checker is a concrete trace, mapped back to the
+  spec clause and fixed. This section runs the experiment on this page's own domain: the section-2
+  RLF counter machine, re-modelled untimed in TLA+ with the same constants, and checked with TLC.</p>
+</div>
+
+<pre class="paper"><span class="spec-tag">models/rlf_untimed.tla — the same clauses, time abstracted (T310 expiry is an ordinary interleaved action)</span>Init == phase = "C" /\ nOOS = 0 /\ nIS = 0 /\ oosLeft = 6 /\ isLeft = 4 /\ t310 = -1 /\ started = FALSE
+
+OOS == /\ phase = "C" /\ oosLeft &gt; 0 /\ oosLeft' = oosLeft - 1 /\ isLeft' = isLeft /\ nIS' = 0
+       /\ nOOS' = nOOS + 1
+       /\ IF nOOS' &gt;= N310                                        \* 5.3.10.1: streak starts T310
+            THEN /\ phase' = "P" /\ t310' = 0 /\ started' = TRUE
+            ELSE /\ phase' = "C" /\ t310' = t310 /\ started' = started
+
+IS_stop == /\ phase = "P" /\ isLeft &gt; 0 /\ nIS + 1 &gt;= N311     \* 5.3.10.2: N311 in-syncs stop T310
+           /\ isLeft' = isLeft - 1 /\ phase' = "C" /\ t310' = -1 /\ nIS' = 0 /\ nOOS' = 0 /\ ...
+
+Tick == /\ phase = "P" /\ t310' = t310 + 1
+        /\ IF t310' &gt;= T310_TICKS                                 \* 5.3.10.3: expiry declares RLF
+             THEN phase' = "RLF" ELSE phase' = "P" /\ ...</pre>
+
+<h3>TLC results — safety holds, and both outcomes of the T310 race are reachable</h3>
+<table>
+<tr><th>Check (config)</th><th>Meaning (spec clause)</th><th>Result</th></tr>
+<tr><td class="q">TypeOK</td><td>counters, budgets and timer never leave their ranges</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">StartedWhenExhausted</td><td>pigeonhole: 6 out-of-syncs split by at most 4 in-syncs must leave an N310 streak, so exhausting both budgets without ever starting T310 is impossible (5.3.10.1)</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">RLFOnlyAfterStart</td><td>RLF is declared only by T310 expiry (5.3.10.3), never out of the blue</td><td class="verdict pass">PASS</td></tr>
+<tr><td class="q">NoRLF</td><td>probe, expected violated — witness that expiry wins the race</td><td class="verdict fail">VIOLATED (witness)</td></tr>
+<tr><td class="q">NoRecovery</td><td>probe, expected violated — witness that the in-syncs win the race</td><td class="verdict fail">VIOLATED (witness)</td></tr>
+</table>
+
+<div class="note">
+  <p><b>What TLC decides, and what it cannot.</b> The full run: 656 states generated, 282
+  distinct, graph depth 15, no deadlock. The two probe counterexample traces both exist in the
+  <i>same</i> model. Expiry wins: <code>C &rarr; OOS &rarr; OOS &rarr; P (t310=0) &rarr; Tick&times;4
+  &rarr; RLF</code> — L1 goes silent and the timer runs out. The in-syncs win:
+  <code>C &rarr; OOS &rarr; OOS &rarr; P &rarr; IS &rarr; IS &rarr; C (t310 stopped)</code>.
+  This is not a defect of TLC; it is the semantics of the abstraction. With time gone, both
+  interleavings are behaviors, so the untimed model <i>cannot decide the race</i> — and the race
+  is the whole point of T310. Only the timed model can: in <a href="models/rrc_rlf.xml">rrc_rlf.xml</a>
+  the clock <code>t310</code> advances for every state, so UPPAAL's zone graph answers exactly
+  whether the N311 in-syncs can fit inside the window — 8,363 symbolic states covering
+  uncountably many concrete clock valuations, against TLC's 282 concrete states with integer
+  ticks. Neither number is a score; each is the price of what it proves. The workflow this page
+  argues for: TLC for the general interleaving logic of a domain, UPPAAL where a clause mentions
+  a timer, and the counterexample trace from either mapped back to the spec sentence and the
+  implementation.</p>
+</div>
+
+<div class="note warn">
+  <p><b>What TLC caught in this little model.</b> The first draft carried the stale out-of-sync
+  streak across T310 recovery, so one fresh OOS pushed the counter past N310 — a
+  <code>TypeOK</code> violation on the fifth state TLC generated, exactly the kind of counting
+  error clause 5.3.10 leaves easy to misread. TLC also refuted the modeler: the first invariant
+  set claimed that once both L1 budgets are spent the UE must be mid-race or failed. TLC produced
+  the dodge — burn every remaining out-of-sync inside T310 (the clause only <i>starts</i> the
+  timer), spend two in-syncs to stop it, burn the rest while connected, and end exhausted and
+  connected, with no timer running. The invariant was wrong and the checker was right;
+  the dodge trace is itself a spec insight: 38.331 clause 5.3.10.1 lets the UE sit in
+  connected state through an arbitrarily bad L1 record, as long as no N310 streak ever lands
+  while T310 is not running.</p>
+</div>
+
 <!-- ======================= downloads ======================= -->
 <h2>Downloads &amp; re-running</h2>
 
@@ -620,6 +693,15 @@ store the radio link failure information in the VarRLF-Report as described in cl
     <p><a href="models/rrc_rlf.xml">rrc_rlf.xml</a> — RLF + re-establishment, 16 queries</p>
     <p><a href="models/rrc_ho.xml">rrc_ho.xml</a> — handover + T304 race, 13 queries</p>
     <p><a href="models/rlc_to_rrc.xml">rlc_to_rrc.xml</a> — composed capstone, 14 queries</p>
+  </div>
+  <div class="dl">
+    <h4>TLA+ spec + TLC (untimed half)</h4>
+    <p><a href="models/rlf_untimed.tla">rlf_untimed.tla</a> — RLF counter machine, time abstracted,
+    same constants as <code>rrc_rlf.xml</code></p>
+    <p><a href="models/rlf_safety.cfg">rlf_safety.cfg</a> · <a href="models/rlf_rlf_witness.cfg">rlf_rlf_witness.cfg</a> ·
+    <a href="models/rlf_recovery_witness.cfg">rlf_recovery_witness.cfg</a> — the two probe configs
+    are expected to be violated; TLC's counterexample trace is the witness</p>
+    <p><code>java -jar tla2tools.jar -config rlf_safety.cfg rlf_untimed.tla</code></p>
   </div>
   <div class="dl">
     <h4>Checker</h4>
@@ -633,6 +715,7 @@ store the radio link failure information in the VarRLF-Report as described in cl
     <h4>Raw verification output</h4>
     <p><a href="results/rlc_am.txt">results/rlc_am.txt</a> · <a href="results/rrc_rlf.txt">results/rrc_rlf.txt</a></p>
     <p><a href="results/rrc_ho.txt">results/rrc_ho.txt</a> · <a href="results/rlc_to_rrc.txt">results/rlc_to_rrc.txt</a></p>
+    <p><a href="results/rlf_untimed.txt">results/rlf_untimed.txt</a> — all three TLC runs with witness traces</p>
     <p>State counts, per-query PASS/FAIL, and witness traces exactly as produced.</p>
   </div>
   <div class="dl">
@@ -661,7 +744,8 @@ store the radio link failure information in the VarRLF-Report as described in cl
   <p>ORAN-DOMAIN · built 2026-09-01 · models from 3GPP TS 38.322 V17.2.0 (RLC) and
   TS 38.331 V17.2.0 (RRC), Release 17, as published by ARIB STD-T120 mirror.
   Zone-graph exploration, DBM operations and query evaluation by
-  <code>uta_check.py</code>; all 54 queries pass. Not affiliated with 3GPP, ARIB,
+  <code>uta_check.py</code>; all 54 queries pass. The untimed companion
+  <code>rlf_untimed.tla</code> is checked with TLC (tla2tools, rev 95b800c). Not affiliated with 3GPP, ARIB,
   or the UPPAAL team.</p>
 </footer>
 
