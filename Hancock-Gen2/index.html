@@ -140,20 +140,20 @@ a { color: var(--accent); }
   <tr>
     <td>2 · Spec generation</td>
     <td>TLA<sup>+</sup> base model + MC config + trace instrumentation from the brief</td>
-    <td>—</td>
-    <td><span class="badge pending">pending</span></td>
+    <td>Three specs — <code>eligibility.tla</code>, <code>budget.tla</code>, <code>scoring.tla</code> — with 9 invariants and 9 model-checking configs; every action annotated to the VB.NET or T-SQL line it encodes</td>
+    <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>3 · TLC verification</td>
     <td>Bounded model checking of the invariants; counterexample traces on violation</td>
-    <td>—</td>
-    <td><span class="badge pending">pending</span></td>
+    <td>9 configs run; <strong>8 invariants violated</strong> with concrete counterexamples, <code>TypeOK</code> clean throughout; largest exploration 56.6M states</td>
+    <td><span class="badge low">done</span></td>
   </tr>
   <tr>
     <td>4 · Finding confirmation</td>
     <td>Each counterexample replayed and confirmed against the real code semantics, then severity-ranked</td>
-    <td>—</td>
-    <td><span class="badge pending">pending</span></td>
+    <td>8 counterexamples traced back to source; severity assigned. No execution-based reproduction — see the Phase 2.5 note below</td>
+    <td><span class="badge med">partial</span></td>
   </tr>
 </table>
 
@@ -280,44 +280,172 @@ observable outcome and the intended contract:</p>
 </table>
 
 <h2>TLA<sup>+</sup> model &amp; TLC results</h2>
-<p><span class="badge pending">pending</span> — this section will be filled from the
-modeling brief, the generated spec, and the TLC verdict table when the run completes.
-The toolchain is in place and verified: JDK 21, TLC 2026.09.09, the Specula CFA tool,
-and the three Specula MCP servers. The nine model-checkable suspects above
-(MC-1…MC-9, plus MC-5b/5c) are what Phase 3 will be asked to settle.</p>
+<p>Phase 2 produced three specs rather than one monolith, because the three
+questions are independent and small specs finish. Every action and condition
+carries a <code>file:line</code> annotation to the VB.NET or T-SQL it encodes.
+Phase 3 ran nine configs under TLC 2026.09.09 on JDK&nbsp;21: <strong>eight of the
+nine invariants were violated</strong>, each with a concrete counterexample.
+<code>TypeOK</code> held throughout.</p>
 
-<div class="note">
-<span class="spec-tag">A note on Phase 2.5</span>
-Harness generation — instrumenting the target to emit execution traces — is
-<strong>skipped</strong> for this run, and not by preference. OldSource2 is .NET Framework
-WebForms: building and running it needs Windows, IIS and SQL Server, which this
-macOS host cannot provide. Trace validation against real executions is therefore
-unavailable, and Phase 4 confirmation will be <em>code-semantics</em> confirmation —
-each counterexample replayed against the VB.NET and T-SQL source with
-<code>file:line</code> citations, not executed. That is a real limitation of this run and
-is stated here rather than buried: the srsRAN case study reproduced every confirmed bug
-against running C++; this one cannot.
+<div class="kv">
+  <div class="k">Spec modules</div><div><code>eligibility.tla</code> (Scenarios 1–2, Q1) · <code>budget.tla</code> (Scenario 3, Q2) · <code>scoring.tla</code> (Scenarios 4–5, Q3/Q4); 9 invariants, 9 configs</div>
+  <div class="k">Model bounds</div><div>2 allocations, family sizes 0–2, incomes 0–3, all <code>tgAllocationIncomeLine</code> row-existence patterns; money in thousandths of a dollar so <code>round(x,2)</code> is exact integer arithmetic</div>
+  <div class="k">Exploration</div><div>Largest space 56.6M states generated at depth 3 (the eligibility initial-state space alone is 18.9M); the rounding violation appears in an <em>initial state</em></div>
+  <div class="k">Trace validation</div><div><strong>None.</strong> Phase 2.5 is impossible for this target — the models are validated against the source by line-cited construction, not against recorded executions</div>
 </div>
 
-<h2>Confirmed findings</h2>
-<p><span class="badge pending">pending</span> — final tally, per-finding table and
-severity classification will appear here after Phase 4.</p>
+<h3>What a checked invariant looks like</h3>
+<p>The first is the two-writer disagreement formalised — the stored procedure's
+<code>Isnull(IncomeLine,0)</code> is the operative clause; the second is the
+<code>ByRef</code> defect expressed by self-composition, asserting that a scorer's
+verdict must be a function of the client's data and not of the caller's:</p>
+<pre class="paper"><span class="spec-tag">eligibility.tla / scoring.tla — bug detectors</span>
+SpIncomeLine ==
+    IF lineExists[&lt;&lt;storedAlloc, occupants&gt;&gt;]
+      THEN lineValue[&lt;&lt;storedAlloc, occupants&gt;&gt;]
+      ELSE 0                      \* Isnull(IncomeLine,0) - a missing row denies
+
+EligibilityWritersAgree ==
+    (BothRan /\ spPriority /= 0) =&gt; (vbPriority = spPriority)
+
+BurdenIndependentOfCaller ==
+    scored =&gt; (BurdenWith(0) = BurdenWith(1))</pre>
+
+<h3>Verdicts per config</h3>
+<table>
+  <tr><th>Config</th><th>Invariant</th><th>Exploration</th><th>Outcome</th></tr>
+  <tr><td class="q">eligibility</td><td><code>EligibilityWritersAgree</code></td><td>56.6M states, depth 3</td><td><span class="verdict fail">violated</span> → MC-1</td></tr>
+  <tr><td class="q">mc_alloc</td><td><code>EligibilityAllocationConsistent</code></td><td>56.6M states</td><td><span class="verdict fail">violated</span> → MC-2</td></tr>
+  <tr><td class="q">mc_missrow</td><td><code>NoDenialByMissingRow</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-3</td></tr>
+  <tr><td class="q">mc_round</td><td><code>ImplementationsAgree</code></td><td><em>initial state</em></td><td><span class="verdict fail">violated</span> → MC-5b</td></tr>
+  <tr><td class="q">mc_spend</td><td><code>NoSpendValuedObserved</code></td><td>36,168 states</td><td><span class="verdict fail">violated</span> → MC-5c</td></tr>
+  <tr><td class="q">mc_neg</td><td><code>NoNegativeObserved</code></td><td>72,737 states</td><td><span class="verdict fail">violated</span> → MC-4</td></tr>
+  <tr><td class="q">mc_burden</td><td><code>BurdenIndependentOfCaller</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-6</td></tr>
+  <tr><td class="q">mc_zero</td><td><code>ZeroIncomeConsistent</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-7</td></tr>
+  <tr><td class="q">mc_approval</td><td><code>PaymentRequiresApproval</code></td><td>BFS</td><td><span class="verdict fail">violated</span> → MC-8</td></tr>
+</table>
+<p>MC-9 (the validity framework, Q5) has no spec in this round: the fail-open
+mechanisms are real and recorded, but whether a misconfigured <code>propName</code>
+is reachable depends on configuration data that is not in the source drop. Stating
+that honestly is better than checking a model of data we do not have.</p>
+
+<h2>Findings: 8 confirmed, by code semantics</h2>
+<div class="note warn">
+<span class="spec-tag">How these were confirmed — read this before the table</span>
+Every finding below was produced by a TLC counterexample and then traced back to
+the VB.NET or T-SQL lines that produce it, all of which were read directly. None
+was <em>executed</em>. OldSource2 is .NET Framework WebForms and needs Windows,
+IIS and SQL Server; it cannot be built or run on the host this ran on. The
+srsRAN case study reproduced every confirmed bug against running C++ through its
+public APIs — <strong>this run cannot make that claim</strong>, and the severities
+below should be read as severity-if-triggerable, resting on a source reading
+rather than on a reproduction.
+</div>
+<table>
+  <tr><th>ID</th><th>Finding</th><th>Basis</th><th>Severity</th></tr>
+  <tr>
+    <td class="q">MC-3</td>
+    <td>A blank or stale <code>tblClientInfo.Occupants</code> silently converts an eligible applicant into a denied one: <code>SP_CalcPriorityLevel</code> re-tests eligibility using <code>Occupants</code>, finds no <code>tgAllocationIncomeLine</code> row for that family size, and <code>Isnull(IncomeLine,0)</code> reads the income limit as <strong>zero</strong> — so any income at all "exceeds" it. The deciding VB path used <code>count(FamilyMemberID)</code> and had qualified the same client</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge crit">critical</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-1</td>
+    <td>The same client is denied by <code>UpdateClientAllocationID</code> and eligible by <code>SP_CalcPriorityLevel</code>; the stored verdict is whichever screen ran last. A client with no <code>tblLHFamilyInfo</code> rows is auto-denied by the VB path's inner join regardless of income</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge crit">critical</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-2</td>
+    <td>A client recorded as denied still carries an <code>AllocationID</code>: the denial path falls back to the lowest allocation and the <code>update tblClientInfo set AllocationID</code> is unconditional, while the denial itself is returned only <code>ByRef</code> for the caller to persist or ignore</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-5b</td>
+    <td>Two invoices of $0.001 and $0.004 produce <strong>$0.00 spent</strong> under <code>ClientAllocationLogic.UpdateBalance</code> (<code>sum(round(x,2))</code>) and <strong>$0.01 spent</strong> under <code>frmParishBudget.UpdateBalance</code> (<code>round(sum(x),2)</code>). Same county, same invoices, two committed balances — decided by which screen was used. No concurrency required</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-5c</td>
+    <td><code>frmParishBudget.UpdateBalance</code> runs its two statements on <code>CONN_STRING_LOCAL</code> with <strong>no transaction</strong>, so the spend-valued intermediate state is <em>committed</em> and readable by every other session. If the request fails in between, the column stays spend-valued indefinitely while its name and every reader treat it as a remaining balance. A payment screen calls this path</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-4</td>
+    <td>A county balance can go negative and be observed there. <code>CheckNegativeBalance</code> — added 02/12/2013 with the comment "Balance should not be negative" — detects this rather than preventing it, and is declared with no <code>As Boolean</code> return type</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-8</td>
+    <td>A job whose allocation window has expired can reach payment without approval, by three distinct routes: payment before the window check ever runs; <code>JobID = ""</code>, which returns <code>False</code> before any check; and a job already carrying <code>Approval = 0</code>, which the <code>(Approval is null or Approval=1)</code> predicate cannot see</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge high">high</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-6</td>
+    <td><code>GetHighUseAndHighBurden</code> returns the <em>caller's own prior value</em> as a scoring result: <code>HighBurden</code> is <code>ByRef</code> and the <code>isHighBurdenActive()</code> branch has no <code>Else</code>. The function is also declared <code>As Integer</code> and never assigns a return value, so its point score is always 0</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge med">medium</span></td>
+  </tr>
+  <tr>
+    <td class="q">MC-7</td>
+    <td>A zero-income client is scored maximum burden by <code>HighUseHighBurden</code> (a literal <code>1 As HighBurden</code>, skipping the threshold comparison) and lowest poverty group by <code>CalPovertyLevel</code> — which also writes <code>0</code> when no <code>tgFederalPovertyLevel</code> row exists, making "no reference data" indistinguishable from "genuinely poorest"</td>
+    <td><span class="badge med">counterexample + source</span></td>
+    <td><span class="badge med">medium</span></td>
+  </tr>
+</table>
+<p>The pattern across all eight is one mechanism, not eight: <strong>the same
+program rule is implemented more than once, and the copies have drifted.</strong>
+Eligibility is decided twice on different family-size columns; the budget is
+recomputed by two methods that disagree on rounding, atomicity and coverage;
+poverty is computed three ways, and a 12/04/2012 correction ("the income should be
+the total income not only one single family member's income") was applied to
+exactly one of them. None of this requires a race — most of the counterexamples
+have no concurrency in them at all. It requires only that a user reach the same
+record through two different screens, which is what the application is for.</p>
 
 <h2 id="summary-zh">结果总结(中文)</h2>
-<p><span class="badge pending">待运行结束后填写</span> — Specula 全流程跑完后,这里将给出本次运行的中文总结:模型规模、TLC 验证结论、确认的业务逻辑缺陷清单及严重程度。</p>
+<p>本次运行把一套运行了十五年的 LIHEAP(低收入家庭能源补助)业务系统——约 1,400 个文件的
+VB.NET / ASP.NET WebForms 加 T-SQL 存储过程——中决定"谁能拿到取暖补助、拿多少"的逻辑,
+翻译成 TLA<sup>+</sup> 并用 TLC 做有界模型检验。共写了三个规约、九条不变式,
+<strong>其中八条被证伪</strong>,每条都有具体反例;最大状态空间 5,660 万个状态。</p>
+<p>核心结论只有一句:<strong>同一条业务规则被实现了不止一次,而这些副本已经彼此漂移。</strong>
+资格审核有两套实现——VB 用 <code>count(FamilyMemberID)</code> 统计家庭人数,存储过程用
+<code>tblClientInfo.Occupants</code>;两者不一致时,结论就不一致,而数据库里留下的是"最后写入者"的判断。
+更严重的是,存储过程里的 <code>Isnull(IncomeLine,0)</code> 会把"查不到对应收入线记录"当成"收入线为零",
+于是任何收入都算超标——一个 <code>Occupants</code> 字段填错或为空的申请人,会被静默拒绝,
+尽管另一条路径已经判定他合格。</p>
+<p>县级预算同样有两个 <code>UpdateBalance</code>:一个走调用方事务、逐张发票四舍五入再求和;
+另一个<strong>完全不开事务</strong>、先求和再四舍五入,而且付款界面调用的正是后者。
+两张 $0.001 和 $0.004 的发票,一个算出支出 $0.00,另一个算出 $0.01——不需要任何并发。
+不开事务的那条路径还会把"中间状态"直接提交:此刻余额列里存的是<em>支出</em>而不是<em>余额</em>,
+若请求在两条语句之间失败,这个错误状态就永久留在库里。2013 年 2 月加的
+<code>CheckNegativeBalance</code>(注释写着"Balance should not be negative")只是事后探测,并不能阻止。</p>
+<p><strong>必须说明的限制:</strong>本次没有做执行级复现。该系统是 .NET Framework WebForms,
+需要 Windows + IIS + SQL Server 才能构建运行,本次运行的主机做不到。
+所有结论都是"模型检验反例 + 逐行源码核对",而不是像上一个 srsRAN 案例那样在真实运行的代码上复现。
+因此上表的严重程度应理解为"若可触发则如此",其依据是源码阅读,而非复现实验。</p>
 
 <h2>Reproducibility</h2>
 <div class="kv">
-  <div class="k">Specula</div><div>github.com/specula-org/Specula, specula 1.1.0</div>
+  <div class="k">Specula</div><div>github.com/specula-org/Specula, specula 1.1.0, commit <code>a0242cf</code></div>
   <div class="k">Target</div><div>OldSource2.zip (VB.NET ASP.NET LIHEAP system, ~1,460 files; private copy taken under <code>runs/hancockgen2</code>, original untouched)</div>
-  <div class="k">Checker</div><div>TLC, bounded model checking, auto memory limit</div>
+  <div class="k">Checker</div><div>TLC 2026.09.09.012042 on JDK 21.0.12.1, bounded BFS, 2–4 workers, 2–4&nbsp;GB heap</div>
+  <div class="k">Mode</div><div>Specula <em>interactive mode</em> — the skill sequence driven in an authenticated session, rather than <code>specula run</code>'s spawned agents</div>
+  <div class="k">Not done</div><div>Phase 2.5 harness generation and trace validation (WebForms cannot build on macOS); MC-9 / Q5 has no spec</div>
   <div class="k">Run id</div><div><code>hancockgen2</code> — outputs under <code>runs/hancockgen2/hancockgen2/.specula-output/</code></div>
 </div>
 
 <footer>
-Specula × OldSource2 · run <code>hancockgen2</code> · started 2026-09-06.
+Specula × OldSource2 · run <code>hancockgen2</code> · started 2026-09-06, Phases 1–3 completed 2026-09-08.
 Second Specula case study (first: <a href="/Specula-result/">srsRAN Project 5G stack</a>);
 first on business software rather than a protocol stack.
+Phase-1 evidence: 2,262 dated patch comments and per-file change-history headers stand in for the git history and issue tracker this target does not have; every cited line was read directly.
+Findings were confirmed by counterexample plus source reading — <strong>not</strong> by execution: unlike the srsRAN run, this target cannot be built or run on the host, and that limit is stated wherever a severity is given.
 </footer>
 
 </div>
