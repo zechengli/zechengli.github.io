@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Specula × OCUDU · TLA+ model checking the O-RAN CU/DU stack</title>
+<meta name="description" content="Running Specula on OCUDU (successor of srsRAN Project): RLC AM, PDCP and RRC machinery converted to TLA+, checked with TLC, and six bugs reproduced against the C++.">
+<style>
+:root {
+  --bg: #f7f1e8;
+  --card: #fffaf2;
+  --text: #3f2f1f;
+  --muted: #7c6a58;
+  --accent: #b4552d;
+  --border: #e0d2bd;
+  --green: #3e7a4e;
+  --red: #b0392e;
+  --blue: #35618f;
+  --shadow: 0 1px 3px rgba(63,47,31,.08);
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.62;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px 22px 70px; }
+header { border-bottom: 3px double var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+.eyebrow {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--accent); font-weight: bold; margin-bottom: 6px;
+}
+h1 { font-size: 2.2rem; margin: 0 0 10px; line-height: 1.2; }
+h2 { font-size: 1.5rem; margin: 44px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { font-size: 1.12rem; margin: 26px 0 8px; color: var(--accent); }
+p { margin: 10px 0; }
+.lede, .note, .paper-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  margin: 14px 0;
+  width: 100%;
+}
+.note { border-left: 4px solid var(--blue); }
+.note.warn { border-left-color: var(--red); }
+.note.good { border-left-color: var(--green); }
+pre.paper {
+  background: #fbf6ec;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 10px 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: .84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: #4a3a28;
+}
+.spec-tag {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 2px;
+}
+table { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+th, td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: Verdana, Arial, sans-serif; font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+tr:last-child td { border-bottom: none; }
+td.q { font-family: 'Courier New', Courier, monospace; font-size: .8rem; white-space: pre-wrap; }
+td.verdict { font-family: Verdana, Arial, sans-serif; font-size: .74rem; font-weight: bold;
+  white-space: nowrap; }
+.pass { color: var(--green); }
+.fail { color: var(--red); }
+code {
+  font-family: 'Courier New', Courier, monospace; font-size: .86em;
+  background: #f2e9d8; border-radius: 4px; padding: 1px 5px;
+}
+.badge {
+  font-family: Verdana, Arial, sans-serif; font-size: .68rem; font-weight: bold;
+  letter-spacing: .08em; text-transform: uppercase;
+  border-radius: 99px; padding: 2px 10px; white-space: nowrap;
+}
+.badge.high { background: #f6e3da; color: var(--red); }
+.badge.crit { background: var(--red); color: #fffaf2; }
+.badge.med { background: #f3ead6; color: #8a6d1f; }
+.badge.low { background: #e8ecdf; color: var(--green); }
+.badge.pending { background: #e5e0d4; color: var(--muted); }
+.kv { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; margin: 14px 0; }
+.kv > div { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: .93rem; }
+.kv > div:nth-last-child(-n+2) { border-bottom: none; }
+.kv .k { font-family: Verdana, Arial, sans-serif; font-size: .72rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+footer { margin-top: 50px; padding-top: 18px; border-top: 3px double var(--border);
+  font-size: .85rem; color: var(--muted); }
+a { color: var(--accent); }
+@media (max-width: 640px) { .kv { grid-template-columns: 1fr; } .kv .k { border-bottom: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Formal methods · Specula × OCUDU</div>
+  <h1>TLA<sup>+</sup> model checking OCUDU's RLC, PDCP and RRC</h1>
+  <div class="lede">
+    <p><a href="https://github.com/specula-org/Specula">Specula</a> was pointed at
+    <a href="https://gitlab.com/ocudu/ocudu">OCUDU</a>, the Linux Foundation successor of the srsRAN Project
+    CU/DU, and asked whether its layer-2/3 protocol machinery (RLC AM, PDCP, and the CU-CP's per-UE RRC
+    procedures) can reach states that violate the 3GPP contracts it implements (TS&nbsp;38.322, 38.323, 38.331)
+    under realistic concurrency between executors. This is the same code base as the
+    <a href="/Specula-result/">srsRAN Project case study</a>, ten months and one rename later:
+    the target here is OCUDU <code>main</code> at <code>9c99f4064</code>, after release 26.04.</p>
+    <p>Six bugs were reproduced against the unmodified C++ through its public APIs. Two of them are
+    reachable from a single peer message or a single legal E1AP request: a DU process crash from one STATUS PDU
+    (MC-5) and a heap use-after-free in the CU-UP (MC-3).</p>
+  </div>
+  <h3 style="margin-top:14px">Run resources</h3>
+  <table>
+    <tr><th>Phase</th><th style="text-align:right">Agent time</th><th style="text-align:right">Tokens</th><th style="text-align:right">Est. cost</th></tr>
+    <tr><td>1 · Code analysis</td><td style="text-align:right">≈40m<sup>a</sup></td><td style="text-align:right">17.9M</td><td style="text-align:right">$11.29</td></tr>
+    <tr><td>2 · Spec generation</td><td style="text-align:right">1h 24m</td><td style="text-align:right">71.5M</td><td style="text-align:right">$20.13</td></tr>
+    <tr><td>2.5 · Trace harness</td><td style="text-align:right">1h 41m</td><td style="text-align:right">180.2M</td><td style="text-align:right">$45.55</td></tr>
+    <tr><td>3 · Validation (TLC)</td><td style="text-align:right">1h 04m</td><td style="text-align:right">27.4M</td><td style="text-align:right">$8.62</td></tr>
+    <tr><td>4a · Bug confirmation (9 findings, 4 in parallel)</td><td style="text-align:right">5h 47m<sup>b</sup></td><td style="text-align:right">141.5M</td><td style="text-align:right">$47.79</td></tr>
+    <tr><td>4b · Classification</td><td style="text-align:right">skipped</td><td style="text-align:right">—</td><td style="text-align:right">—</td></tr>
+    <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>≈10h 35m</strong></td><td style="text-align:right"><strong>438.5M</strong></td><td style="text-align:right"><strong>$133.38</strong></td></tr>
+  </table>
+  <p style="font-size:.85rem; color:var(--muted); margin-top:4px">Serving model: Claude Sonnet 5, reasoning effort max.
+  Token counts include cache reads, which make up most of the total; output tokens were 2.4M.
+  Costs are the agent harness's own list-price estimates, not provider billing. Wall clock:
+  2026-09-17 11:30 → 22:35. <sup>a</sup> Phase 1 ran in two attempts (11:30–11:52 and 16:22–16:40) around a provider
+  rate-limit interruption. <sup>b</sup> Sum of the nine per-finding confirmation sessions; they ran four at a time
+  between 20:55 and 22:35.</p>
+  <div class="kv">
+    <div class="k">Target</div><div>OCUDU <code>main</code>, commit <code>9c99f4064</code> (2026-09-17), after release 26.04; snapshot mode, live checkout untouched</div>
+    <div class="k">Scope</div><div>RLC AM TX/RX, PDCP TX/RX, CU-CP per-UE RRC procedures, DU RLF consolidation — 24 core files, ≈6,500 lines read in full</div>
+    <div class="k">Tooling</div><div>Specula <code>c6aa3df</code> · TLC 2026.09.01 · agent: Claude Code</div>
+    <div class="k">Run</div><div><code>specula run --run-id=ocudu</code> with target-specific guidance (<code>ocudu-guidance.md</code>)</div>
+  </div>
+</header>
+
+<h2>The pipeline</h2>
+<table>
+  <tr><th>Phase</th><th>What it does</th><th>Output for OCUDU</th><th>Status</th></tr>
+  <tr>
+    <td>1 · Code analysis</td>
+    <td>Structural map, bug archaeology over git history and both issue trackers, deep reading of every scoped entity</td>
+    <td>Analysis report + 222-line modeling brief; 28 commits inspected in full; 32 issues read end to end (23 on GitLab, 9 on the archived GitHub tracker)</td>
+    <td><span class="badge low">done</span></td>
+  </tr>
+  <tr>
+    <td>2 · Spec generation</td>
+    <td>TLA<sup>+</sup> base model, model-checking wrapper and trace module from the brief's scenarios</td>
+    <td><code>base.tla</code> (1,160 lines) + <code>MC.tla</code> (163) + <code>Trace.tla</code> (442); 8 bug-hunt configs</td>
+    <td><span class="badge low">done</span></td>
+  </tr>
+  <tr>
+    <td>2.5 · Trace harness</td>
+    <td>Instrument the C++ so real executions emit traces the spec can replay</td>
+    <td>9 NDJSON traces (RLC TX/RX, PDCP TX/RX, five RRC procedure outcomes)</td>
+    <td><span class="badge low">done</span></td>
+  </tr>
+  <tr>
+    <td>3 · Validation</td>
+    <td>Trace validation ↔ model checking until the spec agrees with the code, then bug hunting</td>
+    <td>Converged in one round: 4 spec fixes across 2 root causes; clean structural run; all 8 hunt configs produced counterexamples</td>
+    <td><span class="badge low">done</span></td>
+  </tr>
+  <tr>
+    <td>4a · Confirmation</td>
+    <td>Replay each counterexample against the real C++ through public APIs</td>
+    <td>6 reproduced, 1 pending model repair, 1 false positive, 1 incomplete</td>
+    <td><span class="badge med">partial</span></td>
+  </tr>
+</table>
+
+<h2>What the audit found first</h2>
+<p><strong>OCUDU is not a UE.</strong> The guidance framed <code>lib/rrc/ue/</code> as UE RRC procedures with
+T310/N310/N311. Phase 1 corrected this: OCUDU is gNB-only, and <code>lib/rrc/ue/</code> is the CU-CP's per-UE
+context, the network's peer to the real UE's RRC. Its T300/T301/T304/T311 values are timeouts on how long the
+network waits for the UE, and a repository-wide search for <code>t310</code>/<code>n310</code> under
+<code>lib/rrc/ue</code> returns nothing. RLF detection lives in the MAC (<code>rlf_detector.h</code>) and in the
+DU's UE controller, and was modeled there.</p>
+<p><strong>The risk is concurrency, not just protocol logic.</strong> Every state machine runs as handlers spread
+over independent executors: a MAC-driven cell executor, a per-UE executor (a three-level priority strand for
+PDCP), and a genuinely parallel crypto worker pool for PDCP ciphering and integrity. Most findings below are
+stale-completion or unguarded-access bugs whose visible effect is a protocol violation.</p>
+
+<h2>TLA<sup>+</sup> model and TLC results</h2>
+<p>Trace validation found four places where the generated spec disagreed with the code, all in two root causes;
+the most important was that the spec cleared every SN below ACK_SN on a STATUS PDU, while the real
+<code>handle_status_pdu</code> stops at the first NACKed SN. After the fixes, the structural invariants
+held over the whole 30-minute budget: 126.0M states generated, 22.2M distinct, depth 9, no violation (queue
+not exhausted). Each hunt config then targets one suspect:</p>
+<table>
+  <tr><th>Config</th><th>Property</th><th style="text-align:right">Distinct states</th><th>Verdict</th></tr>
+  <tr><td class="q">MC.cfg</td><td>MCTypeOK, ProcStructurallyConsistent</td><td style="text-align:right">22,208,921</td><td class="verdict pass">no violation (timed out)</td></tr>
+  <tr><td class="q">hunt_mc1</td><td>NoOrphanedProcedure</td><td style="text-align:right">12,492</td><td class="verdict fail">counterexample</td></tr>
+  <tr><td class="q">hunt_mc2</td><td>ReestablishmentEventuallyClears</td><td style="text-align:right">292,824</td><td class="verdict fail">counterexample</td></tr>
+  <tr><td class="q">hunt_mc3</td><td>StaleCryptoNeverPublishes</td><td style="text-align:right">395</td><td class="verdict fail">violated</td></tr>
+  <tr><td class="q">hunt_mc4</td><td>StaleCryptoNeverPublishes</td><td style="text-align:right">462</td><td class="verdict fail">violated</td></tr>
+  <tr><td class="q">hunt_mc5</td><td>WindowAccessRequiresPresence</td><td style="text-align:right">80</td><td class="verdict fail">violated</td></tr>
+  <tr><td class="q">hunt_mc6</td><td>MaxRetxStopsRetransmission</td><td style="text-align:right">2,707</td><td class="verdict fail">violated</td></tr>
+  <tr><td class="q">hunt_mc7</td><td>ExactlyOnceDelivery</td><td style="text-align:right">71</td><td class="verdict fail">violated</td></tr>
+  <tr><td class="q">hunt_mc8</td><td>DiscardImpliesNotification</td><td style="text-align:right">5,864</td><td class="verdict fail">violated</td></tr>
+</table>
+<div class="note">A counterexample is only a candidate. Phase 4 decides whether the real code can do the same thing;
+MC-8 below is a case where it cannot.</div>
+
+<h2>Confirmed findings: 6 reproduced</h2>
+<p>Each finding was replayed against the unmodified C++ through its public APIs. Reproduction levels:
+<strong>L0</strong> public API only; <strong>L1</strong> public API plus deterministic scheduling through the
+project's own test executors; <strong>L2</strong> an injected precondition that the confirmer argued is reachable
+through real callers. Severity is Specula's rating from the bug report; the classification phase (4b) did not run.</p>
+<table>
+  <tr><th>Entry</th><th>Finding</th><th>Verdict</th><th>Severity</th></tr>
+  <tr><td class="q">MC-5</td><td>A STATUS PDU that NACKs a never-submitted SN crashes the RLC TX entity (SIGSEGV)</td><td><span class="badge high">reproduced · L0</span></td><td><span class="badge crit">critical</span></td></tr>
+  <tr><td class="q">MC-3</td><td>PDCP re-establishment without SecurityInformation skips the crypto drain → heap use-after-free</td><td><span class="badge high">reproduced · L0</span></td><td><span class="badge crit">critical</span></td></tr>
+  <tr><td class="q">MC-7</td><td>RLC RX reassembly failure ACKs an SDU that never reaches PDCP</td><td><span class="badge high">reproduced · L0</span></td><td><span class="badge high">high</span></td></tr>
+  <tr><td class="q">MC-4</td><td>PDCP suspend/reset do not fence stale crypto completions → stale PDU sent, fresh SDU lost</td><td><span class="badge high">reproduced · L1</span></td><td><span class="badge high">high</span></td></tr>
+  <tr><td class="q">MC-2</td><td><code>reestablishment_ongoing</code> is never cleared after a fallback when the old UE is fully attached</td><td><span class="badge high">reproduced · L2</span></td><td><span class="badge high">high</span></td></tr>
+  <tr><td class="q">MC-6</td><td>Duplicate NACKs in one STATUS PDU skip past maxRetxThreshold; retransmission continues</td><td><span class="badge high">reproduced · L0</span></td><td><span class="badge med">medium</span></td></tr>
+  <tr><td class="q">MC-8</td><td>SRB PDU dropped by crypto reordering without a discard notification</td><td><span class="badge pending">pending model repair</span></td><td><span class="badge med">medium</span></td></tr>
+  <tr><td class="q">CR-1</td><td>Cross-strand access to the RLF detector's notifier pointer</td><td><span class="badge low">false positive</span></td><td>—</td></tr>
+  <tr><td class="q">MC-1</td><td>RRC reestablishment/resume leaves the new UE waiting forever on a transaction timeout</td><td><span class="badge pending">incomplete</span></td><td><span class="badge high">high</span></td></tr>
+</table>
+
+<h3>MC-5 · One STATUS PDU crashes the DU</h3>
+<p><code>handle_nack()</code> accepts any NACK with <code>TX_Next_Ack ≤ NACK_SN ≤ TX_Next</code> and then indexes
+<code>tx_window</code> without checking that the SN is present. <code>TX_Next</code> itself has never been submitted,
+so a STATUS PDU with ACK_SN&nbsp;=&nbsp;1 and NACK_SN&nbsp;=&nbsp;0 on a fresh entity dereferences an empty slot. The
+confirmer drove exactly this through the real <code>on_status_pdu → handle_status_pdu → handle_nack</code> chain:
+SIGSEGV in 5 of 5 runs, while the adjacent boundary (NACK_SN&nbsp;=&nbsp;ACK_SN) is correctly rejected. On a gNB the
+STATUS PDU comes from the UE, so the input is peer-controlled and needs no non-conformant behavior. Suggested fix:
+check <code>tx_window.has_sn()</code> before the access, as <code>build_retx_pdu</code> already does.</p>
+
+<h3>MC-3 · Use-after-free in the CU-UP crypto path</h3>
+<p>A bearer-context modification that asks for PDCP re-establishment but carries no SecurityInformation, a legal
+E1AP combination, skips the step that waits for in-flight crypto jobs. Re-establishment then clears the security
+engine pool while crypto workers still use it. AddressSanitizer reported a heap use-after-free in
+<code>integrity_engine_generic.cpp:60</code> in 3 of 3 runs (one run hit <code>s3g.cpp:479</code> instead), using only
+the public API and a real two-thread executor. Without the sanitizer the outcome is a corrupted PDU on the air or a
+CU-UP crash. Suggested fix: drain regardless of SecurityInformation, or move the drain into
+<code>reestablish()</code> itself using the existing crypto token manager.</p>
+
+<h3>MC-7 · An SDU that is ACKed but never delivered</h3>
+<p>When reassembly fails, for example because the buffer pool is exhausted, the RX entity logs
+"Dropped SDU, failed to reassemble", keeps <code>fully_received&nbsp;=&nbsp;true</code>, advances the window and
+ACKs the SN (the next STATUS PDU has ACK_SN&nbsp;=&nbsp;1 and no NACK). The peer's retransmission then arrives
+outside the window and is discarded. The SDU is lost permanently and silently. Reproduced in the project's own RLC
+RX test suite for both 12- and 18-bit SNs. Suggested fix: clear <code>fully_received</code> on the failure branch so
+the SN stays NACK-eligible.</p>
+
+<h3>MC-4 · Stale crypto results after a reset</h3>
+<p><code>suspend()</code> and <code>reset()</code> do not advance the generation counter that fences crypto completions
+(<code>retransmit_id</code>). A completion for a job started before re-establishment can land after it and
+overwrite the window slot of a new SDU with the same COUNT. On TX a stale PDU is sent and the new SDU stays stuck;
+on RX the new SDU is dropped as a duplicate. The trigger is again re-establishment without SecurityInformation, where
+the real caller performs no drain.</p>
+
+<h3>MC-2 · A reestablishment flag that never clears</h3>
+<p>When a reestablishment request finds the old UE fully attached (DRB and SRB2 up) and the context transfer fails, the
+procedure falls back to RRCSetup, but the old UE's <code>reestablishment_ongoing</code> flag, set by
+<code>get_context()</code>, is never written back to false on any path. A later reestablishment for the same UE is
+refused again and answered with RRCSetup over SRB0 instead of RRCReestablishment over SRB1. The flag's introduction
+carries a <code>// TODO: Handle scenario with multiple reestablishments for the same UE</code>.</p>
+
+<h3>MC-6 · Retransmitting past maxRetxThreshold</h3>
+<p>A single STATUS PDU with NACKs <code>[1][3][1]</code> increments RETX_COUNT for SN&nbsp;1 twice, because duplicate
+suppression only compares with the previous NACK. The max-retx check tests <code>retx_count&nbsp;==&nbsp;threshold</code>,
+so the count jumps past it: after <code>on_max_retx</code> has fired, <code>pull_pdu()</code> still hands the MAC a
+retransmission with RETX_COUNT&nbsp;5 &gt; 4. For an SRB nothing downstream stops it, since the DU's RLF reaction
+stops only DRBs.</p>
+
+<h3>Not counted</h3>
+<p><strong>MC-8</strong> is a fault-model artifact: the spec runs SRB crypto asynchronously, but in OCUDU only DRBs
+have a parallel crypto executor, and SRBs use an inline one. The confirmer filed a repair request against the model
+rather than the code. <strong>CR-1</strong> is a false positive: the notifier pointer is only written on the control
+strand, so no torn read is possible through real callers. <strong>MC-1</strong> was interrupted during confirmation
+and has no verdict.</p>
+
+<h2>Reading the findings through history</h2>
+<p>The checker says what the code can do today. The git history says how it got there. Three findings have a history
+worth telling, checked against the OCUDU repository.</p>
+<div class="note">
+<p><strong>MC-7 came from a careful decision.</strong> The branch that drops a failed SDU was added by
+<code>d6950cfed</code> (2024-02-23, "rlc_rx: handle reassembly failures"), whose own comment reads
+<em>"Do not pass empty SDU to upper layers and continue as normal to maintain state."</em> Degrading gracefully instead
+of crashing is the right instinct; continuing "as normal" is what ACKs the missing SDU. The branch has been on main
+for 937 days.</p>
+</div>
+<div class="note">
+<p><strong>MC-5's check is as old as NACK handling.</strong> The inclusive range test
+<code>TX_Next_Ack ≤ NACK_SN ≤ TX_Next</code> is unchanged since NACK handling was added in <code>415c5f9ee</code>
+(2022-08-16). Whether the out-of-window access always crashed, or only after the RLC window was rewritten
+(<code>4ab518f6a</code>, 2026-06-26), is still open; answering exactly this kind of question is what a history-aware
+checker should do. The confirmer also notes that the RX side already received a presence check of the same shape; in
+the history, <code>5fe74a8ca</code> (2026-08-13) adds such a <code>has_sn()</code> guard on the RX entity, while the TX
+side remained unguarded.</p>
+</div>
+<div class="note warn">
+<p><strong>A known bug this run did not report.</strong> The earlier srsRAN Project run confirmed that one rejected
+t-StatusProhibit defer latches a "timer running" flag and stops STATUS reporting for good (its MC-3). The same code is
+still at OCUDU <code>9c99f4064</code> (<code>rlc_rx_am_entity.cpp</code>, <code>get_status_pdu()</code>), and on
+2026-08-13 commit <code>a1491504c</code> fixed the same pattern for buffer-state notifications on the TX side only.
+This run's model did not produce it. Agentic runs on the same code are not interchangeable, which is one more reason to
+keep findings, once confirmed, as permanent obligations.</p>
+</div>
+
+<h2>Run notes</h2>
+<ul>
+  <li>The consolidated report <code>confirmed-bugs.md</code> was overwritten by a confirmation-only resume on
+  2026-09-18 (10:42–10:46), which stopped on MC-1 and marked all nine entries incomplete. The verdicts on this page are
+  taken from the per-finding <code>confirmation/*/verdict.json</code> files written on 2026-09-17, which that resume did
+  not touch.</li>
+  <li>Repair request RR-001 (MC-8, target: fault model) is open.</li>
+  <li>Specula's MCP tooling servers crashed at start-up in this environment (an SDK version mismatch); TLC was invoked
+  directly, as the skills allow.</li>
+</ul>
+
+<h2>Reproducibility</h2>
+<div class="kv">
+  <div class="k">Specula</div><div>github.com/specula-org/Specula, commit <code>c6aa3df</code></div>
+  <div class="k">Target</div><div>gitlab.com/ocudu/ocudu, commit <code>9c99f406429f</code> (snapshot)</div>
+  <div class="k">Checker</div><div>TLC 2026.09.01, BFS, 30-minute budget per config, auto memory limit</div>
+  <div class="k">Run id</div><div><code>ocudu</code> — outputs under <code>runs/ocudu/ocudu/.specula-output/</code>: spec modules, hunt configs, TLC logs, per-finding confirmation transcripts and verdicts, and eight reproduction tests in <code>repro/</code></div>
+</div>
+
+<footer>
+Specula × OCUDU · run <code>ocudu</code> · 2026-09-17 (≈10.5h of agent time, ≈438M tokens, ≈$133 at list price).
+Third Specula case study on this site, after <a href="/Specula-result/">srsRAN Project</a> and
+<a href="/Hancock-Gen2/">OldSource2</a>. Every reproduced bug was driven through public APIs of the unmodified C++;
+history notes were checked against the OCUDU git repository.
+</footer>
+
+</div>
+</body>
+</html>
