@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Specula 对比 · srsRAN Project vs OCUDU</title>
+<meta name="description" content="srsRAN Project 与 OCUDU 最新代码的对比：共同历史、分叉后的增删、两次 Specula 运行的 finding 交叉核对，以及 RLC AM 一个 bug 的逐版本历史。">
+<style>
+:root {
+  --bg: #f7f1e8; --card: #fffaf2; --text: #3f2f1f; --muted: #7c6a58; --accent: #b4552d;
+  --border: #e0d2bd; --green: #3e7a4e; --red: #b0392e; --blue: #35618f;
+  --shadow: 0 1px 3px rgba(63,47,31,.08); --radius: 10px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: Georgia, 'Songti SC', 'Noto Serif CJK SC', 'Times New Roman', serif; line-height: 1.7; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 28px 22px 70px; }
+header { border-bottom: 3px double var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+.eyebrow { font-family: Verdana, Arial, sans-serif; font-size: .72rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent); font-weight: bold; margin-bottom: 6px; }
+h1 { font-size: 2.1rem; margin: 0 0 10px; line-height: 1.25; }
+h2 { font-size: 1.5rem; margin: 46px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { font-size: 1.12rem; margin: 26px 0 8px; color: var(--accent); }
+p { margin: 10px 0; }
+.lede, .note { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px 20px; margin: 14px 0; width: 100%; }
+.note { border-left: 4px solid var(--blue); }
+.note.warn { border-left-color: var(--red); }
+.note.good { border-left-color: var(--green); }
+pre.paper { background: #fbf6ec; border: 1px dashed var(--border); border-radius: 8px; padding: 12px 16px;
+  margin: 10px 0; font-family: 'Courier New', Courier, monospace; font-size: .82rem; line-height: 1.5;
+  white-space: pre-wrap; overflow-x: auto; color: #4a3a28; }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); font-size: .92rem; }
+th, td { padding: 7px 11px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: Verdana, Arial, sans-serif; font-size: .68rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; }
+tr:last-child td { border-bottom: none; }
+td.r, th.r { text-align: right; white-space: nowrap; }
+td.m { font-family: 'Courier New', Courier, monospace; font-size: .8rem; white-space: nowrap; }
+.pass { color: var(--green); font-weight: bold; }
+.fail { color: var(--red); font-weight: bold; }
+.dim { color: var(--muted); }
+code { font-family: 'Courier New', Courier, monospace; font-size: .86em; background: #f2e9d8;
+  border-radius: 4px; padding: 1px 5px; }
+.badge { font-family: Verdana, Arial, sans-serif; font-size: .66rem; font-weight: bold; letter-spacing: .06em;
+  text-transform: uppercase; border-radius: 99px; padding: 2px 9px; white-space: nowrap; }
+.badge.both { background: var(--red); color: #fffaf2; }
+.badge.srs { background: #e3eaf3; color: var(--blue); }
+.badge.ocu { background: #f6e3da; color: var(--accent); }
+.badge.fixed { background: #e8ecdf; color: var(--green); }
+.badge.pending { background: #e5e0d4; color: var(--muted); }
+.tl { position: relative; margin: 18px 0 8px; padding-left: 22px; border-left: 3px solid var(--border); }
+.tl > div { position: relative; margin: 0 0 12px; }
+.tl > div::before { content: ''; position: absolute; left: -29.5px; top: .55em; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+.tl .d { font-family: Verdana, Arial, sans-serif; font-size: .74rem; color: var(--muted); letter-spacing: .04em; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 14px 0; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 12px 16px; }
+.stat b { display: block; font-size: 1.6rem; color: var(--accent); line-height: 1.2; }
+.stat span { font-size: .85rem; color: var(--muted); }
+footer { margin-top: 50px; padding-top: 18px; border-top: 3px double var(--border); font-size: .85rem; color: var(--muted); }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Formal methods · Specula · srsRAN Project vs OCUDU</div>
+  <h1>同一份代码的两个名字：srsRAN Project 和 OCUDU 的对比</h1>
+  <div class="lede">
+    <p><strong>一句话：</strong>OCUDU 就是 srsRAN Project 换了名字继续往前走。两边共享 16,380 个 commit（2021-11 到 2025-12-03），
+    之后 srsRAN 只多了 159 个 commit 就归档了，OCUDU 又走了 3,421 个。我们关心的 RLC / PDCP / RRC 这三块，
+    OCUDU 主要是<strong>加功能</strong>（RRC resume、分段窗口、XnAP），旧 bug 基本<strong>原样继承</strong>。</p>
+    <p>这一页回答三个问题：① 两边重叠的是什么；② 不一样的是什么（删了、加了、什么时候）；
+    ③ RLC AM 那个 bug 在每个版本里是怎么改的，我们能学到什么。</p>
+  </div>
+  <div class="note warn">
+    <p><strong>状态说明（2026-09-21）：</strong>两边的最新代码已经拉下来并做完了代码级对比和历史分析（下面都是）。
+    <strong>Specula 在最新代码上的重跑还没开始</strong>：lab box 的根分区被 <code>/tmp/gnb.log</code>（31&nbsp;GB，root 所有）撑满，
+    Specula 和 agent 都写不了盘。所以本页 Specula 部分用的是已有的两次运行
+    （<a href="/Specula-result/">srsRAN，9 月 1 日</a>；<a href="/Specula-OCUDU/">OCUDU，9 月 17 日</a>），
+    再把每个 finding 拿到两边<strong>最新代码</strong>里逐条人工核对。磁盘腾出来后重跑，结果会更新到这一页。</p>
+  </div>
+</header>
+
+<h2>0 · 对比的是哪两份代码</h2>
+<div class="tw"><table>
+  <tr><th></th><th>srsRAN Project</th><th>OCUDU</th></tr>
+  <tr><td>仓库</td><td><a href="https://github.com/srsran/srsRAN_Project">github.com/srsran/srsRAN_Project</a>（已归档，只读）</td><td><a href="https://gitlab.com/ocudu/ocudu">gitlab.com/ocudu/ocudu</a>（Linux Foundation）</td></tr>
+  <tr><td>最新 commit</td><td><code>4bf154393</code>，<code>main</code>，2026-02-16（最后一次代码更新 2026-01-26，之后只改了 README 指向 OCUDU）</td><td><code>d0df5e24f</code>，<code>dev</code>，2026-09-21</td></tr>
+  <tr><td>上次 Specula 跑的 commit</td><td><code>d2f4b70dd</code>，release 25.10，2025-11-11</td><td><code>9c99f4064</code>，2026-09-17</td></tr>
+  <tr><td>最新 vs 上次跑的，scope 内差多少</td><td>RLC/PDCP/RRC 有 14 个 commit，多数是改版权年份；真实改动集中在 RRC re-establishment 和 ASN.1 转换</td><td>59 个新 commit，<strong>RLC/PDCP/RRC 零改动</strong>（只有 2 个碰了 DU manager）</td></tr>
+  <tr><td>最后一个 release</td><td>25.10（2025-11-11）</td><td>26.04（2026-03-26）</td></tr>
+</table></div>
+<div class="note">
+  <p><strong>这意味着什么：</strong>OCUDU 这边，9 月 17 日那次 Specula 的结果对今天的代码仍然完全成立，重跑主要是为了"同一工具、同一模型、同一天"的公平对比，
+  不会因为代码变了而出新东西。srsRAN 这边从 release 25.10 到最终 <code>main</code> 有少量真实改动，重跑有一点新信息。</p>
+</div>
+
+<h2>1 · 重叠的部分：时间、功能</h2>
+<div class="grid3">
+  <div class="stat"><b>16,380</b><span>两边共享的 commit（2021-11-25 → 2025-12-03）</span></div>
+  <div class="stat"><b>4 年</b><span>共同历史。分叉点 <code>7d6183fb7</code>，2025-12-03</span></div>
+  <div class="stat"><b>159 : 3,421</b><span>分叉之后 srsRAN 独有 : OCUDU 独有的 commit</span></div>
+</div>
+
+<h3>时间线</h3>
+<div class="tl">
+  <div><span class="d">2021-11-25</span><br>第一个 commit（<code>fc0b8de60</code>，空 README）。</div>
+  <div><span class="d">2022-07-19 → 2022-08-16</span><br>RLC AM 骨架写出来，<code>handle_nack</code> 也在这时加入（<code>415c5f9ee</code>）。第 3 节那个 bug 从这一天开始存在。</div>
+  <div><span class="d">2023-03 → 2025-11</span><br>srsRAN Project 公开发布 23.3、23.5、23.10（.1）、24.04、24.10（.1）、25.04、25.10，共 9 个 release tag。</div>
+  <div><span class="d">2025-12-03</span><br><strong>分叉点</strong> <code>7d6183fb7</code>。第二天 <code>bd622888b</code> 把命名空间从 <code>srsran</code> 整体换成 <code>ocudu</code>，几乎每个文件都被改了一遍。</div>
+  <div><span class="d">2025-12-05</span><br>OCUDU 改了 CMake：Release 构建默认去掉所有 assert（<code>035053786</code>）。这个改动让第 3 节那个 bug 在 Release 构建下不再 abort，而是静默读写空槽；2026-06 换了窗口容器之后才变成 SIGSEGV。</div>
+  <div><span class="d">2026-01-26 / 2026-02-16</span><br>srsRAN 最后一次代码更新；之后 README 加上"请去 OCUDU"，仓库归档。</div>
+  <div><span class="d">2026-03-26</span><br>OCUDU release 26.04。</div>
+  <div><span class="d">2026-09-21</span><br>OCUDU <code>dev</code> 今天的 HEAD <code>d0df5e24f</code>。</div>
+</div>
+
+<h3>功能上重叠什么</h3>
+<p>整个 gNB 的 CU/DU 协议栈都是重叠的：PHY、MAC、scheduler、RLC、PDCP、SDAP、RRC、F1AP、E1AP、NGAP、GTP-U、OFH、E2。
+分叉之后 srsRAN 那 159 个 commit 里碰到 RLC 的只有 2 个实质改动，而且 OCUDU 都有对应的同内容 commit：</p>
+<div class="tw"><table>
+  <tr><th>改动</th><th>srsRAN</th><th>OCUDU 里的对应</th></tr>
+  <tr><td>RX metrics 初始化改用 <code>std::variant</code></td><td class="m">45b20f581 · 2025-12-03</td><td class="m">bac16dc6b · 2025-12-05</td></tr>
+  <tr><td>max RETX reached 的日志级别降到 info</td><td class="m">b01ae612e · 2025-12-10</td><td class="m">1e9efae7d · 2025-12-15</td></tr>
+</table></div>
+<p>所以在 RLC 上，<strong>srsRAN 最终版 ⊂ OCUDU</strong>：srsRAN 有的 OCUDU 都有，没有反过来的情况。</p>
+
+<h3>把改名的影响去掉之后，三个模块到底改了多少</h3>
+<p>直接 diff 没意义（改名让 4,512 个同名文件全部"不同"，完全相同的只有 80 个）。下面是去掉 license 头、把
+<code>srsran→ocudu</code> 归一化之后的行级对比（srsRAN <code>4bf154393</code> vs OCUDU <code>d0df5e24f</code>，只算非空行）：</p>
+<div class="tw"><table>
+  <tr><th>模块</th><th class="r">文件 srsRAN→OCUDU</th><th class="r">内容完全一样</th><th class="r">有改动</th><th class="r">共有文件的行数</th><th class="r">+ 行</th><th class="r">− 行</th><th>改动最大的文件</th></tr>
+  <tr><td><code>lib/rlc</code></td><td class="r">32 → 51</td><td class="r">10</td><td class="r">22</td><td class="r">6,157</td><td class="r">+233</td><td class="r">−120</td><td><code>rlc_tx_am_entity.cpp</code> (+56/−25)，<code>rlc_rx_am_entity.cpp</code> (+44/−24)。新增 19 个文件里 18 个是文档和 SVG 图</td></tr>
+  <tr><td><code>lib/pdcp</code></td><td class="r">20 → 20</td><td class="r">7</td><td class="r">13</td><td class="r">3,095</td><td class="r">+716</td><td class="r">−273</td><td><code>pdcp_entity_tx.cpp</code> (+334/−88)，<code>pdcp_entity_rx.cpp</code> (+225/−111)</td></tr>
+  <tr><td><code>lib/rrc</code></td><td class="r">33 → 36</td><td class="r">0</td><td class="r">30</td><td class="r">4,018</td><td class="r">+2,330</td><td class="r">−757</td><td><code>rrc_ue_message_handlers.cpp</code> (+508/−120)；新增 <code>rrc_resume_procedure</code>、<code>rrc_ue_information_procedure</code></td></tr>
+  <tr><td><code>lib/mac</code></td><td class="r">71 → 86</td><td class="r">5</td><td class="r">62</td><td class="r">5,834</td><td class="r">+1,734</td><td class="r">−974</td><td></td></tr>
+  <tr><td><code>lib/du</code></td><td class="r">137 → 170</td><td class="r">4</td><td class="r">118</td><td class="r">15,370</td><td class="r">+4,635</td><td class="r">−2,641</td><td></td></tr>
+  <tr><td><code>lib/cu_cp</code></td><td class="r">132 → 199</td><td class="r">3</td><td class="r">129</td><td class="r">11,710</td><td class="r">+7,980</td><td class="r">−2,854</td><td></td></tr>
+  <tr><td><code>lib/cu_up</code></td><td class="r">39 → 43</td><td class="r">0</td><td class="r">39</td><td class="r">3,178</td><td class="r">+1,046</td><td class="r">−623</td><td></td></tr>
+  <tr><td><code>lib/f1ap</code></td><td class="r">88 → 107</td><td class="r">5</td><td class="r">80</td><td class="r">7,632</td><td class="r">+1,467</td><td class="r">−795</td><td></td></tr>
+  <tr><td><code>lib/ngap</code></td><td class="r">46 → 51</td><td class="r">0</td><td class="r">46</td><td class="r">5,582</td><td class="r">+2,289</td><td class="r">−941</td><td></td></tr>
+</table></div>
+<p><strong>读法：</strong>RLC 是最稳定的，9 个月只动了 6% 的行；PDCP 动了约三成（suspend/resume、ROHC、乱序递交）；
+RRC 和 CU-CP 变化最大（加了 resume、Xn 切换、定位）。越靠上层、越靠控制面，OCUDU 改得越多。</p>
+
+<h2>2 · 不一样的部分：删了什么、加了什么、什么时候</h2>
+
+<h3>2.1 代码层面</h3>
+<div class="tw"><table>
+  <tr><th>类别</th><th>内容</th><th>时间</th></tr>
+  <tr><td><span class="badge ocu">新增</span> 整个模块</td><td><code>lib/xnap</code>（Xn 接口，gNB 之间切换；35 个文件）</td><td class="m">2026-02-03 起</td></tr>
+  <tr><td><span class="badge ocu">新增</span> 整个模块</td><td><code>lib/ntn</code>（卫星 / 非地面网络；30 个文件）</td><td class="m">2026-05-05 起</td></tr>
+  <tr><td><span class="badge ocu">新增</span> 整个模块</td><td><code>lib/lpp</code>（定位参考位置）、<code>lib/cuda</code>（CUDA 运行时封装）；<code>lib/nrppa</code> 从 4 个文件的占位实现长到 29 个文件</td><td class="m">2026-07 / 2026-08</td></tr>
+  <tr><td><span class="badge ocu">新增</span> RRC</td><td><code>rrc_resume_procedure</code>（RRC Inactive → resume）、<code>rrc_ue_information_procedure</code>、<code>rrc_ue_security_helpers</code></td><td class="m">2025-12-15 起</td></tr>
+  <tr><td><span class="badge ocu">新增</span> PDCP</td><td>RX suspend/resume、ROHC 头压缩、RX 乱序递交、SMC 过渡期的半开完整性保护、非法 status report 校验</td><td class="m">2025-12 → 2026-06</td></tr>
+  <tr><td><span class="badge ocu">新增</span> RLC</td><td>分段窗口 + 共享内存池（<code>segmented_sdu_window</code>，DRB 和 SRB 分池）；按块丢弃 SDU；还有一份 RLC AM 设计文档和 8 张 SVG 图</td><td class="m">2026-06-26 → 2026-08</td></tr>
+  <tr><td><span class="badge srs">删除</span></td><td><code>lib/fapi</code> 整个目录（64 个文件）：decorator 被删、logger 挪进消息类；消息定义留在 <code>include/ocudu/fapi</code>，<code>fapi_adaptor</code> 反而变大了（+62 个文件）</td><td class="m">2026-02</td></tr>
+  <tr><td><span class="badge srs">改名</span></td><td><code>srslog → ocudulog</code>、<code>srsvec → ocuduvec</code>、<code>include/srsran → include/ocudu</code>、命名空间 <code>srsran → ocudu</code></td><td class="m">2025-12-04</td></tr>
+  <tr><td><span class="badge srs">策略</span></td><td>Release 构建默认去掉 assert（<code>ASSERT_LEVEL=AUTO → NONE</code>）；license 头换成 SPDX</td><td class="m">2025-12-05 / 2026-02-20</td></tr>
+  <tr><td><span class="badge srs">删除</span> RRC</td><td><code>pdcp_adapters.h</code>、<code>meas_types_validators.cpp</code>、<code>rrc_ue_srb_context.h</code>三个文件已不存在</td><td class="m">分叉后</td></tr>
+</table></div>
+<p>全仓库文件数：srsRAN 5,274 → OCUDU 6,193。按路径对齐（把 <code>srsran</code> 归一成 <code>ocudu</code>）之后：OCUDU 独有 1,601 个文件，srsRAN 独有 682 个文件。
+分叉后 OCUDU 改动最密集的是 scheduler、PHY、CU-CP、DU——不在我们这次 Specula 的 scope 里。</p>
+
+<h3>2.2 两次 Specula 运行本身</h3>
+<div class="tw"><table>
+  <tr><th></th><th>srsRAN Project 那次</th><th>OCUDU 那次</th></tr>
+  <tr><td>日期 / 目标 commit</td><td>2026-09-01 → 09-02 · <code>d2f4b70dd</code>（release 25.10）</td><td>2026-09-17 · <code>9c99f4064</code></td></tr>
+  <tr><td>agent 后面的模型</td><td>glm-5.3（本地网关）</td><td>Claude Sonnet 5</td></tr>
+  <tr><td>耗时 / token</td><td>12h 33m · 597.0M（全部不走缓存）</td><td>≈10h 35m · 438.5M（大部分是缓存读）</td></tr>
+  <tr><td>Phase 3（TLC 验证）</td><td>4h 34m</td><td>1h 04m，一轮收敛</td></tr>
+  <tr><td>结果</td><td><strong>13 个复现</strong> + 2 个被掩盖 + 3 个误报</td><td><strong>6 个复现</strong> + 1 个待修模型 + 1 个未完成 + 1 个误报</td></tr>
+  <tr><td>bug 的主要类型</td><td>executor 队列满 → defer/execute 失败 → 通知被吞、状态锁死（MC-2/3/4/8）</td><td>并行 crypto worker 的过期完成、单条消息直接崩溃（MC-3/4/5）</td></tr>
+</table></div>
+<div class="note">
+  <p><strong>注意：这两次不是严格的对照实验。</strong>agent 模型不同、guidance 文本不同，agent 每次自己决定建模重点。
+  所以"A 次找到、B 次没找到"<strong>不等于</strong>"B 的代码里没有"。下面 2.3 就是为了回答这个问题：把每个 finding 拿到另一边的最新代码里直接读代码核对。</p>
+</div>
+
+<h3>2.3 逐条交叉核对：每个 bug 在两边最新代码里还在不在</h3>
+<p>核对对象：srsRAN <code>main 4bf154393</code> 和 OCUDU <code>dev d0df5e24f</code>。方法：读被指认的函数，确认出问题的那几行还在；如果变了，找出改它的 commit。</p>
+<div class="grid3">
+  <div class="stat"><b>19 / 19</b><span>两次运行复现的 bug（13 + 6），今天在 <strong>OCUDU</strong> HEAD 里还在的数量（其中 1 个只修了一部分）</span></div>
+  <div class="stat"><b>19 / 19</b><span>在 <strong>srsRAN</strong> 最终 main 里也在的数量（其中 1 个只有一半，另一半是 OCUDU 新功能带来的）</span></div>
+  <div class="stat"><b>1</b><span>两次 Specula <strong>都</strong>找到的 bug：NACK_SN == TX_Next 崩溃。去重后一共 18 个不同的 bug</span></div>
+</div>
+<div class="note good">
+  <p><strong>这一节的结论：代码里的重叠几乎是 100%，两次 Specula 输出的重叠只有 1 个。</strong>
+  也就是说两次运行各自看到了同一份代码的不同侧面。差别来自工具和建模重点，不来自代码。对我们的用法来说：
+  单次 Specula 的 finding 列表不能当成"这个版本的 bug 全集"；要比较两个版本，应该固定模型和性质、换代码（第 3 节的做法），而不是各跑一次再比列表。</p>
+</div>
+
+<h3>srsRAN 那次的 finding → 拿到两边最新代码里核对</h3>
+<div class="tw"><table>
+  <tr><th>ID</th><th>问题</th><th>位置</th><th>srsRAN main</th><th>OCUDU dev</th><th>分叉后谁动过它</th></tr>
+  <tr><td>MC-2</td><td>max-retx 只在 <code>== 阈值</code> 那一下上报；RLF adapter 的 <code>execute()</code> 失败就把通知吞掉，SRB 静默死掉</td><td class="m">rlc_tx_am_entity.cpp<br>du_ue_controller_impl.cpp</td><td class="fail">在</td><td class="fail">在</td><td>4cae38ec1 只给日志加了 rb_id</td></tr>
+  <tr><td>MC-3</td><td>t-StatusProhibit 的 defer 失败，标志位却已经置上 → STATUS 永久停发</td><td class="m">rlc_rx_am_entity.cpp<br>get_status_pdu</td><td class="fail">在</td><td class="fail">在</td><td>没有（同类的 a1491504c 修的是 TX 侧的另一处）</td></tr>
+  <tr><td>MC-4</td><td>PDCP RX 队列满时静默丢 PDU；SRB 的 t-Reordering = ∞ → 信令永久卡住</td><td class="m">pdcp_entity_rx.cpp</td><td class="fail">在</td><td class="fail">在</td><td>045c3e355 在别的丢包点加了计数，这两处没加</td></tr>
+  <tr><td>MC-5</td><td>AM DRB 没配 discardTimer 时，重建不做数据恢复，窗口永远不释放</td><td class="m">pdcp_entity_tx.cpp</td><td class="fail">在</td><td class="fail">在</td><td>没有</td></tr>
+  <tr><td>MC-6 <span class="badge both">两次都找到</span></td><td>NACK_SN == TX_Next 时读不存在的窗口槽 → DU 进程崩溃（= OCUDU 那次的 MC-5）</td><td class="m">rlc_tx_am_entity.cpp<br>handle_nack</td><td class="fail">在</td><td class="fail">在</td><td>4ab518f6a 换了窗口容器，访问方式照旧</td></tr>
+  <tr><td>MC-7</td><td>UL-DCCH 的完成消息只按 transaction ID 匹配，不查消息类型 → 错类型消息让 RRC 过程"成功"</td><td class="m">rrc_ue_message_handlers.cpp<br>+ 各 procedure</td><td class="fail">在</td><td><span class="badge fixed">修了一部分</span><br>UE capability 和 SMC 加了类型检查；reconfiguration、re-establishment 没加，<strong>新写的 resume procedure 又照抄了没检查的写法</strong></td><td>18fd44990（2026-09-11）<br>5dcbd95ad（2026-09-16）</td></tr>
+  <tr><td>MC-8</td><td>MAC RLF detector 的 defer 失败后计数器清零、不重试 → 死掉的 UE 永远不释放</td><td class="m">rlf_detector.h</td><td class="fail">在</td><td class="fail">在</td><td>3fee985b3 只改了 cause 的类型</td></tr>
+  <tr><td>MC-9</td><td>RLF 触发的 release 和已接受的 re-establishment 竞争，AMF 的回复把刚重建好的 UE 拆掉</td><td class="m">cu_cp_impl.cpp<br>ngap_ue_context.h</td><td class="fail">在<sup>*</sup></td><td class="fail">在<sup>*</sup></td><td>2f6cba45b 在同一个 handler 里加了 CHO 取消，没碰这条路径</td></tr>
+  <tr><td>CR-3</td><td>5 处 <code>defer()</code> 返回值判断写反：成功时报错，失败时不吭声</td><td class="m">rlc_tx_am_entity.cpp</td><td class="fail">在</td><td class="fail">在</td><td>没有</td></tr>
+  <tr><td>CR-5</td><td>poll 搭在重传 PDU 上时不更新 POLL_SN → 尾部 SDU 丢了没人管</td><td class="m">rlc_tx_am_entity.cpp<br>get_polling_bit</td><td class="fail">在</td><td class="fail">在</td><td>没有</td></tr>
+  <tr><td>CR-6</td><td>F1AP UE Context Modification 不带 DL PDCP SN length → 走到 RLC 构造函数的 assert，DU 退出</td><td class="m">f1ap … modification_procedure<br>asn1_helpers.cpp</td><td class="fail">在</td><td class="fail">在</td><td>没有</td></tr>
+  <tr><td>CR-7</td><td><code>discard_all_sdus</code> 日志打印的是 <code>rx_next</code> 而不是循环变量</td><td class="m">pdcp_entity_rx.cpp</td><td class="fail">在</td><td class="fail">在</td><td>循环条件从 <code>!=</code> 改成了 <code>&lt;</code>，日志没改</td></tr>
+  <tr><td>CR-8</td><td>注释要求"调用者必须持有 mutex"，但 RLC 里根本没有 mutex</td><td class="m">rlc_tx_am_entity.h</td><td class="fail">在</td><td class="fail">在</td><td>没有</td></tr>
+  <tr><td class="dim">CR-1</td><td class="dim">（被掩盖）UM t-Reassembly 的停止条件用了不取模的 SN 比较</td><td class="m">rlc_rx_um_entity.cpp</td><td class="dim">在</td><td class="dim">在</td><td>没有</td></tr>
+  <tr><td class="dim">CR-4</td><td class="dim">（被掩盖）一个非法 NACK 触发 2–3 次 protocol failure 通知</td><td class="m">rlc_tx_am_entity.cpp</td><td class="dim">在</td><td class="dim">在</td><td>没有</td></tr>
+</table></div>
+<p class="dim" style="font-size:.86rem"><sup>*</sup> MC-9 只确认了报告里点名的三处代码仍然没有互相协调，没有重新跑那个竞争，置信度中等。其余行都是读了当前函数之后的高置信度结论。</p>
+
+<h3>OCUDU 那次的 finding → 反查 srsRAN，并找出是哪个 commit 带进来的</h3>
+<div class="tw"><table>
+  <tr><th>ID</th><th>问题</th><th>OCUDU dev</th><th>srsRAN main</th><th>哪个 commit 带进来的</th><th>来源</th></tr>
+  <tr><td>MC-5 <span class="badge both">两次都找到</span></td><td>一个 STATUS PDU（ACK_SN=1, NACK_SN=0）让 DU 崩溃</td><td class="fail">在</td><td class="fail">在</td><td class="m">415c5f9ee · 2022-08-16</td><td><span class="badge srs">继承</span> 逻辑来自 srsRAN；空指针 SIGSEGV 这个<strong>形态</strong>是 OCUDU 的 4ab518f6a（2026-06-26）带来的</td></tr>
+  <tr><td>MC-3</td><td>PDCP re-establishment 不带 SecurityInformation 时跳过 crypto drain → heap use-after-free</td><td class="fail">在</td><td class="fail">在</td><td class="m">f61eaa21e · 2023-06-20<br>18eb22b0f · 2025-01-29<br>88946188d · 2025-02-17</td><td><span class="badge srs">继承</span> 并行 crypto 是 2025 年初加的</td></tr>
+  <tr><td>MC-7</td><td>重组失败的 SDU 被 ACK 掉，但从来没交给 PDCP</td><td class="fail">在</td><td class="fail">在</td><td class="m">d6950cfed · 2024-02-23</td><td><span class="badge srs">继承</span></td></tr>
+  <tr><td>MC-4</td><td><code>reset()</code> / <code>suspend()</code> 不推进 crypto 的代次号 → 过期的加密结果被发出去</td><td class="fail">在</td><td><span class="fail">一半</span>：<code>reset()</code> 那半在；<code>suspend()</code> 在 srsRAN 里不存在</td><td class="m">a89fa9a33 · 2025-02-17<br>98ddfd204 · 2025-12-10</td><td><span class="badge srs">继承</span> + <span class="badge ocu">OCUDU 新增</span>（分叉后一周加的 suspend 把同一个洞又开了一次）</td></tr>
+  <tr><td>MC-2</td><td><code>reestablishment_ongoing</code> 只有置 true 的地方，全仓库找不到置 false</td><td class="fail">在</td><td class="fail">在</td><td class="m">30fe65499 · 2024-05-23</td><td><span class="badge srs">继承</span></td></tr>
+  <tr><td>MC-6</td><td>同一个 STATUS 里不相邻的重复 NACK 让 RETX_COUNT 跳过 <code>== 阈值</code>，重传不停<br><span class="dim">和 srsRAN 那次的 MC-2 共用同一个 <code>==</code> 判断，触发方式不同</span></td><td class="fail">在</td><td class="fail">在</td><td class="m">225820939 · 2023-07-18<br>（<code>==</code> 本身来自 415c5f9ee）</td><td><span class="badge srs">继承</span> 又是一个"去掉内存分配"的优化带进来的</td></tr>
+  <tr><td class="dim">MC-8</td><td class="dim">（模型问题，不算 bug）crypto reordering 超时丢 SDU 不通知；SRB 用 inline executor，走不到</td><td class="dim">写法在</td><td class="dim">写法在</td><td class="m">32c71bdd4 · 2025-05-06</td><td><span class="badge pending">两边都走不到</span></td></tr>
+  <tr><td class="dim">MC-1</td><td class="dim">（未确认）RRCReestablishment / RRCResume 超时只打日志，新 UE 不释放</td><td class="dim">写法在</td><td class="dim">reest 那半在；resume 不存在</td><td class="m">628e56df0 · 2023-09-28<br>f433d9cd9 · 2025-12-15</td><td><span class="badge pending">未确认</span></td></tr>
+</table></div>
+
+<h3>2.4 小结：删减、增加、时间</h3>
+<div class="tw"><table>
+  <tr><th></th><th>内容</th></tr>
+  <tr><td><span class="badge fixed">OCUDU 修掉的</span></td><td>严格说 0 个。只有 srsRAN MC-7 在 2026-09-11 / 09-16 被修了两个分支（上次 Specula 跑之前 1–6 天）。</td></tr>
+  <tr><td><span class="badge ocu">OCUDU 新增的</span></td><td>MC-4 的 <code>suspend()</code> 那一半（2025-12-10，分叉后第 7 天）；MC-7 在新的 resume procedure 里的又一份拷贝（2025-12-15）；NACK 崩溃从 assert 变成 SIGSEGV（2025-12-05 + 2026-06-26）。<strong>三个都是新功能或重构把旧毛病复制了一遍。</strong></td></tr>
+  <tr><td><span class="badge srs">原样继承的</span></td><td>其余全部。最老的是 2022-08-16（NACK 崩溃、<code>==</code> 阈值），最新的是 2025-02（crypto 代次号）。</td></tr>
+  <tr><td>findings 之外顺带看到的</td><td>OCUDU 在 c663b31ba（2026-08-11）给 PDCP <code>crypto_reordering_timeout</code> 里的 <code>tx_window[count]</code> 补了存在性检查；srsRAN 已归档，拿不到这个修复。归档的那一边只会越来越落后。</td></tr>
+</table></div>
+
+
+<h2>3 · 一个 bug 的逐版本历史：RLC AM 的两个 timer</h2>
+<div class="lede">
+  <p><strong>机制先讲清楚。</strong>RLC AM 靠两个 timer 找回丢掉的 PDU。发送端在某个 PDU 上置 poll 位、记下 POLL_SN、启动
+  <em>t-PollRetransmit</em>；接收端回一个 STATUS PDU（ACK_SN 加一串 NACK），但两个 STATUS 之间至少要隔
+  <em>t-StatusProhibit</em>。timer 到期还没收到 STATUS，发送端就重传并再 poll 一次。每个 SDU 有 RETX_COUNT，
+  到了 maxRetxThreshold 就报 RLF。</p>
+  <p>这套机制在 srsRAN→OCUDU 的 4 年历史里被改过很多次。下面分两部分：
+  <strong>3.1</strong> 整套 poll/STATUS 逻辑在每个版本的行为（用 TLC 逐版本检查）；
+  <strong>3.2</strong> 其中两次 Specula 都撞到的那个崩溃（NACK_SN == TX_Next）从出生到今天的完整历史。</p>
+</div>
+
+<h3>3.1 每个版本的 poll / STATUS 行为</h3>
+<p>做法：把历史上每次修复变成模型里的一个开关（8 个），从 git 每个版本的源码里<strong>读出</strong>开关的取值，得到 10 个行为区间，
+每个区间用 TLC 检查 7 条性质。今天重新对最新 HEAD <code>d0df5e24f</code> 读了一遍，开关取值和 9 月 17 日完全一样，所以下表对最新代码成立。
+模型和脚本：<a href="/ORAN-DOMAIN/">ORAN-DOMAIN</a>（<code>models/ocudu_rlc.tla</code>、<code>experiments/ocudu_switches.py</code>、<code>ocudu_run.py</code>）。</p>
+<div class="tw"><table>
+  <tr><th>区间起点</th><th>这个 commit 改了什么</th><th>TLC 找到的违例（性质@场景）</th><th>覆盖的 release</th></tr>
+  <tr><td class="m">2022-08-18<br>20949c4f6</td><td>接收端第一次有 STATUS report</td><td><span class="fail">PollAfterExpiry</span>；<span class="fail">MaxRetxEnforced</span></td><td class="dim">未发布</td></tr>
+  <tr><td class="m">2022-10-11<br>ad977928b</td><td>t-PollRetransmit 到期后强制置 poll 位</td><td><span class="fail">MaxRetxEnforced</span></td><td class="dim">未发布</td></tr>
+  <tr><td class="m">2022-11-03<br>f5cc2bd2a</td><td>NACK 触发的重传用对 SN（之前重传的是 TX_Next_Ack）</td><td><span class="fail">MaxRetxEnforced</span></td><td class="dim">未发布</td></tr>
+  <tr><td class="m">2022-11-03<br>39c00428c</td><td>t-StatusProhibit = 0 时不再去启动一个没设置的 timer</td><td><span class="fail">NoFalseAck</span>；<span class="fail">MaxRetxEnforced</span></td><td class="dim">未发布</td></tr>
+  <tr><td class="m">2023-02-15<br>be1508aae</td><td>NACK_SN 在发送窗口之外就不处理（防过期 NACK 回绕）</td><td><span class="fail">MaxRetxEnforced</span></td><td class="dim">—</td></tr>
+  <tr><td class="m">2023-03-10<br>0cbb2550b</td><td>t-StatusProhibit 的启动改成 defer 到 UE executor（<strong>引入</strong> defer 可能失败的问题）</td><td><span class="fail">MaxRetxEnforced</span>（3 个场景）</td><td>23.3、23.5、23.10、23.10.1</td></tr>
+  <tr><td class="m">2023-10-20<br>316da8f08</td><td>poll 到期触发的重传也计入 RETX_COUNT</td><td><span class="fail">NoFalseRLF</span>（defer 失败 → 锁死）</td><td class="dim">—</td></tr>
+  <tr><td class="m">2023-11-22<br>ddc309c8b</td><td>为了去掉内存分配，改成双缓冲 STATUS（<strong>引入</strong>过期 STATUS 被换出来的问题）</td><td><span class="fail">StatusFresh</span>；<span class="fail">NoFalseRLF</span></td><td>24.04、24.10、24.10.1</td></tr>
+  <tr><td class="m">2024-11-07<br>fdd1c2ca7</td><td>修掉过期 STATUS</td><td><span class="fail">NoFalseRLF</span>（defer 失败，仍在）</td><td>25.04</td></tr>
+  <tr><td class="m">2025-09-16<br>b5d5ee234</td><td><strong>故意删掉</strong> 2022-10 加的"到期后强制 poll"</td><td><span class="fail">NoFalseRLF</span>；PollAfterExpiry<sup>†</sup></td><td>25.10、srsRAN 最终 main、OCUDU 26.04、OCUDU dev（今天）</td></tr>
+</table></div>
+<p class="dim" style="font-size:.86rem"><sup>†</sup> PollAfterExpiry 在最后一个区间又"违例"，但这<strong>不算 bug</strong>：开发者是读了 TS 38.322 5.3.3.4 之后有意删的，
+属于对标准的另一种读法。性质：NoFalseRLF 没丢到上限却报 RLF / 卡死；NoFalseAck 没收到却当成 ACK；MaxRetxEnforced 超过重传上限还在重传；
+StatusFresh 发出去的 STATUS 反映的是旧状态；PollAfterExpiry timer 到期后的下一个 PDU 带 poll。场景和反例长度见
+<code>results/ocudu_rlc_E1_V_E2.txt</code>。</p>
+
+<div class="note">
+  <p><strong>从这张表能直接读出来的三件事：</strong></p>
+  <p>① <strong>10 个区间里没有一个是全绿的。</strong>每次修一个，旁边还留着一个，或者顺手带进来一个新的。</p>
+  <p>② <strong>两个 bug 是"优化"带进来的，不是写功能带进来的</strong>：<code>0cbb2550b</code>（把 timer 挪到别的 executor）和
+  <code>ddc309c8b</code>（去掉 malloc）。后者活了 351 天，跟着 24.04、24.10、24.10.1 三个公开 release 发出去了——
+  修复 2024-11-07 就进了主线，但 2025-01-09 的补丁版 24.10.1 没带上它。</p>
+  <p>③ <strong>defer 失败锁死</strong>（srsRAN 那次 Specula 的 MC-3）从 2023-03-10 活到今天，而它的"孪生兄弟"——MAC buffer-state 通知的同一种写法——
+  2026-08-13 已经被 <code>a1491504c</code> 修了。同一个 RLC 模块里，同一种错，只修了一处。</p>
+</div>
+
+<h3>3.2 那个崩溃：NACK_SN == TX_Next</h3>
+<p>两次 Specula 独立撞到的同一个 bug（srsRAN 那次叫 MC-6，OCUDU 那次叫 MC-5），输入都是同一个：全新的发送实体收到
+<code>ACK_SN = 1, NACK_SN = 0</code> 的 STATUS PDU。<code>handle_nack</code> 的范围检查是
+<code>TX_Next_Ack ≤ NACK_SN ≤ TX_Next</code>，右边是<strong>闭区间</strong>，而 TX_Next 是"下一个要发的 SN"，还没发过，窗口里没有这个槽；
+下一行就去读 <code>tx_window[nack_sn]</code>。</p>
+<pre class="paper">// OCUDU dev d0df5e24f, lib/rlc/rlc_tx_am_entity.cpp:877 —— 和 2022-08-16 第一版逐字相同
+if (!(tx_mod_base(st.tx_next_ack) &lt;= tx_mod_base(nack.nack_sn) &amp;&amp;
+      tx_mod_base(nack.nack_sn) &lt;= tx_mod_base(st.tx_next))) {     // ← 这里的 &lt;= 应该配一个 has_sn()
+  ...return false;
+}
+const rlc_tx_am_sdu_info&amp; sdu_info = tx_window[nack.nack_sn];        // ← SN 不在窗口里：assert 或野指针</pre>
+
+<div class="tw"><table>
+  <tr><th>日期 · commit</th><th>这一版对这段代码做了什么</th><th>bug 还在吗</th><th>触发后的表现</th></tr>
+  <tr><td class="m">2022-08-16<br>415c5f9ee</td><td><strong>出生。</strong>加入 NACK 处理，右边界写成 <code>≤ TX_Next</code>。闭区间是有理由的：正在分段发送的那个 SDU 的 SN 就等于 TX_Next，对它的 NACK 是合法的。（这一版的失败日志参数顺序也是错的：标签写 Tx_Next_Ack, Tx_Next, NACK，传进去的却是 NACK, Tx_Next_Ack, Tx_Next，后来改日志格式时才顺带改对。）</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2023-01-30<br>95795082f</td><td>NACK range 展开时加了取模。范围检查没动。</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2023-02-15<br>b4d003be7<br>be1508aae<br>f181fee57</td><td><strong>同一天三个 commit 加强 NACK 校验</strong>：新增 <code>valid_nack()</code>，NACK 在窗口外就整体丢弃。检查的是"NACK_SN &lt; ACK_SN 且在窗口内"，<code>NACK_SN = TX_Next</code> 两条都满足，所以照样通过。</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2023-11-15<br>9f1c28a8c</td><td>每次 STATUS 都重建 ReTx 队列；失败日志从 error 改成 info。范围检查没动。</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2024-02-12</td><td><strong>用户在 GitHub 报了同一个 assert</strong>（srsRAN_Project #464），因为复现不了被关掉。</td><td class="fail">在</td><td>现场已出现</td></tr>
+  <tr><td class="m">2024-02-14<br>16f0555c8<br>2024-02-17<br>ce3e5161c</td><td>#464 之后两天开始的修复：处理"NACK 指向分段 SDU 里还没发出去的字节"。加了 <code>sn_under_segmentation</code> 判断，但放在 <code>tx_window[nack_sn]</code> <strong>之后</strong>。修的是相邻的情况，读窗口那一行还是先执行。</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2024-11-06<br>2bb5bf51b</td><td>窗口类去虚函数化、搬到 <code>support/sdu_window.h</code>。纯重构，<code>operator[]</code> 仍然直接转给 <code>circular_map</code>。</td><td class="fail">在</td><td>assert abort</td></tr>
+  <tr><td class="m">2025-11-11<br>release 25.10</td><td>srsRAN 最后一个 release。<strong>Specula 第一次抓到它</strong>（2026-09-01 的运行，MC-6）。</td><td class="fail">在</td><td>assert abort，整个 DU 进程退出</td></tr>
+  <tr><td class="m">2025-12-05<br>035053786</td><td>分叉后第 2 天，OCUDU 改 CMake：<code>ASSERT_LEVEL=AUTO</code> 在 Release 构建下变成 NONE。RLC 代码没动，但<strong>安全网撤了</strong>：不再 abort，而是去读 <code>circular_map</code> 里一个空的 <code>optional</code> 槽，随后往里写 RETX_COUNT。</td><td class="fail">在</td><td>未定义行为，大概率<strong>不崩、静默写坏</strong><sup>‡</sup></td></tr>
+  <tr><td class="m">2026-03-26<br>release 26.04</td><td>OCUDU 第一个 release，带着这个 bug 发布。</td><td class="fail">在</td><td>同上<sup>‡</sup></td></tr>
+  <tr><td class="m">2026-06-26<br>4ab518f6a</td><td>发送窗口换成分段窗口 + 共享内存池（<code>segmented_sdu_window</code>）。<code>operator[]</code> 的写法照搬，但新容器的段是按需分配的：全新实体一个段都没有，读 <code>tx_window[0]</code> 就是空指针解引用。</td><td class="fail">在</td><td><strong>SIGSEGV</strong>（Release）</td></tr>
+  <tr><td class="m">2026-08-13<br>5fe74a8ca</td><td>开发者在<strong>接收端</strong>修了同一类问题："评估分段空洞前先检查 SN 是否存在"（<code>has_sn</code>）。发送端的 <code>handle_nack</code> 没改。</td><td class="fail">在</td><td>SIGSEGV</td></tr>
+  <tr><td class="m">2026-09-17 / 09-21<br>9c99f4064 / d0df5e24f</td><td><strong>Specula 第二次抓到它</strong>（MC-5，5/5 次 SIGSEGV）。今天的 HEAD 这段代码没变。</td><td class="fail">在 · 1,497 天</td><td>SIGSEGV</td></tr>
+</table></div>
+<p class="dim" style="font-size:.86rem"><sup>‡</sup> 这一格是读容器代码得出的，<strong>没有实际运行</strong> 2025-12 到 2026-06 之间的版本。9 月 17 日 Specula 复现的 SIGSEGV 是在分段窗口之后的代码上。assert 打开的构建（Debug / RelWithDebInfo）在所有版本上都是 assert abort。</p>
+
+<h3>3.3 我们能学到什么</h3>
+<div class="note good">
+  <p><strong>① bug 不是没人碰，而是被人绕着修了四次。</strong>这段代码周围，4 年里有 4 批修复（2023-01、2023-02 三连、2024-02 两连、2026-08 接收端）。
+  每一批都是看到一个具体的现场症状、修掉那个症状。没有人回头问"<code>tx_window[sn]</code> 的前提到底是什么"。
+  一条写下来的不变式（<em>访问窗口前 SN 必须存在</em>，Specula 给它起的名字是 WindowAccessRequiresPresence）一次就能盖住全部四批。</p>
+  <p><strong>② 闭区间是对的，错的是少了一句话。</strong><code>≤ TX_Next</code> 不是笔误：分段发送中的 SDU 就需要它。所以"把 ≤ 改成 &lt;"这种看起来显然的修法反而会打破分段重传。
+  只读 diff 看不出这一点，要读 2022-08 和 2024-02 这两次提交的意图才知道。<strong>理解一个 bug 需要它的历史。</strong></p>
+  <p><strong>③ 构建策略会悄悄改变 bug 的严重程度。</strong>同一个 bug 的表现变了两次，两次都没碰那段 RLC 逻辑：2025-12-05 的 CMake 改动把"assert 退出、日志里有明确一行"变成了"静默读写空槽"；2026-06-26 的窗口容器重构又把它变成了 SIGSEGV。
+  只盯着协议代码的分析（包括大多数 fuzz 和单测）看不到这种变化；逐版本跑同一个模型 + 同一个复现才能看到"同一个 bug，表现变了"。</p>
+  <p><strong>④ 改名和换仓库不会修 bug。</strong>16,380 个 commit 原封不动搬过去，bug 也一起搬过去。OCUDU 继承的不只是代码，还有 #464 这种"复现不了就关掉"的 issue 历史——
+  而旧 issue tracker 归档之后，新项目的人更难搜到它。</p>
+  <p><strong>⑤ 同类错误只修一处，是最可预测的漏网方式。</strong>3.1 的 defer 锁死（修了 MAC 通知那处，没修 t-StatusProhibit 那处）和 3.2 的 <code>has_sn</code>（修了接收端，没修发送端）是同一个模式，
+  两次都发生在 2026-08-13 同一天的提交里。<strong>每一次修复都在告诉你一条性质；把它写成性质，就能自动去查所有兄弟位置。</strong></p>
+  <p><strong>⑥ 现场报告早于工具 19 个月。</strong>#464 在 2024-02 就报了同一个 assert。缺的不是信号，是一个能从"一行 assert 日志"反推出"什么输入能到这里"的手段——这正是模型检查给的：
+  OCUDU 那次的 hunt 配置只探索了 80 个不同状态就给出反例，输入只有一个 STATUS PDU。</p>
+</div>
+
+<footer>
+  <p>数据来源：两个仓库 2026-09-21 的 blobless clone（srsRAN <code>main 4bf154393</code>，OCUDU <code>dev d0df5e24f</code>）；
+  两次 Specula 运行的 <code>confirmed-bugs.md</code>；<a href="/ORAN-DOMAIN/">ORAN-DOMAIN</a> 里的 TLC 逐版本结果（<code>results/ocudu_rlc_E1_V_E2.txt</code>、<code>ocudu_versions.json</code>）。
+  2.3 节的"在 / 不在"是读当前源码得出的，没有重新执行复现程序。相关页面：<a href="/Specula-result/">Specula × srsRAN Project</a> · <a href="/Specula-OCUDU/">Specula × OCUDU</a>。</p>
+  <p>最后更新：2026-09-21。Specula 在两边最新代码上的重跑：<strong>待进行</strong>（等 lab box 磁盘）。</p>
+</footer>
+</div>
+</body>
+</html>
