@@ -1,0 +1,60 @@
+diff --git a/tests/unittests/rlc/rlc_um_test.cpp b/tests/unittests/rlc/rlc_um_test.cpp
+index e5053f4ce9..1544cd3da1 100644
+--- a/tests/unittests/rlc/rlc_um_test.cpp
++++ b/tests/unittests/rlc/rlc_um_test.cpp
+@@ -1325,6 +1325,55 @@ TEST_P(rlc_um_test, out_of_order_segments_across_SDUs)
+   EXPECT_EQ(0, timers.nof_running_timers());
+ }
+ 
++/// Verify that t-Reassembly is stopped once the gap that started it is filled after an SN wrap-around:
++/// - SN = mod-3 is lost, SN = mod-2 and mod-1 are received: t-Reassembly starts with RX_Timer_Trigger = mod-1
++/// - SN = 0..4 are received (RX_Next_Highest wraps around to 5)
++/// - SN = mod-3 is received: RX_Next_Reassembly = RX_Next_Highest = 5 and RX_Timer_Trigger (mod-1) <= RX_Next_Reassembly
++///   in modulus arithmetic, so t-Reassembly must be stopped (TS 38.322 Sec. 5.2.2.2.3)
++TEST_P(rlc_um_test, reassembly_timer_stopped_after_sn_wraparound)
++{
++  if (sn_size != rlc_um_sn_size::size6bits) {
++    GTEST_SKIP() << "Wrap-around is covered with 6-bit SN; 12-bit would need 4096+ SDUs";
++  }
++  const uint32_t mod      = cardinality(to_number(sn_size));
++  const uint32_t num_sdus = mod + 5;
++  const uint32_t lost_sn  = mod - 3;
++  const uint32_t sdu_size = 10;
++
++  // Generate first and last segment for each SDU with RLC1
++  std::vector<std::array<byte_buffer, 2>> pdus(num_sdus);
++  std::vector<uint8_t>                    pdu_tmp(8);
++  for (uint32_t i = 0; i < num_sdus; i++) {
++    rlc1_tx_upper->handle_sdu(
++        test_helpers::create_pdcp_pdu(config.tx.pdcp_sn_len, /* is_srb = */ false, i, sdu_size, i), false);
++    pcell_worker.run_pending_tasks();
++    for (byte_buffer& pdu : pdus[i]) {
++      unsigned nwritten = rlc1_tx_lower->pull_pdu(pdu_tmp);
++      ASSERT_GT(nwritten, 0);
++      pdu = byte_buffer::create(span<uint8_t>{pdu_tmp.data(), nwritten}).value();
++    }
++  }
++  tick();
++  const unsigned nof_timers_idle = timers.nof_running_timers();
++
++  // Rx all SDUs, except SN = mod-3 of the first cycle
++  for (uint32_t i = 0; i < num_sdus; i++) {
++    if (i != lost_sn) {
++      rlc2_rx_lower->handle_pdu(std::move(pdus[i][0]));
++      rlc2_rx_lower->handle_pdu(std::move(pdus[i][1]));
++    }
++  }
++  tick();
++  EXPECT_EQ(timers.nof_running_timers(), nof_timers_idle + 1); // t-Reassembly running
++
++  // Rx SN = mod-3: the gap is filled
++  rlc2_rx_lower->handle_pdu(std::move(pdus[lost_sn][0]));
++  rlc2_rx_lower->handle_pdu(std::move(pdus[lost_sn][1]));
++  tick();
++  EXPECT_EQ(tester2.sdu_counter, num_sdus);
++  EXPECT_EQ(timers.nof_running_timers(), nof_timers_idle); // t-Reassembly stopped
++}
++
+ TEST_P(rlc_um_test, tx_huge_bursts_report_buffer_state_correctly)
+ {
+   const uint32_t sdu_size = 1500;

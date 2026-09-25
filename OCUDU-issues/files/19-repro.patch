@@ -1,0 +1,98 @@
+diff --git a/tests/unittests/rlc/rlc_tx_am_test.cpp b/tests/unittests/rlc/rlc_tx_am_test.cpp
+index 032c635f41..b1c03a9de9 100644
+--- a/tests/unittests/rlc/rlc_tx_am_test.cpp
++++ b/tests/unittests/rlc/rlc_tx_am_test.cpp
+@@ -2172,6 +2172,93 @@ TEST_P(rlc_tx_am_test, expired_poll_retransmit_timer_triggers_no_retx_when_fresh
+   }
+ }
+ 
++/// Verify that t-PollRetransmit triggers a RETX if no new SDU can be transmitted because the shared TX window segment
++/// pool is exhausted:
++/// - Bearer A sends SN=0 and SN=1 (unacknowledged), bearer B takes the last free segment of the shared pool
++/// - Bearer A gets a new SDU (SN=2) that cannot be placed into its TX window
++/// - t-PollRetransmit of bearer A expires
++/// - The next grant of bearer A must carry a RETX of an unacknowledged SDU instead of being wasted
++TEST_P(rlc_tx_am_test, expired_poll_retransmit_timer_triggers_retx_when_window_segment_pool_is_exhausted)
++{
++  const uint32_t sdu_size        = 4;
++  const uint32_t header_min_size = sn_size == rlc_am_sn_size::size12bits ? 2 : 3;
++  const uint32_t pdu_size        = header_min_size + sdu_size;
++
++  // Shared pool of 2 segments with 2 SNs each.
++  rlc_drb_tx_window_seg_pool small_pool{2, 2};
++
++  rlc_tx_am_config cfg_a = config;
++  cfg_a.poll_pdu         = -1;
++  cfg_a.poll_byte        = -1;
++  rlc_tx_am_config cfg_b = cfg_a;
++  cfg_b.t_poll_retx      = 0;
++
++  rlc_tx_am_test_frame tester_a(sn_size);
++  rlc_tx_am_test_frame tester_b(sn_size);
++  rlc_tx_am_entity     rlc_a(gnb_du_id_t::min,
++                         du_ue_index_t::MIN_DU_UE_INDEX,
++                         drb_id_t::drb1,
++                         cfg_a,
++                         tester_a,
++                         tester_a,
++                         tester_a,
++                         *metrics_coll,
++                         pcap,
++                         pcell_worker,
++                         ue_worker,
++                         timers,
++                         small_pool.get_pool_of_type<rlc_tx_am_sdu_info>());
++  rlc_tx_am_entity     rlc_b(gnb_du_id_t::min,
++                         du_ue_index_t::MIN_DU_UE_INDEX,
++                         drb_id_t::drb2,
++                         cfg_b,
++                         tester_b,
++                         tester_b,
++                         tester_b,
++                         *metrics_coll,
++                         pcap,
++                         pcell_worker,
++                         ue_worker,
++                         timers,
++                         small_pool.get_pool_of_type<rlc_tx_am_sdu_info>());
++  rlc_a.set_status_provider(&tester_a);
++  rlc_b.set_status_provider(&tester_b);
++
++  // Bearer A sends SN=0 and SN=1 (one pool segment), each with poll bit set.
++  for (uint32_t sn = 0; sn < 2; sn++) {
++    rlc_a.handle_sdu(test_helpers::create_pdcp_pdu(config.pdcp_sn_len, /* is_srb = */ false, sn, sdu_size, sn), false);
++    pcell_worker.run_pending_tasks();
++    std::vector<uint8_t> pdu_buf(pdu_size);
++    ASSERT_EQ(rlc_a.pull_pdu(pdu_buf), pdu_size);
++  }
++
++  // Bearer B sends SN=0 and takes the last pool segment.
++  rlc_b.handle_sdu(test_helpers::create_pdcp_pdu(config.pdcp_sn_len, /* is_srb = */ false, 0, sdu_size, 0), false);
++  pcell_worker.run_pending_tasks();
++  {
++    std::vector<uint8_t> pdu_buf(pdu_size);
++    ASSERT_EQ(rlc_b.pull_pdu(pdu_buf), pdu_size);
++  }
++
++  // Bearer A gets SN=2, which needs a new pool segment.
++  rlc_a.handle_sdu(test_helpers::create_pdcp_pdu(config.pdcp_sn_len, /* is_srb = */ false, 2, sdu_size, 2), false);
++  pcell_worker.run_pending_tasks();
++
++  // Let t-PollRetransmit of bearer A expire
++  for (int32_t i = 0; i < cfg_a.t_poll_retx; i++) {
++    tick();
++  }
++
++  // The next grant must carry a RETX of SN=0 or SN=1
++  std::vector<uint8_t> pdu_buf(32);
++  size_t               pdu_len = rlc_a.pull_pdu(pdu_buf);
++  ASSERT_GT(pdu_len, 0);
++  pdu_buf.resize(pdu_len);
++  rlc_am_pdu_header hdr = {};
++  ASSERT_TRUE(rlc_am_read_data_pdu_header(byte_buffer::create(pdu_buf.begin(), pdu_buf.end()).value(), sn_size, &hdr));
++  EXPECT_LT(hdr.sn, 2);
++}
++
+ TEST_P(rlc_tx_am_test, expired_poll_retransmit_increments_retx_counter)
+ {
+   const uint32_t n_pdus          = 5;

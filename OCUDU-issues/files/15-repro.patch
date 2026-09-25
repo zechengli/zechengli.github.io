@@ -1,0 +1,61 @@
+diff --git a/tests/unittests/rlc/rlc_rx_am_test.cpp b/tests/unittests/rlc/rlc_rx_am_test.cpp
+index 1ab880b0a2..dd184d6691 100644
+--- a/tests/unittests/rlc/rlc_rx_am_test.cpp
++++ b/tests/unittests/rlc/rlc_rx_am_test.cpp
+@@ -989,6 +989,56 @@ TEST_P(rlc_rx_am_test, status_prohibit_timer)
+   EXPECT_EQ(tester->status_trigger_counter, 1);
+ }
+ 
++/// Verify that a failed attempt to start t-StatusProhibit does not block status reporting forever:
++/// - get_status_pdu() is called while the UE executor queue is full, so starting t-StatusProhibit cannot be deferred
++/// - the executor recovers, time passes and the peer polls again
++/// - a status report must be required again
++TEST_P(rlc_rx_am_test, status_prohibit_timer_start_failure_does_not_block_status_reports)
++{
++  // Local entity on a bounded, non-blocking executor with a single slot, so that defer() can fail.
++  timer_manager                 local_timers;
++  manual_task_worker            local_ue_worker{1, /* blocking_mode_ = */ false};
++  rlc_rx_am_test_frame          local_tester(config.sn_field_length);
++  rlc_bearer_metrics_collector  local_metrics_coll(
++      gnb_du_id_t{}, du_ue_index_t{}, rb_id_t{}, timer_duration{1000}, &local_tester, local_ue_worker);
++  auto local_rlc = std::make_unique<rlc_rx_am_entity>(gnb_du_id_t::min,
++                                                      du_ue_index_t::MIN_DU_UE_INDEX,
++                                                      srb_id_t::srb0,
++                                                      config,
++                                                      local_tester,
++                                                      local_metrics_coll,
++                                                      pcap,
++                                                      local_ue_worker,
++                                                      local_timers,
++                                                      get_window_pool());
++  local_rlc->set_status_handler(&local_tester);
++  local_rlc->set_status_notifier(&local_tester);
++
++  // Occupy the only slot of the UE executor queue.
++  ASSERT_TRUE(local_ue_worker.defer([]() {}));
++
++  // Read the status report. Starting t-StatusProhibit cannot be deferred.
++  local_rlc->get_status_pdu();
++
++  // The executor recovers.
++  local_ue_worker.run_pending_tasks();
++
++  // Let much more than t-StatusProhibit pass.
++  for (int i = 0; i < 10 * config.t_status_prohibit; i++) {
++    local_timers.tick();
++    local_ue_worker.run_pending_tasks();
++  }
++
++  // Peer polls: SN=0 with polling bit set.
++  std::list<std::vector<uint8_t>> pdu_list = {};
++  byte_buffer                     sdu;
++  ASSERT_NO_FATAL_FAILURE(create_pdus(pdu_list, sdu, 0, 4, 4, 0));
++  *(pdu_list.front().begin()) |= 0b01000000; // set P = 1;
++  local_rlc->handle_pdu(byte_buffer_slice::create(std::move(pdu_list.front())).value());
++
++  EXPECT_TRUE(local_rlc->status_report_required());
++}
++
+ /// Verify reassembly timer:
+ /// - Receive SDU in segments, but loose one segment
+ /// - Let reassembly timer expire
