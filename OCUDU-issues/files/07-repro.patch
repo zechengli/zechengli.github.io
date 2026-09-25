@@ -1,0 +1,42 @@
+diff --git a/tests/unittests/pdcp/pdcp_tx_reestablish_test.cpp b/tests/unittests/pdcp/pdcp_tx_reestablish_test.cpp
+index 10e56592cb..9eb2e54b81 100644
+--- a/tests/unittests/pdcp/pdcp_tx_reestablish_test.cpp
++++ b/tests/unittests/pdcp/pdcp_tx_reestablish_test.cpp
+@@ -82,6 +82,37 @@ TEST_P(pdcp_tx_reestablish_test, when_drb_um_reestablish_then_pdus_and_discard_t
+   EXPECT_EQ(pdcp_rohc_factory->get_nof_decompressors(), 0);
+ }
+ 
++/// Test that an SDU submitted after DRB UM reestablishment gets its own discard timer
++TEST_P(pdcp_tx_reestablish_test, when_drb_um_reestablish_then_new_sdu_uses_own_discard_timer)
++{
++  init(GetParam(), pdcp_rb_type::drb, pdcp_rlc_mode::um, pdcp_discard_timer::ms10);
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::on, security::ciphering_enabled::off);
++
++  // SDU before reestablishment at t=0: discard timer expires at t=10.
++  pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value());
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++  FLUSH_AND_ASSERT_EQ(1, pdcp_tx->nof_pdus_in_window());
++
++  tick_all(3);
++  pdcp_tx->reestablish(sec_cfg);
++  FLUSH_AND_ASSERT_EQ(0, pdcp_tx->nof_pdus_in_window());
++
++  // SDU after reestablishment at t=3: its discard timer must expire at t=13.
++  pdcp_tx->handle_sdu(byte_buffer::create(sdu2).value());
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++  FLUSH_AND_ASSERT_EQ(1, pdcp_tx->nof_pdus_in_window());
++
++  tick_all(7); // t=10
++  EXPECT_TRUE(test_frame.sdu_discard_queue.empty()) << "new SDU was discarded with the old SDU's deadline";
++  EXPECT_EQ(1, pdcp_tx->nof_pdus_in_window());
++
++  tick_all(3); // t=13
++  FLUSH_AND_ASSERT_EQ(1, test_frame.sdu_discard_queue.size());
++  EXPECT_EQ(0, pdcp_tx->nof_pdus_in_window());
++}
++
+ /// Test DRB AM reestablishment
+ TEST_P(pdcp_tx_reestablish_test, when_drb_am_reestablish_then_pdus_retx)
+ {

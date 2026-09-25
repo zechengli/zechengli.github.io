@@ -1,0 +1,33 @@
+diff --git a/tests/unittests/cu_cp/cu_cp_reestablishment_test.cpp b/tests/unittests/cu_cp/cu_cp_reestablishment_test.cpp
+--- a/tests/unittests/cu_cp/cu_cp_reestablishment_test.cpp
++++ b/tests/unittests/cu_cp/cu_cp_reestablishment_test.cpp
+@@ -721,3 +721,29 @@
+   // Old UE should not be removed at this stage.
+   ASSERT_EQ(report.ues.size(), 1) << "Old UE should not be removed yet";
+ }
++
++TEST_F(cu_cp_reestablishment_test, when_reestablishment_complete_is_not_received_then_new_ue_is_released)
++{
++  // Attach UE 0x4601 (with DRB and SRB2, so that the reestablishment is accepted).
++  ASSERT_TRUE(attach_ue(du_idx, cu_up_idx, old_du_ue_id, old_crnti, amf_ue_id, cu_up_e1ap_id));
++
++  // Reestablishment Request is accepted: the old UE context is transferred to the new UE and RRCReestablishment is
++  // sent.
++  const gnb_du_ue_f1ap_id_t new_du_ue_id = int_to_gnb_du_ue_f1ap_id(1);
++  const rnti_t              new_crnti    = to_rnti(0x4602);
++  ASSERT_TRUE(send_rrc_reest_request_and_wait_response(new_du_ue_id, new_crnti, old_crnti, old_pci));
++
++  // The UE never sends RRCReestablishmentComplete. Let the procedure time out (T311 + RRC procedure guard time).
++  tick_until(std::chrono::milliseconds{13500}, [] { return false; }, /*real_time=*/false);
++
++  // The old UE was removed locally. The new UE holds the transferred NGAP/E1AP/F1AP contexts but is not connected, so
++  // the CU-CP should request its release from the AMF.
++  auto report = get_cu_cp().get_metrics_handler().request_metrics_report();
++  ASSERT_EQ(report.ues.size(), 1U);
++  EXPECT_EQ(report.ues[0].rnti, new_crnti);
++  EXPECT_EQ(report.ues[0].rrc_connection_state, rrc_state::idle);
++
++  ngap_message ngap_pdu;
++  ASSERT_TRUE(wait_for_ngap_tx_pdu(ngap_pdu)) << "No NGAP message sent for the UE after the reestablishment timed out";
++  ASSERT_TRUE(test_helpers::is_valid_ue_context_release_request(ngap_pdu));
++}

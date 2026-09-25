@@ -1,0 +1,81 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..4661c1fda6 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -50,6 +50,11 @@ target_link_libraries(pdcp_tx_reestablish_test ocudu_pdcp ocudu_security ocudu_s
+ target_include_directories(pdcp_tx_reestablish_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_tx_reestablish_test PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_tx_reestablish_crypto_reordering_test pdcp_tx_reestablish_crypto_reordering_test.cpp)
++target_link_libraries(pdcp_tx_reestablish_crypto_reordering_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_tx_reestablish_crypto_reordering_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_tx_reestablish_crypto_reordering_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_suspend_test pdcp_tx_suspend_test.cpp)
+ target_link_libraries(pdcp_tx_suspend_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_suspend_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_tx_reestablish_crypto_reordering_test.cpp b/tests/unittests/pdcp/pdcp_tx_reestablish_crypto_reordering_test.cpp
+new file mode 100644
+index 0000000000..5add9f1fee
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_tx_reestablish_crypto_reordering_test.cpp
+@@ -0,0 +1,59 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_test_vectors.h"
++#include "pdcp_tx_test_helpers.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++class pdcp_tx_reestablish_crypto_reordering_test : public pdcp_tx_test_helper_manual_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_hex_dump_max_size(100);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++};
++
++} // namespace
++
++/// The crypto reordering timer is running when an AM DRB is re-established. The retransmissions dispatched by
++/// reestablish() must reach the lower layer once their crypto completes, even if the old timer's deadline passes
++/// in the meantime.
++TEST_F(pdcp_tx_reestablish_crypto_reordering_test, retx_after_reestablish_not_dropped_by_old_crypto_reordering_timer)
++{
++  init(std::make_tuple(pdcp_sn_size::size12bits, 1u, cfg_rohc_disabled),
++       pdcp_rb_type::drb,
++       pdcp_rlc_mode::am,
++       pdcp_discard_timer::infinity);
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::off);
++
++  pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value()); // count=0
++  pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value()); // count=1
++  wait_one_crypto_task();                                 // crypto of count=0 completes, count=1 still pending
++  wait_one_dl_worker_task();                              // count=0 sent, crypto reordering timer started
++  ASSERT_EQ(test_frame.pdu_queue.size(), 1u);
++  ASSERT_EQ(pdcp_tx->get_state().tx_trans_crypto, 1u);
++
++  tick_all(39); // the crypto reordering timer (40 ms) has 1 ms left
++
++  pdcp_tx->reestablish(sec_cfg); // re-dispatches crypto for count=0 and count=1
++  ASSERT_EQ(pdcp_tx->get_state().tx_trans_crypto, 0u);
++
++  tick_all(1); // 1 ms after reestablish(): the pre-reestablishment deadline passes
++
++  wait_pending_crypto(); // crypto of both retransmissions completes
++  wait_pending_dl();
++  tick_all(100);
++
++  EXPECT_EQ(test_frame.retx_queue.size(), 2u) << "retransmissions of count=0 and count=1 never reached lower layers";
++  EXPECT_EQ(pdcp_tx->get_state().tx_trans_crypto, 2u);
++}

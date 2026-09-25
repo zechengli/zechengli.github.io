@@ -1,0 +1,81 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..cbd080eae7 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -20,6 +20,11 @@ target_link_libraries(pdcp_rx_test ocudu_pdcp ocudu_security ocudu_support ocudu
+ target_include_directories(pdcp_rx_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_rx_test NO_PRETTY_VALUES PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_rx_crypto_reordering_race_test pdcp_rx_crypto_reordering_race_test.cpp)
++target_link_libraries(pdcp_rx_crypto_reordering_race_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_rx_crypto_reordering_race_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_rx_crypto_reordering_race_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_metrics_test pdcp_tx_metrics_test.cpp)
+ target_link_libraries(pdcp_tx_metrics_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_metrics_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_rx_crypto_reordering_race_test.cpp b/tests/unittests/pdcp/pdcp_rx_crypto_reordering_race_test.cpp
+new file mode 100644
+index 0000000000..809497b390
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_rx_crypto_reordering_race_test.cpp
+@@ -0,0 +1,59 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_rx_test_helpers.h"
++#include "pdcp_test_vectors.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++class pdcp_rx_crypto_reordering_race_test : public pdcp_rx_test_helper_manual_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    logger.set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_hex_dump_max_size(100);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++};
++
++} // namespace
++
++/// COUNT=1 starts t-Reordering. COUNT=0 is received 9 ms later, i.e. before t-Reordering expires, but its crypto
++/// has not completed when the timer expires 1 ms later. COUNT=0 must still be delivered.
++TEST_F(pdcp_rx_crypto_reordering_race_test, pdu_received_before_t_reordering_expiry_is_delivered)
++{
++  init(); // 12 bit SN, AM DRB, t-Reordering 10 ms
++  pdcp_rx->configure_security(sec_cfg, security::integrity_enabled::on, security::ciphering_enabled::on);
++
++  byte_buffer pdu_count0;
++  get_test_pdu(0, pdu_count0);
++  byte_buffer pdu_count1;
++  get_test_pdu(1, pdu_count1);
++
++  pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_count1)).value());
++  wait_one_crypto_task();
++  ASSERT_TRUE(worker.try_run_next());
++  ASSERT_TRUE(pdcp_rx->is_reordering_timer_running());
++
++  tick_all(9);
++  ASSERT_TRUE(pdcp_rx->is_reordering_timer_running());
++  pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_count0)).value()); // received before expiry
++
++  tick_all(1); // t-Reordering expires while COUNT=0 is still in the crypto executor
++
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++  tick_all(10);
++
++  EXPECT_EQ(test_frame->integrity_fail_counter, 0u);
++  ASSERT_EQ(test_frame->sdu_queue.size(), 2u) << "COUNT=0 was received before t-Reordering expired but was dropped";
++  EXPECT_EQ(pdcp_rx->get_state().rx_deliv, 2u);
++}

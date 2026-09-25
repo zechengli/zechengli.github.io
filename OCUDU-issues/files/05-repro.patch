@@ -1,0 +1,147 @@
+diff --git a/tests/unittests/f1u/cu_up/f1u_cu_up_bearer_test.cpp b/tests/unittests/f1u/cu_up/f1u_cu_up_bearer_test.cpp
+index ee5ec99632..bdff8bd64f 100644
+--- a/tests/unittests/f1u/cu_up/f1u_cu_up_bearer_test.cpp
++++ b/tests/unittests/f1u/cu_up/f1u_cu_up_bearer_test.cpp
+@@ -224,6 +224,48 @@ TEST_F(f1u_cu_up_test, tx_discard)
+   EXPECT_TRUE(tester->tx_msg_list.empty());
+ }
+ 
++/// 256 contiguous discards (e.g. from one PDCP status report whose FMC is 256 COUNTs ahead of TX_NEXT_ACK) cannot be
++/// described by one discard block, because the NR-U "Discarded Block size" field is one octet. They must be split
++/// into several blocks that together cover all 256 SNs, and no block may have size zero.
++TEST_F(f1u_cu_up_test, tx_discard_256_contiguous_sns_are_not_folded_into_a_zero_size_block)
++{
++  constexpr uint32_t pdcp_sn_start = 1000;
++  constexpr uint32_t nof_discards  = 256;
++
++  // advance time by one to ensure timer is stopped and ignores this tick
++  tick();
++
++  for (uint32_t i = 0; i < nof_discards; i++) {
++    f1u->discard_sdu(pdcp_sn_start + i);
++  }
++
++  // advance time to expire the DL notification timer and flush the accumulated blocks.
++  uint32_t f1u_dl_notif_time_ms = 5;
++  for (uint32_t t = 0; t < f1u_dl_notif_time_ms; t++) {
++    tick();
++  }
++
++  // Collect all discard blocks sent towards the DU.
++  uint32_t next_sn       = pdcp_sn_start;
++  uint32_t nof_blocks    = 0;
++  uint32_t nof_discarded = 0;
++  for (const auto& msg : tester->tx_msg_list) {
++    if (not msg.dl_user_data.discard_blocks.has_value()) {
++      continue;
++    }
++    for (const nru_pdcp_sn_discard_block& block : msg.dl_user_data.discard_blocks.value()) {
++      nof_blocks++;
++      EXPECT_NE(static_cast<unsigned>(block.block_size), 0U)
++          << "discard block with zero size: pdcp_sn_start=" << block.pdcp_sn_start;
++      EXPECT_EQ(block.pdcp_sn_start, next_sn);
++      next_sn += block.block_size;
++      nof_discarded += block.block_size;
++    }
++  }
++  EXPECT_GE(nof_blocks, 2);
++  EXPECT_EQ(nof_discarded, nof_discards);
++}
++
+ TEST_F(f1u_cu_up_test, tx_pdcp_pdus)
+ {
+   tick(inactivity_time_ms - 1);
+diff --git a/tests/unittests/pdcp/pdcp_tx_status_report_test.cpp b/tests/unittests/pdcp/pdcp_tx_status_report_test.cpp
+index 7604416da2..eb3768fbb0 100644
+--- a/tests/unittests/pdcp/pdcp_tx_status_report_test.cpp
++++ b/tests/unittests/pdcp/pdcp_tx_status_report_test.cpp
+@@ -113,6 +113,39 @@ TEST_P(pdcp_tx_status_report_test, handle_status_report)
+   }
+ }
+ 
++/// A single PDCP status report whose FMC is more than 256 COUNTs ahead of TX_NEXT_ACK makes PDCP TX emit more than 256
++/// strictly contiguous on_discard_pdu() calls in one synchronous burst. In the CU-UP, this notifier is
++/// pdcp_f1u_adapter::on_discard_pdu() -> f1u_bearer_impl::discard_sdu().
++TEST_P(pdcp_tx_status_report_test, status_report_with_large_fmc_gap_emits_contiguous_discards)
++{
++  init(GetParam());
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::off);
++  constexpr uint32_t n_sdus = 300;
++  for (uint32_t count = 0; count < n_sdus; ++count) {
++    pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value());
++    wait_pending_crypto();
++    worker.run_pending_tasks();
++  }
++  test_frame.pdu_queue = {};
++  ASSERT_TRUE(test_frame.sdu_discard_queue.empty());
++
++  // Status report: FMC = n_sdus, no bitmap (all COUNTs < FMC confirmed received by the peer).
++  byte_buffer buf = {};
++  bit_encoder enc(buf);
++  enc.pack(to_number(pdcp_dc_field::control), 1);
++  enc.pack(to_number(pdcp_control_pdu_type::status_report), 3);
++  enc.pack(0b0000, 4);
++  enc.pack(n_sdus, 32);
++  pdcp_tx->on_status_report(byte_buffer_chain::create(std::move(buf)).value());
++
++  // All n_sdus discards are forwarded to the lower layer, strictly contiguous, in one synchronous call.
++  ASSERT_EQ(test_frame.sdu_discard_queue.size(), n_sdus);
++  for (uint32_t count = 0; count < n_sdus; ++count) {
++    ASSERT_EQ(test_frame.sdu_discard_queue.front(), pdcp_compute_sn(count, sn_size));
++    test_frame.sdu_discard_queue.pop();
++  }
++}
++
+ /// Test correct handling of PDCP status report with too large FMC.
+ TEST_P(pdcp_tx_status_report_test, handle_status_report_with_fmc_too_large)
+ {
+diff --git a/tests/unittests/rlc/rlc_tx_am_test.cpp b/tests/unittests/rlc/rlc_tx_am_test.cpp
+index 032c635f41..01dd99194b 100644
+--- a/tests/unittests/rlc/rlc_tx_am_test.cpp
++++ b/tests/unittests/rlc/rlc_tx_am_test.cpp
+@@ -753,6 +753,45 @@ TEST_P(rlc_tx_am_test, sdu_discard_with_pdcp_sn_wraparound)
+   EXPECT_EQ(rlc->get_metrics().tx_high.num_discard_failures, 3);
+ }
+ 
++// Documents current behaviour (passes on the current code): a discard block with block_size = 0 is rejected as a
++// whole. None of the SDUs are discarded and they are still transmitted.
++TEST_P(rlc_tx_am_test, sdu_discard_with_zero_block_size_discards_nothing)
++{
++  const uint32_t sdu_size = 4;
++  const uint32_t n_pdus   = 3;
++
++  byte_buffer sdu_bufs[n_pdus];
++  for (uint32_t i = 0; i < n_pdus; i++) {
++    sdu_bufs[i] = test_helpers::create_pdcp_pdu(config.pdcp_sn_len, /* is_srb = */ false, i, sdu_size, i);
++    rlc->handle_sdu(sdu_bufs[i].deep_copy().value(), false);
++  }
++  pcell_worker.run_pending_tasks();
++
++  uint32_t header_size         = sn_size == rlc_am_sn_size::size12bits ? 2 : 3;
++  uint32_t data_pdu_size       = header_size + sdu_size;
++  uint32_t expect_buffer_state = n_pdus * data_pdu_size;
++  EXPECT_EQ(rlc->get_buffer_state().pending_bytes, expect_buffer_state);
++
++  test_spy.reset_counters();
++
++  // Block as emitted by the CU-UP F1-U bearer after 256 contiguous discards starting at pdcp_sn_start = 0.
++  rlc->discard_sdu(/* pdcp_sn_start = */ 0, /* block_size = */ 0);
++  pcell_worker.run_pending_tasks();
++
++  EXPECT_EQ(rlc->get_buffer_state().pending_bytes, expect_buffer_state);
++  EXPECT_EQ(rlc->get_metrics().tx_high.num_discarded_sdus, 0);
++  EXPECT_EQ(rlc->get_metrics().tx_high.num_discard_failures, 1);
++  EXPECT_EQ(test_spy.get_warning_counter(), 1);
++
++  // SDU with pdcp_sn = 0 is still transmitted.
++  std::vector<uint8_t> pdu_buf;
++  pdu_buf.resize(data_pdu_size);
++  size_t pdu_len = rlc->pull_pdu(pdu_buf);
++  pdu_buf.resize(pdu_len);
++  EXPECT_GT(pdu_len, 0);
++  EXPECT_TRUE(std::equal(pdu_buf.begin() + header_size, pdu_buf.end(), sdu_bufs[0].begin()));
++}
++
+ TEST_P(rlc_tx_am_test, invalid_status_report_ack_sn_larger_than_tx_next)
+ {
+   const uint32_t sdu_size = 4;

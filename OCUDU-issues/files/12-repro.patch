@@ -1,0 +1,113 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..15096744f0 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -45,6 +45,11 @@ target_link_libraries(pdcp_rx_reestablish_test ocudu_pdcp ocudu_security ocudu_s
+ target_include_directories(pdcp_rx_reestablish_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_rx_reestablish_test PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_rx_buffering_security_update_test pdcp_rx_buffering_security_update_test.cpp)
++target_link_libraries(pdcp_rx_buffering_security_update_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_rx_buffering_security_update_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_rx_buffering_security_update_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_reestablish_test pdcp_tx_reestablish_test.cpp)
+ target_link_libraries(pdcp_tx_reestablish_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_reestablish_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_rx_buffering_security_update_test.cpp b/tests/unittests/pdcp/pdcp_rx_buffering_security_update_test.cpp
+new file mode 100644
+index 0000000000..57ea4f981e
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_rx_buffering_security_update_test.cpp
+@@ -0,0 +1,91 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_rx_test_helpers.h"
++#include "pdcp_test_vectors.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++/// Same call order as cu_up_bearer_context_modification_routine with security_info present:
++/// begin_buffering() -> configure_security(new) -> end_buffering().
++/// The PDU parked in between was protected with the configuration that was active BEFORE configure_security().
++/// Note: the security change is modelled as an algorithm change (NIA1/NEA1 -> NIA2/NEA2) with the same keys, because
++/// the checked-in test vectors are generated with the default keys; for the entity both swap the security engine.
++/// Expected here: the parked PDU is either processed with the old configuration or dropped; it is neither reported as
++/// an integrity failure nor delivered with wrong content.
++class pdcp_rx_buffering_security_update_test : public pdcp_rx_test_helper_default_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    logger.set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++
++  void run(security::integrity_enabled integ)
++  {
++    set_sn_size(pdcp_sn_size::size12bits);
++    set_algo(1);
++    init();
++    pdcp_rx->configure_security(sec_cfg, integ, security::ciphering_enabled::on);
++
++    byte_buffer pdu_old_cfg;
++    get_test_pdu(0, pdu_old_cfg, 1); // COUNT=0 protected with NIA1/NEA1, plaintext sdu1
++
++    pdcp_rx->begin_buffering();
++    pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_old_cfg)).value());
++    wait_pending_crypto();
++    worker.run_pending_tasks();
++    ASSERT_EQ(test_frame->sdu_queue.size(), 0u);
++
++    security::sec_128_as_config sec_cfg_new = sec_cfg;
++    sec_cfg_new.integ_algo                  = security::integrity_algorithm::nia2;
++    sec_cfg_new.cipher_algo                 = security::ciphering_algorithm::nea2;
++    pdcp_rx->configure_security(sec_cfg_new, integ, security::ciphering_enabled::on);
++
++    pdcp_rx->end_buffering();
++    wait_pending_crypto();
++    worker.run_pending_tasks();
++  }
++};
++
++} // namespace
++
++TEST_F(pdcp_rx_buffering_security_update_test, parked_pdu_not_verified_with_new_security_config)
++{
++  run(security::integrity_enabled::on);
++  EXPECT_EQ(test_frame->integrity_fail_counter, 0u) << "parked PDU was verified with the new configuration";
++  if (not test_frame->sdu_queue.empty()) {
++    EXPECT_EQ(test_frame->sdu_queue.front(), sdu1) << "parked PDU was deciphered with the new configuration";
++  }
++}
++
++TEST_F(pdcp_rx_buffering_security_update_test, parked_pdu_not_deciphered_with_new_security_config)
++{
++  // Reference: the same PDU received without buffering, i.e. deciphered with the configuration it was protected with.
++  // (The checked-in vector carries a MAC-I; with integrity off it is simply part of the deciphered payload.)
++  set_sn_size(pdcp_sn_size::size12bits);
++  set_algo(1);
++  init();
++  pdcp_rx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::on);
++  byte_buffer pdu_ref;
++  get_test_pdu(0, pdu_ref, 1);
++  pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_ref)).value());
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++  ASSERT_EQ(test_frame->sdu_queue.size(), 1u);
++  byte_buffer expected = std::move(test_frame->sdu_queue.front());
++
++  run(security::integrity_enabled::off);
++  EXPECT_EQ(test_frame->integrity_fail_counter, 0u);
++  if (not test_frame->sdu_queue.empty()) {
++    EXPECT_EQ(test_frame->sdu_queue.front(), expected) << "parked PDU was deciphered with the new configuration";
++  }
++}

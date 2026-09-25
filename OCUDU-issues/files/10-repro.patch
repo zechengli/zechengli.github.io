@@ -1,0 +1,137 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..2dd52a606e 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -35,6 +35,11 @@ target_link_libraries(pdcp_tx_status_report_test ocudu_pdcp ocudu_security ocudu
+ target_include_directories(pdcp_tx_status_report_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_tx_status_report_test PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_tx_status_report_delivery_test pdcp_tx_status_report_delivery_test.cpp)
++target_link_libraries(pdcp_tx_status_report_delivery_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_tx_status_report_delivery_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_tx_status_report_delivery_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_rx_status_report_test pdcp_rx_status_report_test.cpp)
+ target_link_libraries(pdcp_rx_status_report_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_rx_status_report_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_tx_status_report_delivery_test.cpp b/tests/unittests/pdcp/pdcp_tx_status_report_delivery_test.cpp
+new file mode 100644
+index 0000000000..af720445ad
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_tx_status_report_delivery_test.cpp
+@@ -0,0 +1,115 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_test_vectors.h"
++#include "pdcp_tx_test_helpers.h"
++#include "ocudu/support/bit_encoding.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++class pdcp_tx_status_report_delivery_test : public pdcp_tx_test_helper_manual_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_hex_dump_max_size(100);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++
++  void submit_sdu()
++  {
++    pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value());
++    wait_pending_crypto();
++    worker.run_pending_tasks();
++  }
++
++  void send_status_report(uint32_t fmc, std::initializer_list<uint8_t> bitmap_bytes)
++  {
++    byte_buffer buf = {};
++    bit_encoder enc(buf);
++    enc.pack(to_number(pdcp_dc_field::control), 1);
++    enc.pack(to_number(pdcp_control_pdu_type::status_report), 3);
++    enc.pack(0b0000, 4);
++    enc.pack(fmc, 32);
++    for (uint8_t byte : bitmap_bytes) {
++      enc.pack(byte, 8);
++    }
++    pdcp_tx->on_status_report(byte_buffer_chain::create(std::move(buf)).value());
++  }
++};
++
++} // namespace
++
++/// A PDCP status report leaves a hole right after TX_NEXT_ACK; a later delivery notification for TX_NEXT_ACK must
++/// move TX_NEXT_ACK past that hole instead of indexing it.
++TEST_F(pdcp_tx_status_report_delivery_test, delivery_notification_skips_hole_left_by_status_report)
++{
++  init(std::make_tuple(pdcp_sn_size::size12bits, 1u, cfg_rohc_disabled),
++       pdcp_rb_type::drb,
++       pdcp_rlc_mode::am,
++       pdcp_discard_timer::ms10);
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::off);
++
++  for (unsigned i = 0; i != 4; ++i) {
++    submit_sdu(); // counts 0..3
++  }
++
++  // FMC=1, bitmap: COUNT 2 received, COUNT 3 missing -> COUNT 0 and 2 are discarded, TX_NEXT_ACK=1.
++  send_status_report(/*fmc=*/1, {0b10000000});
++  ASSERT_EQ(test_frame.sdu_discard_queue.size(), 2u);
++  test_frame.sdu_discard_queue = {};
++  ASSERT_EQ(pdcp_tx->get_state().tx_next_ack, 1u);
++
++  // RLC confirms delivery of COUNT 1. TX_NEXT_ACK must skip the hole at COUNT 2 and land on COUNT 3.
++  pdcp_tx->handle_delivery_notification(pdcp_compute_sn(1, sn_size));
++  EXPECT_EQ(pdcp_tx->get_state().tx_next_ack, 3u);
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 1u);
++
++  // RLC confirms delivery of COUNT 3. The window must be empty afterwards.
++  pdcp_tx->handle_delivery_notification(pdcp_compute_sn(3, sn_size));
++  EXPECT_EQ(pdcp_tx->get_state().tx_next_ack, 4u);
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 0u);
++
++  // New SDUs keep flowing and are acknowledged normally.
++  submit_sdu(); // count 4
++  pdcp_tx->handle_delivery_notification(pdcp_compute_sn(4, sn_size));
++  EXPECT_EQ(pdcp_tx->get_state().tx_next_ack, 5u);
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 0u);
++  tick_all(20);
++  EXPECT_TRUE(test_frame.sdu_discard_queue.empty());
++}
++
++/// Same trigger, followed by sustained traffic that RLC acknowledges immediately. Every offered SDU must get a COUNT
++/// and the window must not grow.
++TEST_F(pdcp_tx_status_report_delivery_test, traffic_keeps_flowing_after_status_report_hole)
++{
++  init(std::make_tuple(pdcp_sn_size::size12bits, 1u, cfg_rohc_disabled),
++       pdcp_rb_type::drb,
++       pdcp_rlc_mode::am,
++       pdcp_discard_timer::ms10);
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::off);
++
++  for (unsigned i = 0; i != 4; ++i) {
++    submit_sdu(); // counts 0..3
++  }
++  send_status_report(/*fmc=*/1, {0b10000000});
++  pdcp_tx->handle_delivery_notification(pdcp_compute_sn(1, sn_size));
++  pdcp_tx->handle_delivery_notification(pdcp_compute_sn(3, sn_size));
++
++  const uint32_t nof_sdus    = 3000;
++  const uint32_t tx_next_old = pdcp_tx->get_state().tx_next;
++  for (uint32_t i = 0; i != nof_sdus; ++i) {
++    submit_sdu();
++    pdcp_tx->handle_delivery_notification(pdcp_compute_sn(pdcp_tx->get_state().tx_next - 1, sn_size));
++    tick_all(1);
++  }
++  EXPECT_EQ(pdcp_tx->get_state().tx_next - tx_next_old, nof_sdus) << "SDUs were dropped before getting a COUNT";
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 0u) << fmt::format("{}", pdcp_tx->get_state());
++}

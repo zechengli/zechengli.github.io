@@ -1,0 +1,161 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..c9c7ab83d7 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -10,6 +10,12 @@ target_link_libraries(pdcp_tx_test ocudu_pdcp ocudu_security ocudu_support ocudu
+ target_include_directories(pdcp_tx_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_tx_test NO_PRETTY_VALUES PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_tx_crypto_awaitable_race_test pdcp_tx_crypto_awaitable_race_test.cpp)
++target_link_libraries(pdcp_tx_crypto_awaitable_race_test ocudu_pdcp ocudu_security ocudu_support ocudulog)
++target_include_directories(pdcp_tx_crypto_awaitable_race_test PRIVATE ${CMAKE_SOURCE_DIR})
++add_test(pdcp_tx_crypto_awaitable_race_test pdcp_tx_crypto_awaitable_race_test)
++set_tests_properties(pdcp_tx_crypto_awaitable_race_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_empty_pool_test pdcp_tx_empty_pool_test.cpp)
+ target_link_libraries(pdcp_tx_empty_pool_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_empty_pool_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_tx_crypto_awaitable_race_test.cpp b/tests/unittests/pdcp/pdcp_tx_crypto_awaitable_race_test.cpp
+new file mode 100644
+index 0000000000..ed019ba905
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_tx_crypto_awaitable_race_test.cpp
+@@ -0,0 +1,138 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++// Race between the last pdcp_crypto_token being returned on a crypto thread and the owner awaiting
++// pdcp_entity_tx::crypto_awaitable().
++//
++// The main thread plays the role of the UE DL executor, as ue_context::stop() and
++// cu_up_bearer_context_modification_routine do:
++//   1. push SDUs (ciphering runs on a real multi-threaded task_worker_pool),
++//   2. notify_pdu_processing_stopped(),
++//   3. CORO_AWAIT(crypto_awaitable()), as pdu_session_manager_impl::await_crypto_tx_all_drbs() does.
++// The UE DL executor stand-in is a bounded, non-blocking manual_task_worker that is full, so the hand-off in
++// pdcp_entity_tx::apply_security() fails on the crypto thread and the crypto token is destroyed there. The last token
++// then calls manual_event_flag::set() on a crypto thread, concurrently with the owner's await_ready()/await_suspend(),
++// and the awaiting coroutine is resumed on the crypto thread.
++//
++// Run under TSAN (-DENABLE_TSAN=ON) to see the data race. Independently of TSAN, the test fails (exit code 1) if the
++// awaiting coroutine is resumed on any thread other than the owner. With the "control" argument the UE DL executor is
++// not congested, and the test passes.
++
++#include "tests/unittests/pdcp/pdcp_tx_test_helpers.h"
++#include "ocudu/support/async/async_task.h"
++#include "ocudu/support/async/coroutine.h"
++#include "ocudu/support/async/eager_async_task.h"
++#include "ocudu/support/executors/manual_task_worker.h"
++#include "ocudu/support/executors/task_worker_pool.h"
++#include <atomic>
++#include <cstdio>
++#include <string>
++#include <thread>
++
++using namespace ocudu;
++
++namespace {
++
++constexpr uint32_t nof_crypto_threads_test = 4;
++
++class crypto_await_race_fixture : public pdcp_tx_test_helper
++{
++public:
++  /// \param dl_qsize_ capacity of the UE DL executor stand-in. 4 = congested (the bug path); a large value is the
++  /// control case where every crypto->DL hand-off succeeds.
++  explicit crypto_await_race_fixture(size_t dl_qsize_) :
++    pdcp_tx_test_helper(nof_crypto_threads_test, crypto_worker, dl_worker),
++    congested(dl_qsize_ <= 4),
++    dl_worker{dl_qsize_, false, true}
++  {
++  }
++
++  /// Returns true if the awaiting coroutine was resumed on a thread other than the owner (main) thread.
++  bool run(uint32_t nof_sdus)
++  {
++    init(std::make_tuple(pdcp_sn_size::size12bits, 2u, cfg_rohc_disabled));
++    pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::on, security::ciphering_enabled::on);
++
++    // Fill the (non-blocking, bounded) UE DL executor stand-in so that every hand-off from a crypto thread back to
++    // the UE DL executor fails -- the "UE executor queue is full" backpressure path in apply_security().
++    if (congested) {
++      for (uint32_t i = 0; i < dl_worker.max_pending_tasks(); i++) {
++        (void)dl_worker.defer([]() {});
++      }
++    }
++
++    const std::thread::id owner_id = std::this_thread::get_id();
++    std::atomic<bool>     resumed_off_owner{false};
++    std::atomic<bool>     completed{false};
++
++    for (uint32_t i = 0; i < nof_sdus; i++) {
++      pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value());
++    }
++
++    // Owner (UE DL executor) side of teardown / security-key-change: stop, then await pending crypto.
++    pdcp_tx->notify_pdu_processing_stopped();
++    manual_event_flag& awaitable = pdcp_tx->crypto_awaitable();
++    eager_async_task<void> t = launch_async([&](coro_context<eager_async_task<void>>& ctx) {
++      CORO_BEGIN(ctx);
++      CORO_AWAIT(awaitable);
++      if (std::this_thread::get_id() != owner_id) {
++        resumed_off_owner = true;
++      }
++      completed = true;
++      CORO_RETURN();
++    });
++    bool ready_immediately = completed.load();
++
++    crypto_worker_pool.wait_pending_tasks();
++    if (not congested) {
++      // Control: the owner (main thread) runs the queued crypto continuations, which return the tokens on the owner.
++      dl_worker.run_pending_tasks();
++    }
++
++    std::printf("[crypto-await] nof_sdus=%u completed_immediately=%d completed=%d resumed_off_owner_thread=%d\n",
++                nof_sdus,
++                ready_immediately,
++                completed.load(),
++                resumed_off_owner.load());
++
++    // Cleanup (outside the race window).
++    while (dl_worker.try_run_next()) {
++    }
++    pdcp_tx->restart_pdu_processing();
++    pdcp_tx->stop();
++    dl_worker.run_pending_tasks();
++    return resumed_off_owner.load();
++  }
++
++  bool               congested;
++  manual_task_worker dl_worker;
++
++private:
++  task_worker_pool<concurrent_queue_policy::lockfree_mpmc> crypto_worker_pool{"test_crypto",
++                                                                              nof_crypto_threads_test,
++                                                                              128};
++  task_worker_pool_executor<concurrent_queue_policy::lockfree_mpmc> crypto_worker{crypto_worker_pool};
++};
++
++} // namespace
++
++int main(int argc, char** argv)
++{
++  // "control" argument: large, never-full UE DL executor -> tokens are returned on the owner thread.
++  const bool control = argc > 1 and std::string(argv[1]) == "control";
++  ocudulog::init();
++  ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::warning);
++  ocudulog::fetch_basic_logger("SEC", false).set_level(ocudulog::basic_levels::warning);
++  ocudulog::fetch_basic_logger("TEST", false).set_level(ocudulog::basic_levels::warning);
++
++  unsigned nof_off_owner = 0;
++  for (unsigned iter = 0; iter < 20; ++iter) {
++    crypto_await_race_fixture fix(control ? 8192 : 4);
++    nof_off_owner += fix.run(2000) ? 1 : 0;
++  }
++  std::printf("[crypto-await] iterations where the awaiting coroutine was resumed on a crypto-pool thread: %u/20\n",
++              nof_off_owner);
++  // The awaiting coroutine must always be resumed on the owner (UE DL executor) thread.
++  return nof_off_owner == 0 ? 0 : 1;
++}

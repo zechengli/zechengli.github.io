@@ -1,0 +1,88 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..05f36fc296 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -10,6 +10,11 @@ target_link_libraries(pdcp_tx_test ocudu_pdcp ocudu_security ocudu_support ocudu
+ target_include_directories(pdcp_tx_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_tx_test NO_PRETTY_VALUES PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_tx_discard_timer_restart_test pdcp_tx_discard_timer_restart_test.cpp)
++target_link_libraries(pdcp_tx_discard_timer_restart_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_tx_discard_timer_restart_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_tx_discard_timer_restart_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_empty_pool_test pdcp_tx_empty_pool_test.cpp)
+ target_link_libraries(pdcp_tx_empty_pool_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_empty_pool_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_tx_discard_timer_restart_test.cpp b/tests/unittests/pdcp/pdcp_tx_discard_timer_restart_test.cpp
+new file mode 100644
+index 0000000000..020133634a
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_tx_discard_timer_restart_test.cpp
+@@ -0,0 +1,66 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_test_vectors.h"
++#include "pdcp_tx_test_helpers.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++class pdcp_tx_discard_timer_restart_test : public pdcp_tx_test_helper_manual_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_hex_dump_max_size(100);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++
++  void submit_sdu()
++  {
++    pdcp_tx->handle_sdu(byte_buffer::create(sdu1).value());
++    wait_pending_crypto();
++    worker.run_pending_tasks();
++  }
++};
++
++} // namespace
++
++/// Two SDUs with different arrival times: A at t=0, B at t=5, discardTimer=10ms.
++/// A must be discarded at t=10 and B at t=15 (its own deadline), not earlier.
++TEST_F(pdcp_tx_discard_timer_restart_test, discard_timer_restarted_with_deadline_of_next_sdu)
++{
++  init(std::make_tuple(pdcp_sn_size::size12bits, 1u, cfg_rohc_disabled),
++       pdcp_rb_type::drb,
++       pdcp_rlc_mode::am,
++       pdcp_discard_timer::ms10);
++  pdcp_tx->configure_security(sec_cfg, security::integrity_enabled::off, security::ciphering_enabled::off);
++
++  submit_sdu(); // A: count=0, arrives at t=0
++  tick_all(5);
++  submit_sdu(); // B: count=1, arrives at t=5
++  ASSERT_TRUE(test_frame.sdu_discard_queue.empty());
++
++  // t=10: A expires.
++  tick_all(5);
++  ASSERT_EQ(test_frame.sdu_discard_queue.size(), 1u);
++  EXPECT_EQ(test_frame.sdu_discard_queue.front(), 0u);
++  test_frame.sdu_discard_queue.pop();
++
++  // t=14: B still has 1 ms left.
++  tick_all(4);
++  EXPECT_TRUE(test_frame.sdu_discard_queue.empty()) << "count=1 was discarded before its own discardTimer expired";
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 1u);
++
++  // t=15: B expires.
++  tick_all(1);
++  ASSERT_EQ(test_frame.sdu_discard_queue.size(), 1u);
++  EXPECT_EQ(test_frame.sdu_discard_queue.front(), 1u);
++  EXPECT_EQ(pdcp_tx->nof_pdus_in_window(), 0u);
++}

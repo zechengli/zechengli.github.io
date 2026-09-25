@@ -1,0 +1,79 @@
+diff --git a/tests/unittests/pdcp/CMakeLists.txt b/tests/unittests/pdcp/CMakeLists.txt
+index e7bc1c714e..2557e52a70 100644
+--- a/tests/unittests/pdcp/CMakeLists.txt
++++ b/tests/unittests/pdcp/CMakeLists.txt
+@@ -30,6 +30,11 @@ target_link_libraries(pdcp_rx_metrics_test ocudu_pdcp ocudu_security ocudu_suppo
+ target_include_directories(pdcp_rx_metrics_test PRIVATE ${CMAKE_SOURCE_DIR})
+ gtest_discover_tests(pdcp_rx_metrics_test PROPERTIES LABELS "tsan")
+ 
++add_executable(pdcp_rx_hfn_underflow_test pdcp_rx_hfn_underflow_test.cpp)
++target_link_libraries(pdcp_rx_hfn_underflow_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
++target_include_directories(pdcp_rx_hfn_underflow_test PRIVATE ${CMAKE_SOURCE_DIR})
++gtest_discover_tests(pdcp_rx_hfn_underflow_test PROPERTIES LABELS "tsan")
++
+ add_executable(pdcp_tx_status_report_test pdcp_tx_status_report_test.cpp)
+ target_link_libraries(pdcp_tx_status_report_test ocudu_pdcp ocudu_security ocudu_support ocudulog GTest::gtest GTest::gtest_main)
+ target_include_directories(pdcp_tx_status_report_test PRIVATE ${CMAKE_SOURCE_DIR})
+diff --git a/tests/unittests/pdcp/pdcp_rx_hfn_underflow_test.cpp b/tests/unittests/pdcp/pdcp_rx_hfn_underflow_test.cpp
+new file mode 100644
+index 0000000000..aa71d2f625
+--- /dev/null
++++ b/tests/unittests/pdcp/pdcp_rx_hfn_underflow_test.cpp
+@@ -0,0 +1,57 @@
++// SPDX-FileCopyrightText: Copyright (C) 2021-2026 Software Radio Systems Limited
++// SPDX-License-Identifier: BSD-3-Clause-Open-MPI
++// Portions of this file may implement 3GPP specifications, which may be subject to additional licensing requirements.
++
++#include "pdcp_rx_test_helpers.h"
++#include "pdcp_test_vectors.h"
++#include <gtest/gtest.h>
++
++using namespace ocudu;
++
++namespace {
++
++class pdcp_rx_hfn_underflow_test : public pdcp_rx_test_helper_default_crypto, public ::testing::Test
++{
++protected:
++  void SetUp() override
++  {
++    ocudulog::init();
++    logger.set_level(ocudulog::basic_levels::debug);
++    ocudulog::fetch_basic_logger("PDCP", false).set_level(ocudulog::basic_levels::debug);
++  }
++
++  void TearDown() override { ocudulog::flush(); }
++};
++
++} // namespace
++
++/// With HFN(RX_DELIV)=0, a PDU with SN >= SN(RX_DELIV) + Window_Size would need RCVD_HFN = -1. Such a PDU must be
++/// discarded, without raising max COUNT or protocol failure, and the bearer must keep working.
++TEST_F(pdcp_rx_hfn_underflow_test, sn_ahead_of_window_in_first_hyperframe_is_discarded)
++{
++  set_sn_size(pdcp_sn_size::size12bits);
++  set_algo(1);
++  init(); // default max_count thresholds, RX_DELIV=0
++  pdcp_rx->configure_security(sec_cfg, security::integrity_enabled::on, security::ciphering_enabled::on);
++
++  byte_buffer pdu_sn2048;
++  get_test_pdu(2048, pdu_sn2048); // SN=2048 >= SN(RX_DELIV) + 2048
++  pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_sn2048)).value());
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++
++  EXPECT_EQ(test_frame->nof_max_count_reached, 0u);
++  EXPECT_EQ(test_frame->nof_protocol_failure, 0u);
++  EXPECT_EQ(test_frame->sdu_queue.size(), 0u);
++  EXPECT_EQ(pdcp_rx->get_state().rx_next, 0u);
++  EXPECT_EQ(pdcp_rx->get_state().rx_deliv, 0u);
++
++  // The bearer keeps working.
++  byte_buffer pdu_count0;
++  get_test_pdu(0, pdu_count0);
++  pdcp_rx->handle_pdu(byte_buffer_chain::create(std::move(pdu_count0)).value());
++  wait_pending_crypto();
++  worker.run_pending_tasks();
++  ASSERT_EQ(test_frame->sdu_queue.size(), 1u);
++  EXPECT_EQ(test_frame->sdu_queue.front(), sdu1);
++}
