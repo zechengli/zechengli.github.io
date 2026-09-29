@@ -630,6 +630,41 @@ RLF. \sw{D} is in every one of these releases, so an operator upgrading
 from 23.10.1 to 24.04 sees a new failure whose cause is a fix, not a new
 bug.
 
+\emph{The order of fixes matters, and we confirmed it on real code.} We
+wrote a one-line patch for the still-open \sw{D} bug (latch the
+``timer running'' flag only when the deferral succeeds), applied it to
+the C-fix pair, and reran the combined sender--receiver test with one
+rejected deferral, predictions frozen beforehand. The four cells agree
+5 of 5 (Table~\ref{tab:fixorder}): with neither fixed
+(\commit{84cb8e6afd}) the link resends forever; fixing \sw{C} alone
+(\commit{316da8f08}) declares the false RLF at 324\,ms; fixing \sw{D}
+alone removes it and the link recovers; fixing both recovers. The false
+RLF that every release from 24.04 on carries is caused by the still-open
+\sw{D} bug, not by the \sw{C} fix: the fix only let a stalled link count
+its retransmissions and hit the limit. In the model, with all switches
+fixed both \prop{NoFalseRLF} and \prop{MaxRetxEnforced} hold, and the
+pair runs give this ranking for each of the six interacting pairs at no
+extra cost, before anyone picks which fix to merge.
+
+\begin{table}[t]
+\centering\small
+\caption{Fix order of \sw{C} and \sw{D} on real code: a real RLC AM
+sender wired to a real receiver, one rejected deferral, t-PollRetransmit
+45\,ms, maxRetxThreshold 4. Predictions frozen before the runs; each cell
+is 5 of 5 identical runs. \sw{D} is still open, so no release occupies the
+bottom row.}
+\label{tab:fixorder}
+\footnotesize\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \sw{C} buggy & \sw{C} fixed \\
+\midrule
+\sw{D} buggy & resend forever, no RLF & \textbf{false RLF, 324\,ms} \\
+\sw{D} fixed (patch) & recovers & recovers \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \emph{On a live link}, the fix of \sw{C} alone changes what the DU does.
 With srsUE over ZMQ, Open5GS, and the uplink silenced for 15\,s (MAC
 failure detection off), the gNB at the parent of the fix
@@ -757,8 +792,9 @@ a product line; we check only the settings the history visited.
 \paragraph{Limits.}
 We studied 11 bugs in one layer of one stack; only the model is per
 layer. Text predicates are brittle, although none of 260 versions and 12
-tags gave \textsc{Unknown}. Only one of the six interactions was checked
-on real code. Our tests came from Specula's reproduction tests, two
+tags gave \textsc{Unknown}. Two of the six interactions were checked
+on real code, one of them with a hand-written patch for the still-open
+\sw{D} bug. Our tests came from Specula's reproduction tests, two
 switches were written after reading its report, and the live-link runs
 use a software radio; the H over-the-air run is pending [TODO-OTA].
 

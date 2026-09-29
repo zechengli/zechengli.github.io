@@ -40,7 +40,7 @@ code{font-family:"IBM Plex Mono",monospace;background:var(--code);padding:1px 5p
 <p>Restructured HotMobile&nbsp;'27 draft, experiment-forward. Copy the whole file with one click, or grab the raw <code>.tex</code>/<code>.bib</code>. This page is unlisted.</p>
 <div class="meta"><span><b>9</b> open TODO markers in the tex</span><span>drop into Overleaf with <b>acmart</b> (sigconf)</span><span><button id="theme" style="padding:2px 10px">toggle theme</button></span></div>
 </header>
-<section class="card"><div class="bar"><h2>dejaran.tex</h2><span class="sz">768 lines · 44 KB</span><a class="btn" href="./dejaran.tex" download>raw</a><button class="primary" data-copy="tex">copy all</button></div><pre id="tex"></pre><script type="text/plain" id="tex-src">% =====================================================================
+<section class="card"><div class="bar"><h2>dejaran.tex</h2><span class="sz">804 lines · 45 KB</span><a class="btn" href="./dejaran.tex" download>raw</a><button class="primary" data-copy="tex">copy all</button></div><pre id="tex"></pre><script type="text/plain" id="tex-src">% =====================================================================
 % DejaRAN --- HotMobile '27  (RESTRUCTURED DRAFT, experiment-forward)
 % Reorganized from Zecheng's original per the counter-plan structure.
 % Do not compile here (no LaTeX toolchain on the lab machine).
@@ -672,6 +672,41 @@ RLF. \sw{D} is in every one of these releases, so an operator upgrading
 from 23.10.1 to 24.04 sees a new failure whose cause is a fix, not a new
 bug.
 
+\emph{The order of fixes matters, and we confirmed it on real code.} We
+wrote a one-line patch for the still-open \sw{D} bug (latch the
+``timer running'' flag only when the deferral succeeds), applied it to
+the C-fix pair, and reran the combined sender--receiver test with one
+rejected deferral, predictions frozen beforehand. The four cells agree
+5 of 5 (Table~\ref{tab:fixorder}): with neither fixed
+(\commit{84cb8e6afd}) the link resends forever; fixing \sw{C} alone
+(\commit{316da8f08}) declares the false RLF at 324\,ms; fixing \sw{D}
+alone removes it and the link recovers; fixing both recovers. The false
+RLF that every release from 24.04 on carries is caused by the still-open
+\sw{D} bug, not by the \sw{C} fix: the fix only let a stalled link count
+its retransmissions and hit the limit. In the model, with all switches
+fixed both \prop{NoFalseRLF} and \prop{MaxRetxEnforced} hold, and the
+pair runs give this ranking for each of the six interacting pairs at no
+extra cost, before anyone picks which fix to merge.
+
+\begin{table}[t]
+\centering\small
+\caption{Fix order of \sw{C} and \sw{D} on real code: a real RLC AM
+sender wired to a real receiver, one rejected deferral, t-PollRetransmit
+45\,ms, maxRetxThreshold 4. Predictions frozen before the runs; each cell
+is 5 of 5 identical runs. \sw{D} is still open, so no release occupies the
+bottom row.}
+\label{tab:fixorder}
+\footnotesize\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \sw{C} buggy & \sw{C} fixed \\
+\midrule
+\sw{D} buggy & resend forever, no RLF & \textbf{false RLF, 324\,ms} \\
+\sw{D} fixed (patch) & recovers & recovers \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \emph{On a live link}, the fix of \sw{C} alone changes what the DU does.
 With srsUE over ZMQ, Open5GS, and the uplink silenced for 15\,s (MAC
 failure detection off), the gNB at the parent of the fix
@@ -799,8 +834,9 @@ a product line; we check only the settings the history visited.
 \paragraph{Limits.}
 We studied 11 bugs in one layer of one stack; only the model is per
 layer. Text predicates are brittle, although none of 260 versions and 12
-tags gave \textsc{Unknown}. Only one of the six interactions was checked
-on real code. Our tests came from Specula's reproduction tests, two
+tags gave \textsc{Unknown}. Two of the six interactions were checked
+on real code, one of them with a hand-written patch for the still-open
+\sw{D} bug. Our tests came from Specula's reproduction tests, two
 switches were written after reading its report, and the live-link runs
 use a software radio; the H over-the-air run is pending [TODO-OTA].
 
@@ -921,23 +957,7 @@ use a software radio; the H over-the-air run is pending [TODO-OTA].
 </script></section>
 <section class="note"><h2>What changed &amp; what you must fill</h2><p class="warn">The tex has TODO markers (search <code>[TODO</code>). Do not submit before filling them.</p><p>Full change log and TODO list: <a class="btn" href="./REORG_NOTES.md" download>REORG_NOTES.md</a></p></section>
 <script>
-for(const el of document.querySelectorAll('script[type="text/plain"]')){
-  const pre=document.getElementById(el.id.replace('-src',''));
-  if(pre) pre.textContent=el.textContent;
-}
-for(const b of document.querySelectorAll('button[data-copy]')){
-  b.addEventListener('click',async()=>{
-    const t=document.getElementById(b.dataset.copy).textContent;
-    try{await navigator.clipboard.writeText(t);}catch(e){
-      const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
-    const old=b.textContent;b.textContent='copied ✓';b.classList.add('ok');
-    setTimeout(()=>{b.textContent=old;b.classList.remove('ok');},1400);
-  });
-}
-const tb=document.getElementById('theme');
-tb&&tb.addEventListener('click',()=>{
-  const cur=document.documentElement.getAttribute('data-theme');
-  const next=cur==='dark'?'light':(cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark'));
-  document.documentElement.setAttribute('data-theme',next);
-});
+for(const el of document.querySelectorAll('script[type="text/plain"]')){const pre=document.getElementById(el.id.replace('-src',''));if(pre)pre.textContent=el.textContent;}
+for(const b of document.querySelectorAll('button[data-copy]')){b.addEventListener('click',async()=>{const t=document.getElementById(b.dataset.copy).textContent;try{await navigator.clipboard.writeText(t);}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}const old=b.textContent;b.textContent='copied ✓';b.classList.add('ok');setTimeout(()=>{b.textContent=old;b.classList.remove('ok');},1400);});}
+const tb=document.getElementById('theme');tb&&tb.addEventListener('click',()=>{const cur=document.documentElement.getAttribute('data-theme');const next=cur==='dark'?'light':(cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark'));document.documentElement.setAttribute('data-theme',next);});
 </script></body></html>
