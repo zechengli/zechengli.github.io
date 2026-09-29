@@ -14,14 +14,24 @@
 %             the real-code unit results + ZMQ live-link results, which
 %             ARE done. Every OTA-specific number below is marked
 %             [TODO-OTA]; do not invent them.
-% [TODO-UP]   Upstream status of D, BS, RC, R (issues/MRs filed? dev
-%             response?). Only H (#801 -> 2b9caf2bc) is confirmed closed.
 % [TODO-FIG1] Simplify Fig.1 grid: consider splitting the pairwise-mask
 %             letters (C/Z) out of the main grid so the main grid only
 %             answers "which version has which bug".
-% [TODO-N]    Confirm the snapshot count in prose (287 vs 288: dev
-%             advanced one commit past the paper snapshot; H is now closed
-%             on main by 2b9caf2bc as of the rerun).
+% [TODO-DLIVE] F5's D-isolating full-stack live-link run (D fires on a
+%             healthy-MAC link, so the MAC should NOT hide it). Needs a
+%             gNB test hook to force one failed status-prohibit defer.
+%             Not yet run; F5 keeps the hedge until it is.
+% ---- RESOLVED this session (2026-09-29), kept for the record ----------
+% [DONE-FIXORDER] D-patch fix-order now on real code: F1 Table tab:fixorder
+%             (2x2 C/D matrix, 5/5). all-switches-fixed TLC passes
+%             NoFalseRLF and MaxRetxEnforced. See evo/DPATCH_RESULTS.md.
+% [DONE-UP]   GitLab checked 2026-09-29: only H is filed/closed (#801 ->
+%             2b9caf2bc). D/BS/RC/R have local repro drafts+patches
+%             (ocudu-latest-0925-recheck/issues/) but are NOT filed
+%             upstream; the paper claims only #801, which is correct.
+% [DONE-N]    Snapshot count reconciled: paper keeps 287/260/10-period
+%             frozen snapshot (before H closed); footnote records the
+%             2026-09-29 rerun reading 288/261/11 with H fixed.
 % =====================================================================
 
 \documentclass[sigconf,10pt]{acmart}
@@ -511,7 +521,12 @@ The predicates read all 287 versions on main in about 5\,s. The 260 with
 both timers fall into 10 periods and 9 settings, with no \textsc{Unknown},
 and every change point is a commit we had found by reading diffs
 (Figure~\ref{fig:grid}). The 12 release tags from 23.3 to 26.04 fall on
-4 of these settings. The model (292 lines) covers TS 38.322
+4 of these settings.\footnote{Numbers are for the snapshot of
+Figure~\ref{fig:grid}, before \sw{H} was closed. Re-running the scan on
+2026-09-29 read 288 versions and 261 with both timers: main had advanced
+by \commit{2b9caf2bc}, which closed \sw{H} and added an 11th period. The
+switches picked up the new commit and its fixed \sw{H} with no change to
+the predicates, which is the point.} The model (292 lines) covers TS 38.322
 \S5.3.2--5.3.4 with two lossy, reordering links in discrete
 time~\cite{henzinger1992digital}; \sw{RC} and \sw{BS} need an extension
 (365 lines) written after reading Specula's report, so the model is not
@@ -712,13 +727,15 @@ outage the MAC sees the loss directly, so it, not the RLC, decides the
 UE's fate.
 
 \sw{D} is different in principle: it stops reports on a link whose MAC is
-healthy, so the MAC should not hide it. Testing \sw{D} on the live link
-in the same harness, with MAC detection at its default, the outcome held
-as predicted [TODO: state the \sw{D} live-link UE-visible outcome once
-the D-specific full-stack run is analyzed the same way as C; the C and P
-full-stack runs are done, the D-isolating run is the remaining piece].
-A bug's effect on the UE depends on the other layers' settings, which a
-test of one layer does not see.
+healthy, so we expect the MAC not to hide it, and the false RLF to reach
+the UE even with MAC detection on. We have shown this on the unit and the
+combined sender--receiver test (F1), but not yet end to end: the
+full-stack run needs a gNB hook to force one failed status-prohibit
+deferral, and it is the one live-link piece not yet done
+[TODO-DLIVE]. A bug's effect on the UE depends on the other layers'
+settings, which a test of one layer does not see: for \sw{C} the running
+stack hid what the RLC test shows, and for \sw{D} we predict the
+opposite.
 
 \subsection{F3: bugs arrive with other changes}
 
