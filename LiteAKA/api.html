@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAKA · API</title>
+<meta name="description" content="LiteAKA 第三页：/start 和 /finish 两个接口、所有错误码，以及 Client 本地的判定结果。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a href="index.html">1 · 去掉加密</a>
+  <a href="flow.html">2 · Flow</a>
+  <a class="on" href="api.html">3 · API</a>
+  <a href="demo.html">4 · Demo</a>
+</nav>
+<header>
+  <div class="eyebrow">LiteAKA · 第 3 页</div>
+  <h1>所有 API</h1>
+  <div class="lede">
+    <p>Verifier 只提供两个接口：<code>POST /start</code> 和 <code>POST /finish</code>。
+    传输格式为 HTTP + JSON，所有二进制字段都用<strong>小写 hex</strong>。</p>
+    <p>Client 端还有两个<strong>本地</strong>判定结果（<code>mac_fail</code>、<code>sqn_fail</code>），它们不经过网络。</p>
+  </div>
+</header>
+
+<h2>① POST /start</h2>
+<p>申请一个 challenge。对应 Flow 里的 A1–A8。</p>
+<h3>请求</h3>
+<pre>POST /start
+Content-Type: application/json
+
+{ "supi": "imsi-001010123456789" }</pre>
+<div class="tw"><table>
+<tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td><code>supi</code></td><td>string</td><td>是</td><td>用户标识，Verifier 里必须事先配好</td></tr>
+</table></div>
+
+<h3>成功：200</h3>
+<pre>{
+  "rand": "23553cbe9637a89d218ae64dae47bf35",
+  "autn": "55f328b43577b9b94a9ffac354dfafb3"
+}</pre>
+<div class="tw"><table>
+<tr><th>字段</th><th>长度</th><th>内容</th></tr>
+<tr><td><code>rand</code></td><td>16 字节 = 32 hex</td><td>随机数 RAND</td></tr>
+<tr><td><code>autn</code></td><td>16 字节 = 32 hex</td><td><code>(SQN⊕AK)[6] ‖ AMF[2] ‖ MAC[8]</code></td></tr>
+</table></div>
+<p class="dim">示例值取自 3GPP TS 35.208 测试集 1（那里 AMF = b9b9，不是 LiteAKA 的 8000），只用来说明格式。实际每次都不一样。</p>
+
+<h3>失败</h3>
+<div class="tw"><table>
+<tr><th>HTTP</th><th>reason</th><th>什么时候</th></tr>
+<tr><td>404</td><td><code>unknown_supi</code></td><td>Verifier 里没有这个 SUPI</td></tr>
+<tr><td>400</td><td><code>bad_request</code></td><td>body 不是 JSON，或者缺少 <code>supi</code></td></tr>
+</table></div>
+<pre>{ "ok": false, "reason": "unknown_supi" }</pre>
+
+<h3>副作用</h3>
+<ul>
+  <li>这个 SUPI 的 SQN 加 1（即使之后认证失败也不回退）。</li>
+  <li>写入 pending，并覆盖该 SUPI 之前的 pending。</li>
+</ul>
+
+<h2>② POST /finish</h2>
+<p>提交 RES*。对应 Flow 里的 C1–C5。</p>
+<h3>请求</h3>
+<pre>POST /finish
+Content-Type: application/json
+
+{
+  "supi": "imsi-001010123456789",
+  "res_star": "b0e35b23dbd7a18c848bfad91135e3fd"
+}</pre>
+<div class="tw"><table>
+<tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td><code>supi</code></td><td>string</td><td>是</td><td>和 /start 时相同</td></tr>
+<tr><td><code>res_star</code></td><td>32 hex</td><td>是</td><td>Client 在 B7 算出的 RES*</td></tr>
+</table></div>
+
+<p class="dim">示例 res_star 取自 srsRAN 的 RES* 单元测试（test_security_kdf.cc），只用来说明格式。</p>
+
+<h3>成功：200</h3>
+<pre>{ "ok": true }</pre>
+
+<h3>失败</h3>
+<div class="tw"><table>
+<tr><th>HTTP</th><th>reason</th><th>什么时候</th><th>对应步骤</th></tr>
+<tr><td>409</td><td><code>no_pending</code></td><td>没有先调用 /start，或者这个 challenge 已经用过了（包括失败过一次）</td><td>C1</td></tr>
+<tr><td>410</td><td><code>expired</code></td><td>/start 之后超过 30 秒</td><td>C2</td></tr>
+<tr><td>401</td><td><code>res_mismatch</code></td><td>RES* 不对：Client 的 K 不对，或者是冒充者</td><td>C4</td></tr>
+<tr><td>400</td><td><code>bad_request</code></td><td>缺字段，或者 <code>res_star</code> 不是 32 个 hex 字符</td><td>—</td></tr>
+</table></div>
+<pre>{ "ok": false, "reason": "res_mismatch" }</pre>
+
+<h3>副作用</h3>
+<ul>
+  <li>只要找到了 pending，不管成功还是失败都会删掉它（C3）。所以同一个 challenge 只能提交一次。</li>
+</ul>
+
+<h2>Client 本地结果（不经过网络）</h2>
+<p>这两种情况下 Client 直接停止，<strong>不发送 /finish</strong>。</p>
+<div class="tw"><table>
+<tr><th>结果</th><th>步骤</th><th>含义</th><th>处理</th></tr>
+<tr><td><code>mac_fail</code></td><td>B4</td><td>AUTN 里的 MAC 不对，对方不知道 K，可能是假 Verifier</td><td>拒绝，提示用户</td></tr>
+<tr><td><code>sqn_fail</code></td><td>B5</td><td>SQN 不比见过的大：重放，或者双方 SQN 乱了</td><td>拒绝；如果确认是不同步，就手动重置 Verifier 里的 SQN</td></tr>
+</table></div>
+
+<h2>所有结果一览</h2>
+<div class="tw"><table>
+<tr><th>结果</th><th>谁判定</th><th>HTTP</th><th>谁被认证失败了</th></tr>
+<tr><td class="pass">ok</td><td>Verifier</td><td>200</td><td>双方都通过</td></tr>
+<tr><td><code>mac_fail</code></td><td>Client</td><td>—</td><td>Verifier</td></tr>
+<tr><td><code>sqn_fail</code></td><td>Client</td><td>—</td><td>这个 challenge（旧的或者不同步）</td></tr>
+<tr><td><code>res_mismatch</code></td><td>Verifier</td><td>401</td><td>Client</td></tr>
+<tr><td><code>no_pending</code></td><td>Verifier</td><td>409</td><td>请求顺序不对 / 重复提交</td></tr>
+<tr><td><code>expired</code></td><td>Verifier</td><td>410</td><td>超时</td></tr>
+<tr><td><code>unknown_supi</code></td><td>Verifier</td><td>404</td><td>用户不存在</td></tr>
+<tr><td><code>bad_request</code></td><td>Verifier</td><td>400</td><td>格式错误</td></tr>
+</table></div>
+
+<h2>常量和算法</h2>
+<div class="tw"><table>
+<tr><th>名字</th><th>值 / 定义</th></tr>
+<tr><td>SVC</td><td><code>"liteaka:demo"</code></td></tr>
+<tr><td>AMF</td><td><code>8000</code></td></tr>
+<tr><td>pending 过期时间</td><td>30 秒</td></tr>
+<tr><td>f1, f2345</td><td>Milenage，TS 35.206</td></tr>
+<tr><td>RES* / XRES*</td><td><code>HMAC-SHA-256(CK‖IK, 0x6B ‖ SVC ‖ len ‖ RAND ‖ 0x0010 ‖ RES ‖ 0x0008)</code> 的低 128 位（TS 33.501 Annex A.4，KDF 格式见 TS 33.220 Annex B.2）</td></tr>
+</table></div>
+
+<footer>LiteAKA · 上一页：<a href="flow.html">2 · Flow</a> · 下一页：<a href="demo.html">4 · Demo</a></footer>
+</div>
+</body>
+</html>

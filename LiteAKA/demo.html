@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAKA · Demo</title>
+<meta name="description" content="LiteAKA 第四页：在浏览器里真实计算 Milenage 和 RES*，逐一演示所有可能的结果。">
+<link rel="stylesheet" href="style.css">
+<style>
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+button { font-family: Verdana, Arial, sans-serif; font-size: .82rem; border: 1px solid var(--border); background: var(--card);
+  color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.main { background: var(--accent); color: var(--card); border-color: var(--accent); font-weight: bold; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin: 14px 0; }
+.card h3 { margin: 0 0 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .9rem; }
+.trace { font-family: 'SF Mono', Menlo, monospace; font-size: .76rem; line-height: 1.55; margin-top: 10px; overflow-x: auto; }
+.trace div { white-space: pre; }
+.trace .C { color: var(--blue); }
+.trace .V { color: var(--accent); }
+.trace .N { color: var(--muted); }
+.trace .X { color: var(--red); font-weight: bold; }
+.trace .O { color: var(--green); font-weight: bold; }
+.tag { font-family: Verdana, Arial, sans-serif; font-size: .7rem; font-weight: bold; border-radius: 99px; padding: 2px 9px; }
+.tag.ok { background: var(--green); color: var(--card); }
+.tag.bad { background: var(--red); color: var(--card); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a href="index.html">1 · 去掉加密</a>
+  <a href="flow.html">2 · Flow</a>
+  <a href="api.html">3 · API</a>
+  <a class="on" href="demo.html">4 · Demo</a>
+</nav>
+<header>
+  <div class="eyebrow">LiteAKA · 第 4 页</div>
+  <h1>Demo：把所有可能的结果都跑一遍</h1>
+  <div class="lede">
+    <p>这一页在浏览器里<strong>真实计算</strong> Milenage（f1、f2345）和 RES*，用的是浏览器自带的 WebCrypto（AES-128、HMAC-SHA-256）。
+    算法实现先用 3GPP 和 srsRAN 的测试向量校验，结果见第 0 节。</p>
+    <p>Client 和 Verifier 都是这个页面里的 JavaScript 对象，<strong>没有真的发网络请求</strong>。
+    Verifier 收到的仍然是 JSON 字符串、返回 HTTP 状态码 + JSON，接口和第 3 页完全一样。时钟是模拟的，所以"超时"不用真等 30 秒。</p>
+  </div>
+</header>
+
+<h2>0. 算法自检</h2>
+<div id="selftest" class="dim">正在计算…</div>
+
+<h2>1. 运行</h2>
+<div class="btns">
+  <button class="main" onclick="runAll()">全部运行</button>
+  <span id="btns"></span>
+</div>
+<div id="summary"></div>
+<div id="out"></div>
+
+<h2>2. 说明</h2>
+<div class="note">
+  <p><strong>"假 Client" 为什么不是在 B4 失败？</strong>如果 Client 真的拿着错误的 K 按流程走，它在 B4 就会因为 MAC 对不上而拒绝 Verifier，根本不会发出 /finish。
+  真正的冒充者不会做 B4 检查，而是直接把自己算出的 RES* 交上去。所以这个场景模拟的是：冒充者跳过 B4，用它自己的 K' 算出 RES* 提交。</p>
+  <p><strong>"重放" 和 "SQN 不同步" 的结果都是 sqn_fail。</strong>Client 分不清这两种情况。LiteAKA 去掉了 AUTS 重同步，所以不同步时需要手动把 Verifier 的 SQN 改到 Client 的 SQN_max 以上。第 9 个场景演示了这个过程。</p>
+</div>
+
+<footer>LiteAKA · 上一页：<a href="api.html">3 · API</a> · 代码：<code>liteaka.js</code>（算法）+ 本页脚本（Client / Verifier / 场景）</footer>
+</div>
+
+<script src="liteaka.js"></script>
+<script>
+const { hex, unhex, xor, cat, milenage, resStar, sqnToBytes, bytesToSqn, ctEq } = LiteAKA;
+const SVC = 'liteaka:demo', AMF = unhex('8000'), TTL = 30;
+const SUPI = 'imsi-001010123456789';
+const K    = '465b5ce8b199b49faa5f0a2ee238a6bc';
+const OPC  = 'cd63cb71954a9f4e48a5994e37a02baf';
+const BADK = '565b5ce8b199b49faa5f0a2ee238a6bc';   // 第一个字节不同
+
+// ---------- Verifier：只收 JSON 字符串，只回 {status, body} ----------
+class Verifier {
+  constructor(log) { this.db = {}; this.now = 1759200000; this.log = log; }
+  add(supi, k, opc, sqn = 0) { this.db[supi] = { k: unhex(k), opc: unhex(opc), sqn, pending: null }; }
+  reply(status, body) { this.log('V', `← HTTP ${status} ${JSON.stringify(body)}`); return { status, body }; }
+  async handle(path, raw) {
+    this.log('N', `→ POST ${path} ${raw}`);
+    let req; try { req = JSON.parse(raw); } catch { return this.reply(400, { ok: false, reason: 'bad_request' }); }
+    if (typeof req.supi !== 'string') return this.reply(400, { ok: false, reason: 'bad_request' });
+    if (path === '/start') return this.start(req);
+    if (path === '/finish') return this.finish(req);
+    return this.reply(404, { ok: false, reason: 'not_found' });
+  }
+  async start({ supi }) {
+    const s = this.db[supi];
+    if (!s) { this.log('V', 'A1  查 supi：不存在'); return this.reply(404, { ok: false, reason: 'unknown_supi' }); }
+    s.sqn += 1; const sqn = sqnToBytes(s.sqn);
+    this.log('V', `A2  SQN = ${s.sqn}`);
+    const rand = crypto.getRandomValues(new Uint8Array(16));
+    this.log('V', `A3  RAND = ${hex(rand)}`);
+    const m = await milenage(s.k, s.opc, rand, sqn, AMF);
+    this.log('V', `A4  MAC = ${hex(m.mac_a)}`);
+    this.log('V', `A5  RES = ${hex(m.res)}  AK = ${hex(m.ak)}`);
+    const autn = cat(xor(sqn, m.ak), AMF, m.mac_a);
+    this.log('V', `A6  AUTN = ${hex(autn)}`);
+    const xres = await resStar(m.ck, m.ik, SVC, rand, m.res);
+    this.log('V', `A7  XRES* = ${hex(xres)}`);
+    s.pending = { xres, exp: this.now + TTL };
+    this.log('V', `A8  pending 保存，${TTL}s 后过期`);
+    return this.reply(200, { rand: hex(rand), autn: hex(autn) });
+  }
+  async finish({ supi, res_star }) {
+    if (typeof res_star !== 'string' || !/^[0-9a-f]{32}$/.test(res_star)) return this.reply(400, { ok: false, reason: 'bad_request' });
+    const s = this.db[supi];
+    if (!s) return this.reply(404, { ok: false, reason: 'unknown_supi' });
+    if (!s.pending) { this.log('V', 'C1  没有 pending'); return this.reply(409, { ok: false, reason: 'no_pending' }); }
+    const p = s.pending; s.pending = null;
+    if (this.now > p.exp) { this.log('V', `C2  已过期（现在比过期时间晚 ${this.now - p.exp}s），删掉 pending`); return this.reply(410, { ok: false, reason: 'expired' }); }
+    this.log('V', 'C3  删掉 pending');
+    const ok = ctEq(unhex(res_star), p.xres);
+    this.log('V', `C4  RES* ${ok ? '==' : '≠'} XRES*  (${res_star} vs ${hex(p.xres)})`);
+    if (!ok) return this.reply(401, { ok: false, reason: 'res_mismatch' });
+    this.log('V', 'C5  认证成功');
+    return this.reply(200, { ok: true });
+  }
+}
+
+// ---------- Client ----------
+class Client {
+  constructor(log, k, opc, supi = SUPI) { this.k = unhex(k); this.opc = unhex(opc); this.supi = supi; this.sqnMax = 0; this.log = log; }
+  // skipCheck = 冒充者：不做 B4/B5
+  async respond(ch, skipCheck = false) {
+    const rand = unhex(ch.rand), autn = unhex(ch.autn);
+    const m0 = await milenage(this.k, this.opc, rand, new Uint8Array(6), autn.slice(6, 8));
+    this.log('C', `B1  RES = ${hex(m0.res)}  AK = ${hex(m0.ak)}`);
+    const sqnB = xor(autn.slice(0, 6), m0.ak), sqn = bytesToSqn(sqnB);
+    this.log('C', `B2  SQN = ${sqn}`);
+    if (!skipCheck) {
+      const m = await milenage(this.k, this.opc, rand, sqnB, autn.slice(6, 8));
+      this.log('C', `B3  XMAC = ${hex(m.mac_a)}  (AUTN 里的 MAC = ${hex(autn.slice(8))})`);
+      if (!ctEq(m.mac_a, autn.slice(8))) { this.log('X', 'B4  XMAC ≠ MAC → mac_fail，不发送 /finish'); return { result: 'mac_fail' }; }
+      this.log('C', 'B4  MAC 正确：Verifier 知道 K');
+      if (sqn <= this.sqnMax) { this.log('X', `B5  SQN ${sqn} ≤ SQN_max ${this.sqnMax} → sqn_fail，不发送 /finish`); return { result: 'sqn_fail' }; }
+      this.log('C', `B5  SQN ${sqn} > SQN_max ${this.sqnMax}`);
+      this.sqnMax = sqn; this.log('C', `B6  SQN_max = ${sqn}`);
+    } else this.log('X', 'B3–B6  冒充者跳过检查');
+    const rs = await resStar(m0.ck, m0.ik, SVC, rand, m0.res);
+    this.log('C', `B7  RES* = ${hex(rs)}`);
+    return { result: 'answer', res_star: hex(rs) };
+  }
+}
+
+// ---------- 通用：跑一轮完整认证 ----------
+async function round(v, c, log, opts = {}) {
+  const r1 = await v.handle('/start', JSON.stringify({ supi: c.supi }));
+  if (r1.status !== 200) return r1.body.reason;
+  if (opts.afterStart) await opts.afterStart(r1.body);
+  const a = await c.respond(r1.body, opts.skipCheck);
+  if (a.result !== 'answer') return a.result;
+  const r2 = await v.handle('/finish', JSON.stringify({ supi: c.supi, res_star: a.res_star }));
+  return r2.body.ok ? 'ok' : r2.body.reason;
+}
+
+// ---------- 场景 ----------
+const S = [
+  { id: 'normal', title: '1 · 正常认证', expect: ['ok'], how: 'Client 和 Verifier 用同一个 K',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, K, OPC); return [await round(v, c, log)]; } },
+  { id: 'fakev', title: '2 · 假 Verifier', expect: ['mac_fail'], how: 'Verifier 用错误的 K′，Client 用正确的 K',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, BADK, OPC); return [await round(v, c, log)]; } },
+  { id: 'fakec', title: '3 · 假 Client（冒充者）', expect: ['res_mismatch'], how: '冒充者拿着错误的 K′，跳过 B4/B5，直接提交自己算的 RES*',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, BADK, OPC); v.add(SUPI, K, OPC); return [await round(v, c, log, { skipCheck: true })]; } },
+  { id: 'replay', title: '4 · 重放', expect: ['ok', 'sqn_fail'], how: '第一轮正常完成；攻击者把第一轮录下的 {rand, autn} 再发给 Client',
+    run: async (log) => {
+      const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, K, OPC); let rec;
+      log('N', '—— 第一轮（正常，攻击者在旁边录下 challenge）——');
+      const r1 = await round(v, c, log, { afterStart: b => { rec = b; } });
+      log('N', `—— 第二轮：攻击者重放 ${JSON.stringify(rec)} ——`);
+      const a = await c.respond(rec); return [r1, a.result]; } },
+  { id: 'expired', title: '5 · 超时', expect: ['expired'], how: '/start 之后模拟时钟前进 31 秒再 /finish',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, K, OPC);
+      return [await round(v, c, log, { afterStart: () => { v.now += 31; log('N', '…… 时钟前进 31 秒 ……'); } })]; } },
+  { id: 'dup', title: '6 · 重复提交', expect: ['ok', 'no_pending'], how: '认证成功以后，把同一个 RES* 再提交一次',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, K, OPC); let rs;
+      const r1 = await v.handle('/start', JSON.stringify({ supi: SUPI }));
+      const a = await c.respond(r1.body); rs = a.res_star;
+      const r2 = await v.handle('/finish', JSON.stringify({ supi: SUPI, res_star: rs }));
+      log('N', '—— 同一个 RES* 再提交一次 ——');
+      const r3 = await v.handle('/finish', JSON.stringify({ supi: SUPI, res_star: rs }));
+      return [r2.body.ok ? 'ok' : r2.body.reason, r3.body.reason]; } },
+  { id: 'unknown', title: '7 · 未知 SUPI', expect: ['unknown_supi'], how: 'Client 用一个 Verifier 里没有的 SUPI',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC, 'imsi-001019999999999'); v.add(SUPI, K, OPC); return [await round(v, c, log)]; } },
+  { id: 'bad', title: '8 · 格式错误', expect: ['bad_request', 'bad_request'], how: '/start 发非 JSON；/finish 的 res_star 不是 32 个 hex',
+    run: async (log) => { const v = new Verifier(log); v.add(SUPI, K, OPC);
+      const r1 = await v.handle('/start', '{supi: oops');
+      const r2 = await v.handle('/finish', JSON.stringify({ supi: SUPI, res_star: 'xyz' }));
+      return [r1.body.reason, r2.body.reason]; } },
+  { id: 'desync', title: '9 · SQN 不同步 + 手动修复', expect: ['ok', 'sqn_fail', 'ok'], how: '正常认证 3 次后，Verifier 的数据库被恢复成旧备份（SQN 回到 1）；然后手动把 SQN 改成 Client 的 SQN_max',
+    run: async (log) => { const v = new Verifier(log), c = new Client(log, K, OPC); v.add(SUPI, K, OPC);
+      log('N', '—— 先正常认证 3 次 ——');
+      let r; for (let i = 0; i < 3; i++) r = await round(v, c, log);
+      v.db[SUPI].sqn = 1; log('N', `—— Verifier 数据库恢复旧备份：SQN = 1（Client 的 SQN_max = ${c.sqnMax}）——`);
+      const r2 = await round(v, c, log);
+      v.db[SUPI].sqn = c.sqnMax; log('N', `—— 手动修复：Verifier SQN = ${c.sqnMax} ——`);
+      const r3 = await round(v, c, log); return [r, r2, r3]; } },
+];
+
+async function runOne(sc, box) {
+  const lines = []; const log = (who, t) => lines.push([who, t]);
+  const got = await sc.run(log);
+  const pass = got.length === sc.expect.length && got.every((g, i) => g === sc.expect[i]);
+  const el = document.createElement('div'); el.className = 'card'; el.id = 'sc-' + sc.id;
+  el.innerHTML = `<h3>${sc.title} <span class="tag ${pass ? 'ok' : 'bad'}">${pass ? '符合预期' : '不符合预期'}</span></h3>
+    <div class="row"><span><b>怎么制造：</b>${sc.how}</span></div>
+    <div class="row"><span><b>预期：</b><code>${sc.expect.join(' → ')}</code></span><span><b>实际：</b><code>${got.join(' → ')}</code></span></div>
+    <div class="trace">${lines.map(([w, t]) => `<div class="${w}">${w === 'C' ? 'Client   ' : w === 'V' ? 'Verifier ' : w === 'X' ? 'Client   ' : '         '}${t.replace(/</g, '&lt;')}</div>`).join('')}</div>`;
+  const old = document.getElementById(el.id); if (old) old.replaceWith(el); else box.appendChild(el);
+  return { sc, got, pass };
+}
+
+async function runAll() {
+  const out = document.getElementById('out'); out.innerHTML = '';
+  const res = []; for (const sc of S) res.push(await runOne(sc, out));
+  const n = res.filter(r => r.pass).length;
+  document.getElementById('summary').innerHTML = `<div class="tw"><table>
+    <tr><th>场景</th><th>预期</th><th>实际</th><th></th></tr>
+    ${res.map(r => `<tr><td><a href="#sc-${r.sc.id}">${r.sc.title}</a></td><td><code>${r.sc.expect.join(' → ')}</code></td><td><code>${r.got.join(' → ')}</code></td><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</td></tr>`).join('')}
+  </table></div><p><b>${n} / ${res.length}</b> 个场景符合预期。</p>`;
+}
+
+document.getElementById('btns').innerHTML = S.map((s, i) => `<button onclick="runOne(S[${i}], document.getElementById('out')).then(()=>location.hash='sc-${s.id}')">${s.title}</button>`).join(' ');
+
+liteakaSelfTest().then(rows => {
+  const n = rows.filter(r => r.ok).length;
+  document.getElementById('selftest').innerHTML = `<div class="tw"><table>
+    <tr><th>值</th><th>计算结果</th><th>标准答案</th><th></th></tr>
+    ${rows.map(r => `<tr><td>${r.name}</td><td><code>${r.got}</code></td><td><code>${r.exp}</code></td><td class="${r.ok ? 'pass' : 'fail'}">${r.ok ? '✓' : '✗'}</td></tr>`).join('')}
+  </table></div>
+  <p><b>${n} / ${rows.length}</b> 通过。前 7 项是 3GPP TS 35.208 测试集 1（srsRAN 的 <code>test_f12345.cc</code> 用的是同一组），RES* 用的是 srsRAN <code>test_security_kdf.cc</code> 里的测试向量。</p>`;
+  runAll();
+});
+</script>
+</body>
+</html>
