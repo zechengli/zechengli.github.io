@@ -29,17 +29,17 @@
 <h2>1. 5G AKA 在 RES* 之后还做了什么</h2>
 <p>5G AKA 认证成功以后，还会从 CK、IK 一路往下派生出一整棵密钥树，再用这些密钥保护之后的每一条消息：</p>
 <pre>
- K, OPc, RAND
+<span style="color:var(--green)"> K, OPc, RAND
     │  f1..f5 (Milenage)
     ▼
  MAC, RES, CK, IK, AK
     │
-    ├──► RES* = KDF(CK||IK, SN name, RAND, RES)      ← LiteAKA 做到这里为止
-    │
+    ├──► RES* = KDF(CK||IK, SN name, RAND, RES)      ← LiteAKA 做到这里为止</span>
+<span style="color:var(--red)">    │
     └──► KAUSF ─► KSEAF ─► KAMF ─┬─► KNASenc / KNASint ─► NAS 消息加密 + 完整性
                                  └─► KgNB ─┬─► KRRCenc / KRRCint ─► RRC 信令
                                            └─► KUPenc / KUPint   ─► 用户面数据
-                                   （还有 Security Mode Command、切换时的 K*gNB、NH …）
+                                   （还有 Security Mode Command、切换时的 K*gNB、NH …）</span>
 </pre>
 <p>LiteAKA 在 <code>RES*</code> 这里停下。从 <code>KAUSF</code> 往下的整棵树、用这些密钥的三套加密和完整性算法
 （SNOW 3G / AES / ZUC），以及把它们用到 NAS 和 PDCP 消息上的代码，全部不需要。</p>
