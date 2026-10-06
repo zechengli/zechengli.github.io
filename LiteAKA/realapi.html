@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAKA · 实机 API 与变量</title>
+<meta name="description" content="LiteAKA 第七页：实机版所有接口，以及每个变量是事先知道的还是代码生成的、是静态的还是动态的。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a href="index.html">1 · 去掉加密</a>
+  <a href="flow.html">2 · Flow</a>
+  <a href="api.html">3 · API</a>
+  <a href="demo.html">4 · Demo</a>
+  <a href="open5gs.html">5 · 实机：Open5GS</a>
+  <a href="realflow.html">6 · 实机：Flow</a>
+  <a class="on" href="realapi.html">7 · 实机：API 与变量</a>
+</nav>
+<header>
+  <div class="eyebrow">LiteAKA · 第 7 页 · 实机版</div>
+  <h1>所有 API，和每一个变量从哪来</h1>
+  <div class="lede">
+    <p>一共六组接口，按 <a href="realflow.html">第 6 页</a> 的顺序排：App ↔ SIM，App ↔ 服务器，服务器 ↔ AUSF，
+    Open5GS 内部（我们不直接调，列出来方便对照），其他 App ↔ LiteAKA App，以及桌面上的登记工具。</p>
+    <p>所有二进制字段在 JSON 里都是 hex 字符串。最后一节是变量表：每个变量是<strong>事先知道的</strong>还是<strong>代码生成的</strong>，
+    是<strong>静态的</strong>（每次都一样）还是<strong>动态的</strong>（每次或者随时间会变）。</p>
+  </div>
+</header>
+
+<h2>1. App ↔ SIM（APDU）</h2>
+<p>走 Android 的 <code>TelephonyManager.iccOpenLogicalChannel</code> / <code>iccTransmitApduLogicalChannel</code>。
+这两个接口平时只有系统和运营商 App 能用，我们靠 root 授予 <code>MODIFY_PHONE_STATE</code> 等权限。</p>
+<div class="tw"><table>
+<tr><th>命令</th><th>字节</th><th>返回</th></tr>
+<tr><td>打开逻辑通道</td><td><code>iccOpenLogicalChannel("A0000000871002")</code>（USIM 的 AID）</td><td>通道号</td></tr>
+<tr><td>SELECT</td><td><code>00 A4 00 00 02</code> ‖ 文件号：<code>3F00</code>（MF）→ <code>7F20</code>（DF_GSM）→ <code>6F07</code>（EF_IMSI）</td><td><code>90 00</code></td></tr>
+<tr><td>READ BINARY</td><td><code>00 B0 00 00 09</code></td><td>9 字节 EF_IMSI → 解出 IMSI <code>999700000085592</code></td></tr>
+<tr><td>AUTHENTICATE</td><td><code>00 88 00 81 22</code> ‖ <code>10</code> ‖ RAND(16) ‖ <code>10</code> ‖ AUTN(16)</td><td>
+  成功：<code>DB</code> ‖ 08 RES ‖ 10 CK ‖ 10 IK<br>
+  SQN 不同步：<code>DC</code> ‖ 0E AUTS<br>
+  MAC 不对：<code>98 62</code></td></tr>
+<tr><td>关闭逻辑通道</td><td><code>iccCloseLogicalChannel(通道号)</code></td><td>—</td></tr>
+</table></div>
+<p class="dim">代码里 SELECT / READ BINARY 用的是老式 CLA <code>A0</code>，发出去之前统一改成 <code>00</code>（逻辑通道上只认 USIM 的 CLA）。
+读 IMSI 和做认证各用一个新通道，原因见第 6 页 A2–A5。</p>
+
+<h2>2. App ↔ LiteAKA 服务器（HTTP/1.1 + JSON，端口 8780）</h2>
+
+<h3>① POST /liteaka/v1/start</h3>
+<pre>请求  { "imsi": "999700000085592" }
+200   { "session":   "15e1fb9c…（32 hex）",
+        "rand":      "0e0a7e4092aa1e9682060f22b400be19",
+        "autn":      "…32 hex…",
+        "hxresStar": "…32 hex…",
+        "snn":       "5G:mnc070.mcc999.3gppnetwork.org" }</pre>
+<div class="tw"><table>
+<tr><th>HTTP</th><th>什么时候</th></tr>
+<tr><td>400</td><td>IMSI 不是数字，或者不是 999 70 开头</td></tr>
+<tr><td>403</td><td><code>SIM … is not registered with the home network</code>：Open5GS 里没有这个用户</td></tr>
+<tr><td>502</td><td>AUSF 出了别的错</td></tr>
+</table></div>
+
+<h3>② POST /liteaka/v1/resync</h3>
+<pre>请求  { "session": "…", "auts": "…28 hex（14 字节）…" }
+200   和 /start 一样，是一道新题（新的 session）</pre>
+<p>旧 session 会被删掉。session 不存在或者超过 120 秒：400。</p>
+
+<h3>③ POST /liteaka/v1/confirm</h3>
+<pre>请求  { "session": "…", "resStar": "…32 hex…" }
+200   { "result": "PASS", "supi": "imsi-999700000085592",
+        "authenticatedAt": 1791325528, "expiresAt": 1791411928 }
+200   { "result": "FAIL", "supi": "imsi-999700000085592",
+        "authenticatedAt": null, "expiresAt": null }</pre>
+<p>PASS 和 FAIL 都是 200，看 <code>result</code>。session 只能用一次。<code>expiresAt</code> = <code>authenticatedAt</code> + 24 小时（服务器参数 <code>--state-ttl</code>，默认 86400 秒；设成 0 就是永不过期，返回 null）。</p>
+
+<h3>④ POST /liteaka/v1/abort</h3>
+<pre>请求  { "session": "…" }
+200   { "result": "ABORTED" }</pre>
+<p>SIM 拒绝了题目（MAC 不对，或者出错）时，App 用它告诉服务器这道题作废。</p>
+
+<h3>⑤ GET /liteaka/v1/health</h3>
+<pre>200   { "ok": true, "ausf": "http://127.0.0.11:7777", "snn": "5G:mnc070.mcc999.3gppnetwork.org" }</pre>
+
+<h2>3. 服务器 ↔ AUSF（3GPP SBI，HTTP/2 明文）</h2>
+<p>这是 TS 29.509 定义的 <code>Nausf_UEAuthentication</code> 服务，Open5GS 原样实现。服务器用 <code>curl --http2-prior-knowledge</code> 调。</p>
+
+<h3>⑥ POST /nausf-auth/v1/ue-authentications</h3>
+<pre>请求  { "supiOrSuci": "suci-0-999-70-0000-0-0-0000085592",
+        "servingNetworkName": "5G:mnc070.mcc999.3gppnetwork.org",
+        "resynchronizationInfo": { "rand": "…", "auts": "…" } }   ← 只有重同步时才带
+201   { "authType": "5G_AKA",
+        "5gAuthData": { "rand": "…", "autn": "…", "hxresStar": "…" },
+        "_links": { "5g-aka": { "href": "http://127.0.0.11:7777/nausf-auth/v1/ue-authentications/1/5g-aka-confirmation" } } }
+404   用户不存在</pre>
+
+<h3>⑦ PUT …/ue-authentications/{authCtxId}/5g-aka-confirmation</h3>
+<pre>请求  { "resStar": "…32 hex…" }
+200   { "authResult": "AUTHENTICATION_SUCCESS",   （或 AUTHENTICATION_FAILURE）
+        "supi": "imsi-999700000085592",
+        "kseaf": "…64 hex…" }                      ← 服务器丢掉，不往下传</pre>
+
+<h2>4. Open5GS 内部（我们不直接调用）</h2>
+<div class="tw"><table>
+<tr><th>谁 → 谁</th><th>接口</th><th>带什么 / 回什么</th><th>LiteAKA 需要吗</th></tr>
+<tr><td>AUSF → UDM</td><td><code>POST /nudm-ueau/v1/{suci}/security-information/generate-auth-data</code></td><td>带 servingNetworkName、ausfInstanceId、（resynchronizationInfo）；回 SUPI 和认证向量：rand、autn、xresStar、kausf</td><td class="pass">要（kausf 不要）</td></tr>
+<tr><td>UDM → UDR</td><td><code>GET /nudr-dr/v1/subscription-data/{supi}/authentication-data/authentication-subscription</code></td><td>回 K（encPermanentKey）、OPc（encOpcKey）、AMF、sequenceNumber.sqn</td><td class="pass">要</td></tr>
+<tr><td>UDM → UDR</td><td><code>PATCH</code> 同上</td><td>写回新 SQN（+32，或者重同步后的值）</td><td class="pass">要</td></tr>
+<tr><td>AUSF → UDM</td><td><code>POST /nudm-ueau/v1/{supi}/auth-events</code></td><td>告诉 UDM 认证结果</td><td class="fail">不要</td></tr>
+<tr><td>UDM → UDR</td><td><code>PUT /nudr-dr/v1/subscription-data/{supi}/authentication-data/authentication-status</code></td><td>把认证状态记进数据库</td><td class="fail">不要</td></tr>
+<tr><td>各网元 → NRF</td><td><code>/nnrf-disc/v1/nf-instances</code></td><td>找 UDM、UDR 的地址（经过 SCP）</td><td class="fail">不要（写死地址即可）</td></tr>
+</table></div>
+
+<h2>5. 其他 App ↔ LiteAKA App（ContentProvider）</h2>
+<pre>URI        content://com.zecheng.liteaka.state/status
+权限       com.zecheng.liteaka.permission.CHECK_STATE   （调用方在 manifest 里声明 uses-permission）
+返回一行   authenticated     1 / 0
+           supi              "imsi-999700000085592"（没认证时为 null）
+           authenticated_at  Unix 秒
+           expires_at        Unix 秒，认证后 24 小时（0 = 永不过期）</pre>
+<p>过了 <code>expires_at</code>，<code>authenticated</code> 自动变成 0，要重新认证。</p>
+<p>只读。insert / update / delete 都不做任何事。Android 11 以上，调用方还要在 manifest 里加
+<code>&lt;queries&gt;&lt;provider android:authorities="com.zecheng.liteaka.state"/&gt;&lt;/queries&gt;</code>。</p>
+
+<h2>6. 桌面登记工具（不对手机开放）</h2>
+<pre>subscribers.py list                          列出所有用户和当前 SQN
+subscribers.py add &lt;imsi&gt; &lt;ki&gt; &lt;opc&gt;      登记一张卡（SQN 从 0 开始，第一次认证时自动重同步）
+subscribers.py remove &lt;imsi&gt;                 删除（先备份到 server/backup/）
+subscribers.py restore &lt;备份.json&gt;            从备份恢复</pre>
+
+<h2>7. 所有变量</h2>
+<p>四种标记：</p>
+<ul>
+  <li><strong>已知</strong>：事先配好、写在卡里或数据库里的，不是这次流程算出来的。</li>
+  <li><strong>生成</strong>：流程里由代码算出来或随机产生的。</li>
+  <li><strong>静态</strong>：每次认证都一样。</li>
+  <li><strong>动态</strong>：每次都不一样，或者会随时间变化。</li>
+</ul>
+
+<h3>7.1 已知 + 静态（事先配好，不变）</h3>
+<div class="tw"><table>
+<tr><th>变量</th><th class="r">长度</th><th>存在哪</th><th>经过哪些接口</th><th>说明</th></tr>
+<tr><td>K（Ki）</td><td class="r">16 B</td><td>SIM、UDR</td><td>只在 UDR → UDM 内部传</td><td>长期密钥，<strong>永远不出 SIM</strong>，也不出 Open5GS</td></tr>
+<tr><td>OPc</td><td class="r">16 B</td><td>SIM、UDR</td><td>同上</td><td>运营商参数（已经和 K 混合过的 OP）</td></tr>
+<tr><td>IMSI / SUPI</td><td class="r">15 位</td><td>SIM（EF_IMSI）、UDR</td><td>APDU、/start、SUCI 里</td><td><code>999700000085592</code>；SUPI 就是前面加上 <code>imsi-</code></td></tr>
+<tr><td>AMF</td><td class="r">2 B</td><td>UDR</td><td>在 AUTN 中间</td><td><code>8000</code>（separation bit = 1，表示 5G / EPS）</td></tr>
+<tr><td>MCC、MNC</td><td class="r">3 + 2 位</td><td>服务器代码、Open5GS 配置</td><td>—</td><td><code>999</code>、<code>70</code></td></tr>
+<tr><td>USIM AID</td><td class="r">7 B</td><td>App 代码</td><td>打开逻辑通道</td><td><code>A0000000871002</code></td></tr>
+<tr><td>文件号</td><td class="r">2 B</td><td>App 代码</td><td>SELECT</td><td><code>3F00</code>、<code>7F20</code>、<code>6F07</code></td></tr>
+<tr><td>服务器地址、AUSF 地址</td><td class="r">—</td><td>App 界面 / 服务器代码</td><td>—</td><td><code>10.168.1.39:8780</code>、<code>127.0.0.11:7777</code></td></tr>
+</table></div>
+
+<h3>7.2 生成 + 静态（每次算出来都一样）</h3>
+<div class="tw"><table>
+<tr><th>变量</th><th class="r">长度</th><th>谁算的</th><th>经过哪些接口</th><th>怎么算</th></tr>
+<tr><td>SUCI</td><td class="r">字符串</td><td>服务器</td><td>⑥ supiOrSuci</td><td><code>suci-0-999-70-0000-0-0-&lt;MSIN&gt;</code>：null scheme，IMSI 明文。用了加密 scheme 才会每次不同</td></tr>
+<tr><td>SN name</td><td class="r">字符串</td><td>服务器</td><td>① 返回的 snn、⑥ servingNetworkName</td><td><code>5G:mnc070.mcc999.3gppnetwork.org</code>，由 MCC / MNC 拼出来</td></tr>
+</table></div>
+
+<h3>7.3 已知 + 动态（存着的状态，会变）</h3>
+<div class="tw"><table>
+<tr><th>变量</th><th class="r">长度</th><th>存在哪</th><th>什么时候变</th></tr>
+<tr><td>SQN（网络侧）</td><td class="r">6 B</td><td>UDR（MongoDB 里的 <code>security.sqn</code>）</td><td>每次出题 +32；重同步时改成 SQN<sub>MS</sub> + 33</td></tr>
+<tr><td>SQN<sub>MS</sub>（卡里）</td><td class="r">6 B</td><td>SIM 内部</td><td>每次认证成功后更新成这次的 SQN。读不出来，只能从 AUTS 里间接看到</td></tr>
+<tr><td>认证状态</td><td class="r">—</td><td>App 的 SharedPreferences</td><td>认证成功时写入 SUPI、认证时间、过期时间；失败或点"Clear"时清掉；24 小时后自动失效</td></tr>
+</table></div>
+
+<h3>7.4 生成 + 动态（每次认证都是新的）</h3>
+<div class="tw"><table>
+<tr><th>变量</th><th class="r">长度</th><th>谁生成</th><th>经过哪些接口</th><th>怎么来的</th><th>LiteAKA 需要吗</th></tr>
+<tr><td>RAND</td><td class="r">16 B</td><td>UDM</td><td>⑥ → ① → APDU</td><td>随机数</td><td class="pass">要</td></tr>
+<tr><td>AK</td><td class="r">6 B</td><td>UDM、SIM 各算一次</td><td>不传</td><td>f5(K, RAND)，用来盖住 SQN</td><td class="pass">要</td></tr>
+<tr><td>MAC</td><td class="r">8 B</td><td>UDM</td><td>在 AUTN 里</td><td>f1(K, RAND, SQN, AMF)</td><td class="pass">要</td></tr>
+<tr><td>AUTN</td><td class="r">16 B</td><td>UDM</td><td>⑥ → ① → APDU</td><td>(SQN ⊕ AK) ‖ AMF ‖ MAC</td><td class="pass">要</td></tr>
+<tr><td>XRES / RES</td><td class="r">8 B</td><td>UDM / SIM</td><td>RES：APDU 返回</td><td>f2(K, RAND)</td><td class="pass">要</td></tr>
+<tr><td>CK</td><td class="r">16 B</td><td>UDM / SIM</td><td>APDU 返回，App 用完清零</td><td>f3(K, RAND)</td><td>只用来算 RES*</td></tr>
+<tr><td>IK</td><td class="r">16 B</td><td>UDM / SIM</td><td>同上</td><td>f4(K, RAND)</td><td>只用来算 RES*</td></tr>
+<tr><td>XRES* / RES*</td><td class="r">16 B</td><td>UDM / App</td><td>RES*：③ → ⑦</td><td>KDF(CK‖IK, SN name, RAND, RES) 的低 128 位</td><td class="pass">要（判分就靠它）</td></tr>
+<tr><td>HXRES*</td><td class="r">16 B</td><td>AUSF</td><td>⑥ → ①</td><td>SHA-256(RAND ‖ XRES*) 的低 128 位</td><td class="fail">不要（App 只拿来自检）</td></tr>
+<tr><td>K<sub>AUSF</sub></td><td class="r">32 B</td><td>UDM</td><td>UDM → AUSF 内部</td><td>KDF(CK‖IK, SN name, SQN⊕AK)</td><td class="fail">不要</td></tr>
+<tr><td>K<sub>SEAF</sub></td><td class="r">32 B</td><td>AUSF</td><td>⑦ 返回，服务器丢掉</td><td>KDF(K<sub>AUSF</sub>, SN name)</td><td class="fail">不要</td></tr>
+<tr><td>authCtxId / 确认链接</td><td class="r">—</td><td>AUSF</td><td>⑥ 返回的 _links</td><td>AUSF 内部编号</td><td class="pass">要</td></tr>
+<tr><td>session</td><td class="r">16 B</td><td>服务器</td><td>① ② ③ ④</td><td>随机 UUID，120 秒过期，只能用一次</td><td class="pass">要</td></tr>
+<tr><td>authResult</td><td class="r">—</td><td>AUSF</td><td>⑦ 返回 → ③ 的 result</td><td>RES* == XRES*</td><td class="pass">要</td></tr>
+<tr><td>authenticatedAt</td><td class="r">—</td><td>服务器</td><td>③ 返回</td><td>成功时的 Unix 时间</td><td class="pass">要</td></tr>
+<tr><td>expiresAt</td><td class="r">—</td><td>服务器</td><td>③ 返回</td><td>authenticatedAt + 24 小时（<code>--state-ttl</code>）</td><td class="pass">要</td></tr>
+</table></div>
+
+<h3>7.5 只在重同步时出现（生成 + 动态）</h3>
+<div class="tw"><table>
+<tr><th>变量</th><th class="r">长度</th><th>谁生成</th><th>经过哪些接口</th><th>怎么来的</th></tr>
+<tr><td>AK*</td><td class="r">6 B</td><td>SIM、UDM</td><td>不传</td><td>f5*(K, RAND)</td></tr>
+<tr><td>MAC-S</td><td class="r">8 B</td><td>SIM</td><td>在 AUTS 里</td><td>f1*(K, RAND, SQN<sub>MS</sub>, AMF = 0000)</td></tr>
+<tr><td>AUTS</td><td class="r">14 B</td><td>SIM</td><td>APDU 返回 → ② → ⑥ resynchronizationInfo</td><td>(SQN<sub>MS</sub> ⊕ AK*) ‖ MAC-S</td></tr>
+</table></div>
+
+<div class="note">
+  <p><strong>一句话总结</strong>：事先要知道的只有 K、OPc、IMSI、AMF 和 PLMN；每次认证真正新产生、并且 LiteAKA 用得上的，
+  是 RAND、AUTN、RES*（和它在网络侧的对应 XRES*），以及一个会往前走的 SQN。CK、IK 只是算 RES* 的中间值；
+  K<sub>AUSF</sub>、K<sub>SEAF</sub>、HXRES* 是 Open5GS 顺手算出来、LiteAKA 用不上的。</p>
+</div>
+
+<footer>LiteAKA · 2026-10-06 · 上一页：<a href="realflow.html">6 · 实机：Flow</a> · 代码：<code>~/Desktop/LiteAKA</code>（server/、android/）</footer>
+</div>
+</body>
+</html>

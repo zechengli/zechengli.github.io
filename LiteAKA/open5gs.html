@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAKA · Open5GS</title>
+<meta name="description" content="LiteAKA 第五页：实机版只做认证时，用到了 Open5GS 的哪些代码，哪些可以去掉。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a href="index.html">1 · 去掉加密</a>
+  <a href="flow.html">2 · Flow</a>
+  <a href="api.html">3 · API</a>
+  <a href="demo.html">4 · Demo</a>
+  <a class="on" href="open5gs.html">5 · 实机：Open5GS</a>
+  <a href="realflow.html">6 · 实机：Flow</a>
+  <a href="realapi.html">7 · 实机：API 与变量</a>
+</nav>
+<header>
+  <div class="eyebrow">LiteAKA · 第 5 页 · 实机版</div>
+  <h1>只做认证，用到了 Open5GS 的哪些代码</h1>
+  <div class="lede">
+    <p>第 1–4 页是一开始的设计，网络侧是自己写的一个 Verifier。实际做出来、在手机上跑通的版本（2026-10-06）不一样：
+    网络侧直接用 <strong>Open5GS v2.8.0</strong>，手机里插的是真 SIM 卡（sysmoISIM-SJA2，IMSI <code>999700000085592</code>），
+    中间一个很小的 Python 服务器只负责转发。没有基站，没有 B210，srsRAN 一行都没用到。</p>
+    <p>结论先说：一次认证只会走到 Open5GS 的 <strong>AUSF、UDM、UDR</strong> 三个网元（另外 NRF、SCP 负责它们之间找人和转发）。
+    其余 12 个网元一个都没碰。真正和认证有关的算法和数据库代码，加起来大约 <strong>600 行</strong>。</p>
+    <p class="dim">第 1 页最后写着"网络侧（Open5GS）没有统计"，这一页补的就是这一块。</p>
+  </div>
+</header>
+
+<h2>1. 一次认证在 Open5GS 里走过哪些地方</h2>
+<pre>
+手机 ──► LiteAKA 服务器 ──► <b>AUSF</b> (127.0.0.11) ──► SCP ──► <b>UDM</b> (127.0.0.12) ──► SCP ──► <b>UDR</b> ──► MongoDB
+                                │                         │                               │
+                          存 XRES*、比 RES*          生成认证向量 (Milenage)        读 K / OPc / SQN，写回 SQN
+                                │                         │
+                                └──── NRF：AUSF 找 UDM、UDM 找 UDR 时，先问 NRF 地址 ────┘
+</pre>
+<p>这条路径是从配置和源码一起确认的：<code>/etc/open5gs/ausf.yaml</code> 里 AUSF 的 client 指向 SCP（<code>127.0.0.200:7777</code>），
+UDM 和 UDR 也是一样经 SCP 转发。</p>
+
+<h2>2. 网元：用到的和没用到的</h2>
+<div class="grid3">
+  <div class="stat"><b>3 + 2</b><span>用到的网元：AUSF、UDM、UDR，外加 NRF、SCP</span></div>
+  <div class="stat"><b>12</b><span>完全没用到的网元</span></div>
+  <div class="stat"><b>~600 行</b><span>真正和认证有关的算法 + 数据库代码</span></div>
+</div>
+<div class="tw"><table>
+<tr><th>网元</th><th class="r">代码行数</th><th>在 LiteAKA 里</th><th>做什么</th></tr>
+<tr><td>AUSF</td><td class="r">2,569</td><td class="pass">用到</td><td>接 LiteAKA 服务器的请求；存 XRES*，比较 RES*</td></tr>
+<tr><td>UDM</td><td class="r">4,874</td><td class="pass">用到</td><td>SUCI → SUPI；跑 Milenage 生成 RAND / AUTN / XRES*；处理 SQN 重同步</td></tr>
+<tr><td>UDR</td><td class="r">2,615</td><td class="pass">用到</td><td>从 MongoDB 读 K、OPc、AMF、SQN，把新 SQN 写回去</td></tr>
+<tr><td>NRF</td><td class="r">3,560</td><td>用到，但可以不要</td><td>网元之间互相找地址。如果把 UDM、UDR 的地址写死，就不需要</td></tr>
+<tr><td>SCP</td><td class="r">2,356</td><td>用到，但可以不要</td><td>转发网元之间的请求。改成直连就不需要</td></tr>
+<tr><td>AMF、SMF、UPF、PCF、NSSF、BSF、SEPP</td><td class="r">95,445</td><td class="fail">没用到</td><td>5G 的接入、会话、用户面、策略、切片、漫游</td></tr>
+<tr><td>MME、HSS、PCRF、SGW-C、SGW-U</td><td class="r">63,020</td><td class="fail">没用到</td><td>4G 核心网</td></tr>
+<tr><td><strong>合计</strong></td><td class="r"><strong>174,439</strong></td><td></td><td>用到的 AUSF+UDM+UDR 一共 10,058 行，占 5.8%</td></tr>
+</table></div>
+<p class="dim">行数是 <code>src/&lt;网元&gt;/</code> 下所有 .c 和 .h 的总行数（含注释和空行），Open5GS v2.8.0 源码。</p>
+
+<h3>公共库</h3>
+<div class="tw"><table>
+<tr><th>库</th><th class="r">行数</th><th>在 LiteAKA 里</th><th>说明</th></tr>
+<tr><td>core、app、proto、metrics</td><td class="r">22,868</td><td class="pass">用到</td><td>每个网元都要的基础设施（事件循环、内存、日志、配置）</td></tr>
+<tr><td>sbi（手写部分）</td><td class="r">23,399</td><td class="pass">用到</td><td>网元之间的 HTTP/2 接口。另外还有 54 万行 OpenAPI 自动生成的代码，只用到其中认证相关的几个结构</td></tr>
+<tr><td>dbi</td><td class="r">2,260</td><td class="pass">用到一小部分</td><td>只用 <code>ogs_dbi_auth_info</code>、<code>ogs_dbi_update_sqn</code>、<code>ogs_dbi_increment_sqn</code> 三个函数（200 行）</td></tr>
+<tr><td>crypt</td><td class="r">11,060</td><td class="pass">用到一小部分</td><td>只用 Milenage、RES* 的 KDF、SHA-256 / HMAC、AES。SNOW 3G、ZUC、KASUMI、AES-CMAC、SHA-1 都没用</td></tr>
+<tr><td>nas、ngap、s1ap、gtp、pfcp、diameter、sctp、tun、ipfw</td><td class="r">104,182</td><td class="fail">没用到</td><td>空口信令、基站接口、用户面、4G 接口。另外 73 万行 asn1c 生成的代码也全部没用到</td></tr>
+</table></div>
+
+<h2>3. 认证路径上的每一个函数</h2>
+<p>下面是一次认证真正执行到的函数。最后一列是 LiteAKA 的判断：<span class="pass">要</span>的是认证本身必须的；
+<span class="fail">可去掉</span>的是 Open5GS 为了"认证之后还要加密"或者为了网元之间的分工而做的事。</p>
+
+<h3>① 出题：POST /nausf-auth/v1/ue-authentications</h3>
+<div class="tw"><table>
+<tr><th>网元</th><th>文件</th><th>函数</th><th class="r">行数</th><th>做什么</th><th>LiteAKA</th></tr>
+<tr><td>AUSF</td><td>nausf-handler.c</td><td><code>ausf_nausf_auth_handle_authenticate</code></td><td class="r">44</td><td>收请求，记下 SUCI 和 serving network name</td><td class="pass">要</td></tr>
+<tr><td>AUSF</td><td>nudm-build.c</td><td><code>ausf_nudm_ueau_build_get</code></td><td class="r">47</td><td>向 UDM 要认证向量</td><td class="pass">要</td></tr>
+<tr><td>UDM</td><td>conv.c (lib/sbi)</td><td><code>ogs_supi_from_supi_or_suci</code></td><td class="r">31</td><td>SUCI → SUPI</td><td class="pass">要</td></tr>
+<tr><td>UDM</td><td>conv.c (lib/sbi)</td><td><code>ogs_supi_from_suci</code> 里的 ECIES 部分 + <code>curve25519-donna.c</code>、<code>ecc.c</code></td><td class="r">~2,400</td><td>解密被隐藏的 SUCI（Profile A/B）</td><td class="fail">可去掉</td></tr>
+<tr><td>UDM</td><td>nudm-handler.c</td><td><code>udm_nudm_ueau_handle_get</code></td><td class="r">152</td><td>收请求；如果带了 AUTS，就做重同步</td><td class="pass">要</td></tr>
+<tr><td>UDM</td><td>nudr-build.c</td><td><code>udm_nudr_dr_build_authentication_subscription</code></td><td class="r">64</td><td>向 UDR 读签约数据，之后再写回 SQN</td><td class="pass">要</td></tr>
+<tr><td>UDR</td><td>nudr-handler.c</td><td><code>udr_nudr_dr_handle_subscription_authentication</code>（GET、PATCH 分支）</td><td class="r">219</td><td>GET：读 K / OPc / AMF / SQN；PATCH：SQN 加 32 或者改成重同步后的值</td><td class="pass">要</td></tr>
+<tr><td>UDR</td><td>subscription.c (lib/dbi)</td><td><code>ogs_dbi_auth_info</code>、<code>ogs_dbi_update_sqn</code>、<code>ogs_dbi_increment_sqn</code></td><td class="r">200</td><td>真正读写 MongoDB</td><td class="pass">要</td></tr>
+<tr><td>UDM</td><td>nudr-handler.c</td><td><code>udm_nudr_dr_handle_subscription_authentication</code></td><td class="r">377</td><td>生成 RAND，跑 <code>milenage_generate</code>，算 XRES*</td><td class="pass">要</td></tr>
+<tr><td>UDM</td><td>ogs-kdf.c</td><td><code>ogs_kdf_kausf</code></td><td class="r">28</td><td>算 K<sub>AUSF</sub>（同一个函数里顺手算的）</td><td class="fail">可去掉</td></tr>
+<tr><td>AUSF</td><td>nudm-handler.c</td><td><code>ausf_nudm_ueau_handle_get</code></td><td class="r">227</td><td>存 XRES* 和 K<sub>AUSF</sub>，算 HXRES*，把 RAND / AUTN / HXRES* 回给服务器</td><td class="pass">要</td></tr>
+<tr><td>AUSF</td><td>ogs-kdf.c</td><td><code>ogs_kdf_hxres_star</code></td><td class="r">18</td><td>HXRES* = SHA-256(RAND ‖ XRES*) 的低 128 位</td><td class="fail">可去掉</td></tr>
+</table></div>
+
+<h3>② 交卷：PUT …/5g-aka-confirmation</h3>
+<div class="tw"><table>
+<tr><th>网元</th><th>文件</th><th>函数</th><th class="r">行数</th><th>做什么</th><th>LiteAKA</th></tr>
+<tr><td>AUSF</td><td>nausf-handler.c</td><td><code>ausf_nausf_auth_handle_authenticate_confirmation</code></td><td class="r">52</td><td><strong>比较 RES* 和 XRES*</strong>，这一步决定成功还是失败</td><td class="pass">要</td></tr>
+<tr><td>AUSF</td><td>nudm-build.c</td><td><code>ausf_nudm_ueau_build_result_confirmation_inform</code></td><td class="r">55</td><td>把结果告诉 UDM（auth-events）</td><td class="fail">可去掉</td></tr>
+<tr><td>UDM</td><td>nudm-handler.c</td><td><code>udm_nudm_ueau_handle_result_confirmation_inform</code></td><td class="r">71</td><td>记下"这个用户什么时候、在哪认证成功"</td><td class="fail">可去掉</td></tr>
+<tr><td>UDM / UDR</td><td>nudr-build.c、nudr-handler.c</td><td><code>udm_nudr_dr_build_update_authentication_status</code> + UDR 的 PUT 分支</td><td class="r">~80</td><td>把认证状态写进 UDR</td><td class="fail">可去掉</td></tr>
+<tr><td>AUSF</td><td>nudm-handler.c</td><td><code>ausf_nudm_ueau_handle_result_confirmation_inform</code></td><td class="r">95</td><td>算 K<sub>SEAF</sub>，把结果和 K<sub>SEAF</sub> 回给服务器</td><td>回结果<span class="pass">要</span>；K<sub>SEAF</sub> <span class="fail">可去掉</span></td></tr>
+<tr><td>AUSF</td><td>ogs-kdf.c</td><td><code>ogs_kdf_kseaf</code></td><td class="r">17</td><td>K<sub>SEAF</sub> = KDF(K<sub>AUSF</sub>, SN name)</td><td class="fail">可去掉</td></tr>
+</table></div>
+
+<h3>③ 底层算法（lib/crypt）</h3>
+<div class="tw"><table>
+<tr><th>文件</th><th>函数</th><th class="r">行数</th><th>做什么</th><th>LiteAKA</th></tr>
+<tr><td>milenage.c</td><td><code>milenage_f1</code>、<code>milenage_f2345</code>、<code>milenage_generate</code> 和 AES 辅助函数</td><td class="r">291</td><td>MAC、RES、CK、IK、AK，拼出 AUTN</td><td class="pass">要</td></tr>
+<tr><td>ogs-kdf.c</td><td><code>ogs_kdf_common</code>、<code>ogs_kdf_xres_star</code></td><td class="r">77</td><td>XRES* = KDF(CK‖IK, SN name, RAND, RES)</td><td class="pass">要</td></tr>
+<tr><td>ogs-kdf.c</td><td><code>ogs_auc_sqn</code></td><td class="r">25</td><td>重同步：从 AUTS 里解出 SIM 的 SQN，校验 MAC-S</td><td class="pass">要</td></tr>
+<tr><td>milenage.c</td><td><code>milenage_opc</code></td><td class="r">12</td><td>数据库里存的是 OP 时才用；我们存的是 OPc</td><td class="dim">没执行到</td></tr>
+<tr><td>ogs-kdf.c</td><td><code>ogs_kdf_kamf</code>、<code>ogs_kdf_nas_5gs</code>、<code>ogs_kdf_kgnb_and_kn3iwf</code>、<code>ogs_kdf_nh_gnb</code> 和所有 4G 的 KDF</td><td class="r">~270</td><td>认证之后的密钥树（在 AMF / MME 里用）</td><td class="fail">没执行到</td></tr>
+<tr><td>snow-3g.c、zuc.c、kasumi.c、ogs-aes-cmac.c</td><td>全部</td><td class="r">1,797</td><td>NAS / 空口的加密和完整性算法</td><td class="fail">没执行到</td></tr>
+</table></div>
+
+<h2>4. 只做认证，最少需要什么</h2>
+<div class="note good">
+  <p><strong>必须留下的</strong>只有这几样：</p>
+  <ul>
+    <li>Milenage（f1、f2345）：生成 AUTN 和 XRES，291 行</li>
+    <li>XRES* 的 KDF：77 行</li>
+    <li>SQN 的读、加、写回，以及用 AUTS 重同步：数据库 200 行 + <code>ogs_auc_sqn</code> 25 行</li>
+    <li>比较 RES* 和 XRES*：AUSF 里一个 <code>memcmp</code></li>
+  </ul>
+  <p>加起来大约 600 行。其余的代码，要么是把这几件事拆到三个网元里、再用 HTTP/2 + NRF + SCP 连起来的"管道"，
+  要么是为了认证之后的加密。</p>
+</div>
+<div class="note">
+  <p><strong>在认证路径上、但 LiteAKA 可以去掉的</strong>：</p>
+  <ul>
+    <li><strong>K<sub>AUSF</sub>、K<sub>SEAF</sub></strong>：Open5GS 每次都会算，然后把 K<sub>SEAF</sub> 交给调用方，留给 AMF 去派生 NAS 密钥。我们的服务器收到后直接丢掉。</li>
+    <li><strong>HXRES*</strong>：它是给漫游时的拜访网络（SEAF）先做一遍预检查用的。LiteAKA 只有一个网络，没有拜访网络。手机上目前拿它做一次本地自检，去掉也不影响结果。</li>
+    <li><strong>auth-events / authentication-status</strong>：只是记账，认证成功后告诉 UDM、写进 UDR，不影响这次认证的结果。</li>
+    <li><strong>SUCI 解密（ECIES）</strong>：我们发的是 null-scheme 的 SUCI，IMSI 明文在里面，所以这 2,400 行用不到。代价是 IMSI 在手机和服务器之间是明文。</li>
+    <li><strong>NRF、SCP</strong>：只是用来找地址、转发。如果把 AUSF、UDM、UDR 合成一个程序，它们和三个网元之间的 HTTP/2 接口都可以去掉。</li>
+  </ul>
+</div>
+<div class="note warn">
+  <p><strong>和第 1 页的区别</strong>：第 1 页的设计把 SQN 重同步也去掉了。实机版保留了，而且真的用上了：
+  把 SIM A 从数据库删掉、重新加进去以后，数据库里的 SQN 从 0 开始，比卡里的小，卡拒绝了第一次 challenge 并返回 AUTS，
+  Open5GS 用 <code>ogs_auc_sqn</code> 重同步以后第二次就通过了。没有这一段，每次重新登记 SIM 都要手动去改数据库里的 SQN。</p>
+</div>
+
+<h2>5. 统计口径</h2>
+<ul>
+  <li>Open5GS v2.8.0，<code>git clone --branch v2.8.0</code>，和这台机器上装的 <code>open5gs 2.8.0~jammy5</code> 同一个版本。</li>
+  <li>网元行数：<code>src/&lt;网元&gt;/</code> 下 .c + .h 的总行数，包括注释和空行。</li>
+  <li>库的行数不含自动生成的代码：<code>lib/sbi/openapi</code>（540,278 行）和 <code>lib/asn1c</code>（731,637 行）。</li>
+  <li>函数行数：从函数定义那一行到下一个函数定义之前，包括函数之间的空行。</li>
+  <li>"执行到"是按源码调用关系和这次实机的 SBI 请求判断的，没有在 Open5GS 里加覆盖率统计。</li>
+</ul>
+
+<footer>LiteAKA · 2026-10-06 · 上一页：<a href="demo.html">4 · Demo</a> · 下一页：<a href="realflow.html">6 · 实机：Flow</a></footer>
+</div>
+</body>
+</html>

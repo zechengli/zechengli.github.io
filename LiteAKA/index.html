@@ -14,11 +14,19 @@
   <a href="flow.html">2 · Flow</a>
   <a href="api.html">3 · API</a>
   <a href="demo.html">4 · Demo</a>
+  <a href="open5gs.html">5 · 实机：Open5GS</a>
+  <a href="realflow.html">6 · 实机：Flow</a>
+  <a href="realapi.html">7 · 实机：API 与变量</a>
 </nav>
 <header>
   <div class="eyebrow">LiteAKA · 第 1 页</div>
   <h1>只认证、不加密：从 5G AKA 里去掉了什么</h1>
-  <div class="lede">
+  <div class="note good">
+  <p><strong>2026-10-06 更新：</strong>第 1–4 页是最初的设计（网络侧是自己写的 Verifier，统计的是 srsRAN UE 侧的代码）。
+  实际做出来、在真手机 + 真 SIM 上跑通的版本用的是 Open5GS，见
+  <a href="open5gs.html">第 5 页（用了 Open5GS 的哪些代码）</a>、<a href="realflow.html">第 6 页（Flow）</a>、<a href="realapi.html">第 7 页（API 与变量）</a>。</p>
+</div>
+<div class="lede">
     <p><strong>一句话：</strong>LiteAKA 在 5G AKA 里算完 <code>RES*</code> 就停下来：只做双向认证，
     后面的密钥派生、Security Mode Command、NAS/PDCP 加密和完整性保护全部去掉，SQN 重同步也一并去掉。</p>
     <p>按 srsRAN_4G 里 <strong>5G UE 侧的安全代码</strong>统计：LiteAKA 保留 <strong>16.1%</strong>，
