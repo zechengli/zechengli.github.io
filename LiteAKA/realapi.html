@@ -70,10 +70,11 @@
 <h3>③ POST /liteaka/v1/confirm</h3>
 <pre>请求  { "session": "…", "resStar": "…32 hex…" }
 200   { "result": "PASS", "supi": "imsi-999700000085592",
-        "authenticatedAt": 1791325528, "expiresAt": 1791411928 }
+        "authenticatedAt": 1791325528, "expiresAt": 1791411928, "validFor": 86400 }
 200   { "result": "FAIL", "supi": "imsi-999700000085592",
-        "authenticatedAt": null, "expiresAt": null }</pre>
+        "authenticatedAt": null, "expiresAt": null, "validFor": null }</pre>
 <p>PASS 和 FAIL 都是 200，看 <code>result</code>。session 只能用一次。<code>expiresAt</code> = <code>authenticatedAt</code> + 24 小时（服务器参数 <code>--state-ttl</code>，默认 86400 秒；设成 0 就是永不过期，返回 null）。</p>
+<p><strong>App 只用 <code>validFor</code></strong>：从收到结果那一刻起，按手机自己的时钟算 24 小时。实测这台手机的时钟比服务器快 55 秒（手机关了自动对时），如果直接拿服务器的 <code>expiresAt</code> 和手机时钟比，状态会提前失效。</p>
 
 <h3>④ POST /liteaka/v1/abort</h3>
 <pre>请求  { "session": "…" }
@@ -118,7 +119,7 @@
 返回一行   authenticated     1 / 0
            supi              "imsi-999700000085592"（没认证时为 null）
            authenticated_at  Unix 秒
-           expires_at        Unix 秒，认证后 24 小时（0 = 永不过期）</pre>
+           expires_at        Unix 秒（手机时钟），认证后 24 小时（0 = 永不过期）</pre>
 <p>过了 <code>expires_at</code>，<code>authenticated</code> 自动变成 0，要重新认证。</p>
 <p>只读。insert / update / delete 都不做任何事。Android 11 以上，调用方还要在 manifest 里加
 <code>&lt;queries&gt;&lt;provider android:authorities="com.zecheng.liteaka.state"/&gt;&lt;/queries&gt;</code>。</p>
@@ -184,7 +185,7 @@ subscribers.py restore &lt;备份.json&gt;            从备份恢复</pre>
 <tr><td>session</td><td class="r">16 B</td><td>服务器</td><td>① ② ③ ④</td><td>随机 UUID，120 秒过期，只能用一次</td><td class="pass">要</td></tr>
 <tr><td>authResult</td><td class="r">—</td><td>AUSF</td><td>⑦ 返回 → ③ 的 result</td><td>RES* == XRES*</td><td class="pass">要</td></tr>
 <tr><td>authenticatedAt</td><td class="r">—</td><td>服务器</td><td>③ 返回</td><td>成功时的 Unix 时间</td><td class="pass">要</td></tr>
-<tr><td>expiresAt</td><td class="r">—</td><td>服务器</td><td>③ 返回</td><td>authenticatedAt + 24 小时（<code>--state-ttl</code>）</td><td class="pass">要</td></tr>
+<tr><td>expiresAt / validFor</td><td class="r">—</td><td>服务器</td><td>③ 返回</td><td>expiresAt = authenticatedAt + 24 小时；validFor = 86400（<code>--state-ttl</code>）。App 只用 validFor，按手机时钟计时</td><td class="pass">要</td></tr>
 </table></div>
 
 <h3>7.5 只在重同步时出现（生成 + 动态）</h3>

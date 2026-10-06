@@ -98,7 +98,7 @@
   │                        │                               │ V5. 丢掉 kseaf               │
   │                        │◄── {result: PASS, supi, ──────│                              │
   │                        │     authenticatedAt,          │                              │
-  │                        │     expiresAt: +24h}          │                              │
+  │                        │     validFor: 86400}          │                              │
   │                        │ A9. 存状态：AUTHENTICATED     │                              │
   │                        │     （失败就清掉状态）        │                              │
   │                        │                               │                              │
@@ -134,7 +134,7 @@
 <tr><td>A6</td><td>RES* = HMAC-SHA-256(CK‖IK, 0x6B ‖ SN name ‖ RAND ‖ RES) 的低 128 位</td><td>TS 33.501 Annex A.4。CK、IK 只用在这一步</td></tr>
 <tr><td>A7</td><td>CK、IK 清零</td><td>LiteAKA 不派生任何加密 / 完整性密钥</td></tr>
 <tr><td>A8</td><td>本地算 HRES*，和服务器给的 hxresStar 比</td><td>只是自检，不影响结果；真正判分在 AUSF</td></tr>
-<tr><td>A9</td><td>成功：存 SUPI、认证时间、过期时间（认证后 24 小时）；失败：清掉。过期后状态自动变成"未认证"，App 上显示 EXPIRED</td><td>失败时清掉，避免留着上一次的成功状态</td></tr>
+<tr><td>A9</td><td>成功：存 SUPI、认证时间、过期时间（按手机时钟，收到结果后 24 小时）；失败：清掉。过期后状态自动变成"未认证"，App 上显示 EXPIRED</td><td>失败时清掉，避免留着上一次的成功状态</td></tr>
 <tr><td>A10</td><td>ContentProvider 回答其他 App</td><td>只回答 yes / no 和 SUPI，不回答任何密钥</td></tr>
 </table></div>
 
@@ -168,6 +168,8 @@ N3 里的 auth-events 和 K<sub>SEAF</sub> 对 LiteAKA 没有用。</p>
 <tr><td>SIM A 删掉后重新登记，第一次认证</td><td>1</td><td class="pass">PASS</td><td>S4 → AUTS → 重同步 → 第二次 N3 成功</td></tr>
 <tr><td>Demo Client 在 SIM A 通过后</td><td>—</td><td class="pass">Access granted</td><td>A10：authenticated = 1</td></tr>
 <tr><td>Demo Client 在 SIM B 失败后</td><td>—</td><td class="fail">Access denied</td><td>A10：authenticated = 0</td></tr>
+<tr><td>24 小时计时（测试时服务器改成 40 秒）</td><td>1</td><td class="pass">按时失效</td><td>t=0 Access granted；t=46 s Access denied，App 显示 EXPIRED</td></tr>
+<tr><td>先通过、再用没登记的卡失败</td><td>1 → 0</td><td class="pass">旧状态被清掉</td><td>A9：失败时清掉，provider 立刻回 authenticated = 0</td></tr>
 </table></div>
 
 <footer>LiteAKA · 2026-10-06 · 上一页：<a href="open5gs.html">5 · 实机：Open5GS</a> · 下一页：<a href="realapi.html">7 · 实机：API 与变量</a></footer>
