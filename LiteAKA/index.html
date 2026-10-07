@@ -54,40 +54,6 @@
   </svg>
   </figure>
 </header>
-
-<h2>1. 实机版：跑出来的结果</h2>
-<p>sysmoISIM-SJA2（IMSI <code>999700000085592</code>）插在手机里，网络侧是 Open5GS v2.8.0，中间一个 Python 服务器只做转发。完整流程见 <a href="realflow.html">第 3 页</a>。</p>
-<div class="tw"><table>
-<tr><th>场景</th><th>结果</th></tr>
-<tr><td>SIM A（已登记）认证</td><td class="pass">PASS</td></tr>
-<tr><td>SIM B（没登记）认证</td><td class="fail">FAIL</td></tr>
-<tr><td>SIM A 删掉后重新登记，第一次认证</td><td class="pass">PASS</td></tr>
-<tr><td>Demo Client（别的 app）在 SIM A 通过后来查</td><td class="pass">Access granted</td></tr>
-<tr><td>Demo Client 在 SIM B 失败后来查</td><td>Access denied</td></tr>
-<tr><td>有效期到了（测试时改成 40 秒）</td><td>按时失效：t=0 granted，t=46 s denied</td></tr>
-<tr><td>先通过，再用没登记的卡失败</td><td>旧状态被清掉，查到 authenticated = 0</td></tr>
-</table></div>
-<p class="dim">第三行实际走了一遍重同步：数据库里的 SQN 从 0 开始，比卡里的小，卡返回 AUTS，重同步后第二次通过。表格摘自 <a href="realflow.html">第 3 页</a> 第 4 节。</p>
-
-<h2>2. 原型：跑出来的结果</h2>
-<p>只用软 SIM（TS 35.208 公开测试 K/OPc）。Milenage 测试向量 9/9 对上，端到端测试 6/6 通过：正常认证、重同步、假 Verifier 被拒、
-handle 被拷到别的设备上用被拒、revoke、revoke 之后被拒。详情见 <a href="proto.html">第 5 页</a>。</p>
-
-<h2>3. 两个版本不一样的地方：要一起对</h2>
-<div class="tw"><table>
-<tr><th>问题</th><th>实机版</th><th>原型</th><th>要定的</th></tr>
-<tr><td>网络侧谁出题、谁判分</td><td>Open5GS（UDM 出题，AUSF 判分），服务器只转发</td><td>自己写的 Verifier（AUSF + UDM 合一）</td><td rowspan="2">要不要把设备密钥绑进认证？要绑的话，用 Open5GS 就得改 AUSF/UDM，或者在 RES* 之外另做绑定</td></tr>
-<tr><td>RES* 里的 P0</td><td>标准 SN name <code>5G:mnc070.mcc999.3gppnetwork.org</code></td><td><code>liteaka:&lt;Verifier ID&gt;:&lt;设备公钥哈希&gt;</code></td></tr>
-<tr><td>手机怎么访问 SIM</td><td>root，授予 <code>MODIFY_PHONE_STATE</code>，用逻辑通道发 APDU</td><td>（没做手机）计划在卡的 ARA-M 里写运营商特权规则</td><td>demo 用 root 够不够？想在不 root 的手机上跑，就要写 ARA-M 规则，需要卡的 ADM1</td></tr>
-<tr><td>状态存在哪</td><td>手机 App 的 SharedPreferences：SUPI、认证时间、过期时间</td><td>Verifier 端：IMSI、设备公钥、过期时间</td><td rowspan="2">别的 app 拿到 yes/no 就够了，还是它的后端也要能自己验证？</td></tr>
-<tr><td>别的 app 怎么查</td><td>ContentProvider，回 <code>authenticated = 1/0</code> 和 SUPI，要声明权限 <code>CHECK_STATE</code></td><td>设备私钥签一个一次性 nonce，再调 Verifier 的 <code>/check</code>（还没做成给别的 app 用的接口）</td></tr>
-<tr><td>状态被拷走能不能用</td><td>状态只是手机上的一个标记，没有和密钥绑定</td><td>不能：没有设备私钥查不了（测试第 4 项）</td><td>同第一行</td></tr>
-<tr><td>有效期</td><td>24 小时，按手机时钟算（<code>validFor</code>）</td><td>600 秒，按 Verifier 时钟算</td><td>以后由戒指/手表续期，两边都还没做</td></tr>
-<tr><td>重同步</td><td>保留，真卡上走过</td><td>保留，软 SIM 上走过</td><td>一致</td></tr>
-<tr><td>跑过什么</td><td>真卡、真手机</td><td>只有软 SIM</td><td>—</td></tr>
-</table></div>
-
-<footer>LiteAKA · 2026-10-06 · 只写跑过或已决定的东西 · 实机版代码：<code>~/Desktop/LiteAKA</code>（server/、android/）· 下一页：<a href="open5gs.html">2 · 实机：Open5GS</a></footer>
 </div>
 </body>
 </html>
