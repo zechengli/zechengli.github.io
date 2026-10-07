@@ -175,7 +175,7 @@ table.keys td.drop { color: var(--red); }
   <h3 class="grp">第 1 组：AKA 主链</h3>
   <div class="tw"><table class="keys">
   <tr><th>K</th><th>全称</th><th>来源</th><th>去向</th><th>作用</th><th>AI 建议</th><th>ZC 决定</th></tr>
-  <tr><td><b>K</b></td><td>长期密钥</td><td>开卡时写入卡和 UDR（Unified Data Repository，统一数据存储库）</td><td>不出卡；进 f1–f5</td><td>认证的根：注册的时候用到，每一次认证的时候也用到，认证完之后的流程也要用到</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
+  <tr><td><b>K</b></td><td>长期密钥</td><td>开卡时写入卡和 UDR（Unified Data Repository，统一数据存储库）</td><td>不出卡；进 f1–f5</td><td>认证的根：注册的时候用到，每一次认证的时候也用到，认证完之后的流程间接用到（用的是从 K 派生的密钥，K 本身不再参与）</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>CK</b></td><td>Cipher Key</td><td>f3(K, RAND)</td><td>RES*、K<sub>AUSF</sub> 的 key</td><td>5G 里只是中间值</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>IK</b></td><td>Integrity Key</td><td>f4(K, RAND)</td><td>同 CK</td><td>同 CK</td><td class="keep">保留</td><td></td></tr>
   <tr><td><b>AK</b></td><td>Anonymity Key</td><td>f5(K, RAND)</td><td>盖住 SQN</td><td>防 SQN 被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
