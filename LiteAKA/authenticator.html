@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAKA · 与 MS Authenticator 的对比</title>
+<meta name="description" content="左边是 Microsoft Authenticator 的注册和登录流程（按微软官方文档核对），右边是用 AKA 做同样事情的 LiteAKA 基础版。">
+<link rel="stylesheet" href="style.css">
+<style>
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px 16px; }
+.col h2 { margin: 4px 0 10px; border: 0; padding: 0; font-size: 1.3rem; }
+.col.ms h2 { color: var(--blue); } .col.la h2 { color: var(--green); }
+.col h3 { margin: 18px 0 6px; font-size: 1rem; }
+.col ol { padding-left: 20px; margin: 6px 0; font-size: .9rem; }
+.col ol li { margin: 4px 0; }
+.col p { font-size: .9rem; }
+.sq { width: 100%; display: block; margin: 6px 0 10px; }
+.sq text { font-family: Georgia, 'Songti SC', serif; fill: var(--text); text-anchor: middle; }
+.sq .ln { font-size: 13px; font-weight: bold; }
+.sq .lane { fill: var(--code); stroke: var(--border); }
+.sq .ll { stroke: var(--border); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.sq .ar { stroke: var(--text); stroke-width: 1.4; }
+.sq .ah { fill: var(--text); }
+.sq .st { font-size: 12px; paint-order: stroke; stroke: var(--card); stroke-width: 4px; }
+.sq .self { fill: var(--code); stroke: var(--border); }
+.sq.la .ar.r, .sq.la .self.r { stroke: var(--green); }
+.sq.la .st.r { fill: var(--green); }
+.sq.la .ar.d, .sq.la .self.d { stroke: var(--muted); }
+.tag { font-family: Verdana, Arial, sans-serif; font-size: .68rem; border-radius: 99px; padding: 1px 8px; border: 1px solid; white-space: nowrap; vertical-align: 1px; }
+.tag.run { color: var(--green); border-color: var(--green); }
+.tag.des { color: var(--muted); border-color: var(--border); }
+.tag.unv { color: var(--red); border-color: var(--red); }
+.diff td:first-child { white-space: nowrap; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<p><a href="index.html">← LiteAKA 总览</a></p>
+<header>
+  <div class="eyebrow">LiteAKA · 2026-10-07</div>
+  <h1>与 MS Authenticator 的对比</h1>
+  <div class="lede">
+    <p>老板的问题："something similar to MS Authenticator but using AKA — what's the flow?"</p>
+    <p>左边是 <strong>Microsoft Authenticator</strong> 实际怎么做，按微软官方文档核对过，没查到的地方标 <span class="tag unv">未核实</span>。
+    右边是 <strong>LiteAKA 基础版</strong>：把左边"证明是你本人"那一步从 App 自己生成的密钥换成 SIM 卡里的 AKA。
+    右边标 <span class="tag run">已跑通</span> 的是软 SIM 原型里实际跑过的；标 <span class="tag des">设计</span> 的还没有实现。</p>
+  </div>
+</header>
+
+<div class="cols">
+<div class="col ms">
+  <h2>Microsoft Authenticator</h2>
+  <h3>角色</h3>
+  <p><b>浏览器</b>（用户在网站登录）· <b>Authenticator App</b>（手机）· <b>Entra ID</b>（微软的身份服务，也是最后给网站发 token 的人）。</p>
+  <p><b>信任根</b>：App 在手机上生成的一把设备密钥，加上手机在 Entra 里注册过。私钥存在哪里（Secure Enclave / Keystore / TEE）微软没有写明 <span class="tag unv">未核实</span>。</p>
+
+  <h3>注册（一次）</h3>
+  <svg viewBox="0 0 620 340" class="sq ms" role="img">
+<defs><marker id="ams" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<rect class="lane" x="14" y="6" width="172" height="28" rx="6"/><text class="ln" x="100" y="25">浏览器</text>
+<line class="ll" x1="100" y1="36" x2="100" y2="326"/>
+<rect class="lane" x="224" y="6" width="172" height="28" rx="6"/><text class="ln" x="310" y="25">Authenticator App</text>
+<line class="ll" x1="310" y1="36" x2="310" y2="326"/>
+<rect class="lane" x="434" y="6" width="172" height="28" rx="6"/><text class="ln" x="520" y="25">Entra ID</text>
+<line class="ll" x1="520" y1="36" x2="520" y2="326"/>
+<rect class="self v" x="20" y="54" width="160" height="28" rx="6"/><text class="st v" x="100" y="72">1. 登录 Security info，点添加</text>
+<line class="ar v" x1="100" y1="112" x2="512" y2="112" marker-end="url(#ams)"/>
+<text class="st v" x="310.0" y="106">2. Entra 显示二维码</text>
+<line class="ar v" x1="310" y1="156" x2="108" y2="156" marker-end="url(#ams)"/>
+<text class="st v" x="205.0" y="150">3. App 扫二维码（内容未公开）</text>
+<line class="ar v" x1="310" y1="200" x2="512" y2="200" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="194">4. 注册设备，上传设备公钥</text>
+<line class="ar v" x1="520" y1="244" x2="318" y2="244" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="238">5. 测试推送 + 数字匹配</text>
+<line class="ar v" x1="310" y1="288" x2="512" y2="288" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="282">6. 输入数字，批准</text>
+</svg>
+  <ol>
+    <li>用户登录 <code>mysignins.microsoft.com/security-info</code>，点"添加登录方法 → Microsoft Authenticator"。</li>
+    <li>页面显示二维码。微软说扫码是为了确认"手机确实在你手里"。二维码里装了什么，微软没有公开 <span class="tag unv">未核实</span>。</li>
+    <li>App 扫码。如果要用无密码登录，手机还要做设备注册，成为 Entra registered 设备；这时生成设备密钥，公钥存到 Entra。推送用的 APNS / FCM token 应该也是这时上传的，但微软没写明 <span class="tag unv">未核实</span>。</li>
+    <li>最后必须批准一次测试推送，并输入屏幕上的数字。</li>
+  </ol>
+
+  <h3>登录（每次，无密码手机登录）</h3>
+  <svg viewBox="0 0 620 428" class="sq ms" role="img">
+<defs><marker id="ams" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<rect class="lane" x="14" y="6" width="172" height="28" rx="6"/><text class="ln" x="100" y="25">浏览器</text>
+<line class="ll" x1="100" y1="36" x2="100" y2="414"/>
+<rect class="lane" x="224" y="6" width="172" height="28" rx="6"/><text class="ln" x="310" y="25">Authenticator App</text>
+<line class="ll" x1="310" y1="36" x2="310" y2="414"/>
+<rect class="lane" x="434" y="6" width="172" height="28" rx="6"/><text class="ln" x="520" y="25">Entra ID</text>
+<line class="ll" x1="520" y1="36" x2="520" y2="414"/>
+<line class="ar v" x1="100" y1="68" x2="512" y2="68" marker-end="url(#ams)"/>
+<text class="st v" x="310.0" y="62">1. 输入用户名</text>
+<rect class="self v" x="440" y="98" width="160" height="28" rx="6"/><text class="st v" x="520" y="116">2. 识别强凭据；网页显示数字</text>
+<line class="ar v" x1="520" y1="156" x2="318" y2="156" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="150">3. 推送（APNS / FCM）</text>
+<rect class="self v" x="230" y="186" width="160" height="28" rx="6"/><text class="st v" x="310" y="204">4. 用户打开 App</text>
+<line class="ar v" x1="310" y1="244" x2="512" y2="244" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="238">5. 取挑战 + nonce</text>
+<rect class="self v" x="230" y="274" width="160" height="28" rx="6"/><text class="st v" x="310" y="292">6. 输入数字；生物识别解锁私钥</text>
+<line class="ar v" x1="310" y1="332" x2="512" y2="332" marker-end="url(#ams)"/>
+<text class="st v" x="415.0" y="326">7. 发回签过名的 nonce</text>
+<line class="ar v" x1="520" y1="376" x2="108" y2="376" marker-end="url(#ams)"/>
+<text class="st v" x="310.0" y="370">8. 验签通过，发 token</text>
+</svg>
+  <ol>
+    <li>用户在网站输入用户名。</li>
+    <li>Entra 识别出这个账号有强凭据，启动 Strong Credential 流程；网页上显示一个数字。</li>
+    <li>Entra 通过 APNS（iOS）/ FCM（Android）推送到 App。推送里可以带网站名和大概位置，但默认关着。</li>
+    <li>用户打开 App。</li>
+    <li>App 向 Entra 取一个"在场证明"挑战和 nonce。</li>
+    <li>用户输入网页上的数字，用生物识别或 PIN 解锁设备私钥。</li>
+    <li>App 用私钥签 nonce，发回 Entra。</li>
+    <li>Entra 用注册时存的公钥验签，给网站发 token。</li>
+  </ol>
+  <p>数字匹配从 2023 年 5 月起对所有推送强制开启，用户不能关掉，原因是防"MFA 疲劳轰炸"。数字是几位，微软现在的页面没写 <span class="tag unv">未核实</span>。</p>
+
+  <h3>网站拿到什么</h3>
+  <p>标准的 OIDC ID token（签名的 JWT）：<code>iss</code>、<code>aud</code>、<code>nonce</code>、每个网站不同的 <code>sub</code>。
+  用了什么方法写在 <code>amr</code> 里，例如 <code>["mfa","rsa","pwd"]</code>，其中 <code>rsa</code> 就是"用 Authenticator 的密钥证明过"。</p>
+
+  <h3>安全等级（微软自己的分类）</h3>
+  <p>手机登录算 <b>Passwordless MFA</b>，<b>不算抗钓鱼</b>（Phishing-resistant）。抗钓鱼那一档只有 passkey（FIDO2）等。</p>
+</div>
+
+<div class="col la">
+  <h2>LiteAKA 基础版</h2>
+  <h3>角色</h3>
+  <p><b>浏览器</b> · <b>LiteAKA App + SIM 卡</b>（手机）· <b>Verifier</b>（我们自己写的服务器，扮演运营商：持有 K，出题、判分，最后给网站发 token）。</p>
+  <p><b>信任根</b>：运营商写在 SIM 卡里的 K，拿不出来。手机上另外有一把设备密钥，注册时由那次 AKA 给它作保。</p>
+
+  <h3>注册（一次）</h3>
+  <svg viewBox="0 0 620 472" class="sq la" role="img">
+<defs><marker id="ala" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<rect class="lane" x="14" y="6" width="172" height="28" rx="6"/><text class="ln" x="100" y="25">浏览器</text>
+<line class="ll" x1="100" y1="36" x2="100" y2="458"/>
+<rect class="lane" x="224" y="6" width="172" height="28" rx="6"/><text class="ln" x="310" y="25">LiteAKA App + SIM</text>
+<line class="ll" x1="310" y1="36" x2="310" y2="458"/>
+<rect class="lane" x="434" y="6" width="172" height="28" rx="6"/><text class="ln" x="520" y="25">Verifier（持有 K）</text>
+<line class="ll" x1="520" y1="36" x2="520" y2="458"/>
+<rect class="self d" x="20" y="54" width="160" height="28" rx="6"/><text class="st d" x="100" y="72">1. 登录后点"添加 LiteAKA"</text>
+<line class="ar d" x1="100" y1="112" x2="512" y2="112" marker-end="url(#ala)"/>
+<text class="st d" x="310.0" y="106">2. 服务器显示二维码：地址 + 一次性码</text>
+<line class="ar d" x1="310" y1="156" x2="108" y2="156" marker-end="url(#ala)"/>
+<text class="st d" x="205.0" y="150">3. App 扫码；生成设备密钥；读 IMSI</text>
+<line class="ar d" x1="310" y1="200" x2="512" y2="200" marker-end="url(#ala)"/>
+<text class="st d" x="415.0" y="194">4. /enroll/start：码, IMSI, 设备公钥</text>
+<line class="ar r" x1="520" y1="244" x2="318" y2="244" marker-end="url(#ala)"/>
+<text class="st r" x="415.0" y="238">5. 用 K 出题：RAND, AUTN（P0 绑设备公钥）</text>
+<rect class="self r" x="230" y="274" width="160" height="28" rx="6"/><text class="st r" x="310" y="292">6. SIM 做题：验 MAC，查 SQN</text>
+<line class="ar r" x1="310" y1="332" x2="512" y2="332" marker-end="url(#ala)"/>
+<text class="st r" x="415.0" y="326">7. RES* + 设备签名</text>
+<rect class="self r" x="440" y="362" width="160" height="28" rx="6"/><text class="st r" x="520" y="380">8. 验 RES* 和签名；存状态</text>
+<line class="ar d" x1="520" y1="420" x2="318" y2="420" marker-end="url(#ala)"/>
+<text class="st d" x="415.0" y="414">9. 测试登录（数字匹配）</text>
+</svg>
+  <ol>
+    <li>用户在网站登录后点"添加 LiteAKA"。<span class="tag des">设计</span></li>
+    <li>服务器显示二维码：服务器地址 + 一次性注册码，5 分钟有效。<span class="tag des">设计</span></li>
+    <li>App 扫码；生成设备密钥（现在是文件，目标是 Android Keystore）；读出 IMSI。<span class="tag des">设计</span></li>
+    <li>App 发 <code>/enroll/start</code>：注册码、IMSI、设备公钥。<span class="tag des">设计</span></li>
+    <li>Verifier 用 K 出题：RAND、AUTN。RES* 的 P0 里绑上注册号和设备公钥的哈希。<span class="tag run">已跑通</span></li>
+    <li>App 把 RAND、AUTN 交给 SIM：MAC 不对就中止（对面没有 K）；SQN 不同步就回 AUTS 重同步，再来一次。<span class="tag run">已跑通</span></li>
+    <li>App 算出 RES*，连同设备签名发回；然后把 CK、IK 从内存清掉。<span class="tag run">已跑通</span></li>
+    <li>Verifier 比对 RES* 和 XRES*，验签；存 {账号, SUPI, 设备公钥} 和一个认证状态 {AKA 时间, 到期时间}。<span class="tag run">已跑通</span></li>
+    <li>做一次测试登录，带数字匹配。<span class="tag des">设计</span></li>
+  </ol>
+
+  <h3>登录（每次）</h3>
+  <svg viewBox="0 0 620 428" class="sq la" role="img">
+<defs><marker id="ala" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker></defs>
+<rect class="lane" x="14" y="6" width="172" height="28" rx="6"/><text class="ln" x="100" y="25">浏览器</text>
+<line class="ll" x1="100" y1="36" x2="100" y2="414"/>
+<rect class="lane" x="224" y="6" width="172" height="28" rx="6"/><text class="ln" x="310" y="25">LiteAKA App + SIM</text>
+<line class="ll" x1="310" y1="36" x2="310" y2="414"/>
+<rect class="lane" x="434" y="6" width="172" height="28" rx="6"/><text class="ln" x="520" y="25">Verifier（持有 K）</text>
+<line class="ll" x1="520" y1="36" x2="520" y2="414"/>
+<line class="ar d" x1="100" y1="68" x2="512" y2="68" marker-end="url(#ala)"/>
+<text class="st d" x="310.0" y="62">1. 网站跳转到 /authorize（OIDC）</text>
+<rect class="self d" x="440" y="98" width="160" height="28" rx="6"/><text class="st d" x="520" y="116">2. 建交易：数字 n, nonce；网页显示 n</text>
+<line class="ar d" x1="520" y1="156" x2="318" y2="156" marker-end="url(#ala)"/>
+<text class="st d" x="415.0" y="150">3. 推送 {交易号}</text>
+<line class="ar d" x1="310" y1="200" x2="512" y2="200" marker-end="url(#ala)"/>
+<text class="st d" x="415.0" y="194">4. 签名拉取详情（要跑 AKA 就带 RAND, AUTN）</text>
+<rect class="self d" x="230" y="230" width="160" height="28" rx="6"/><text class="st d" x="310" y="248">5. 输入数字；批准；生物识别解锁</text>
+<rect class="self r" x="230" y="274" width="160" height="28" rx="6"/><text class="st r" x="310" y="292">6. 状态有效 → 只签名；过期 → SIM 做题</text>
+<line class="ar r" x1="310" y1="332" x2="512" y2="332" marker-end="url(#ala)"/>
+<text class="st r" x="415.0" y="326">7. 签名（+ RES*）</text>
+<line class="ar d" x1="520" y1="376" x2="108" y2="376" marker-end="url(#ala)"/>
+<text class="st d" x="310.0" y="370">8. 检查通过，发 code → ID token</text>
+</svg>
+  <ol>
+    <li>网站把用户跳转到 Verifier 的 <code>/authorize</code>（标准 OIDC）。<span class="tag des">设计</span></li>
+    <li>Verifier 建一笔交易：交易号、数字 n、nonce、网站名和大概位置，120 秒有效、只能用一次；网页显示 n。<span class="tag des">设计</span></li>
+    <li>推送到 App，推送里只放交易号。<span class="tag des">设计</span></li>
+    <li>App 用设备密钥签名，去拉这笔交易的详情；如果这次要跑 AKA，详情里带着 RAND、AUTN。<span class="tag run">已跑通</span>（签名拉取就是原型里的 <code>/challenge</code> + <code>/check</code>）</li>
+    <li>App 显示"要登录 某某网站 吗？"，用户输入数字，点批准（也可以拒绝），生物识别解锁设备密钥。<span class="tag des">设计</span></li>
+    <li><b>认证状态还有效</b>：只用设备密钥签（交易号, n, nonce）。<b>状态过期了，或者网站要求最新的 AKA</b>：SIM 再做一次题，RES* 的 P0 绑上交易号、n 和设备公钥哈希。<span class="tag run">已跑通</span>（两条路都在原型里，只是还没有数字 n）</li>
+    <li>App 发回签名（跑了 AKA 就连 RES* 一起）。<span class="tag run">已跑通</span></li>
+    <li>Verifier 检查交易没过期没用过、数字对、签名对、状态没被撤销；通过后发 code，网站换成 ID token。<span class="tag des">设计</span></li>
+  </ol>
+  <p><b>AKA 什么时候跑</b>：注册时一定跑；登录时只在状态过期、网站要求、或触发风险规则（数字输错、新地点、疑似换卡）时跑；平时登录不跑。
+  有效期 TTL 是一个参数：TTL = 0 就是每次登录都跑 AKA，TTL = 24 小时就是现在实机版的做法。</p>
+
+  <h3>网站拿到什么</h3>
+  <p>和左边一样是 OIDC ID token：每个网站不同的 <code>sub</code>（绝不放 SUPI），<code>acr</code> 写明这次是 <code>liteaka:state</code>（查状态）还是 <code>liteaka:aka</code>（新跑了 AKA），再加 <code>aka_time</code>。<span class="tag des">设计</span></p>
+
+  <h3>安全等级</h3>
+  <p>和左边一样属于 <b>Passwordless MFA</b>，<b>同样不抗钓鱼</b>：实时的中间人钓鱼页会把真数字转给受害者看。AKA 改变不了这一点。</p>
+</div>
+</div>
+
+<h2>两边最关键的区别</h2>
+<div class="tw"><table class="diff">
+<tr><th></th><th>Microsoft Authenticator</th><th>LiteAKA</th></tr>
+<tr><td>信任从哪来</td><td>App 自己生成的设备密钥；靠"扫码时你已登录"来认它</td><td>运营商写在 SIM 里的 K，注册时给设备密钥作保，之后随时可以要求再验一次。所以能发现换卡（SIM swap），微软看不到 SIM</td></tr>
+<tr><td>手机能不能验服务器</td><td>不能，只靠 TLS</td><td>能：SIM 只回答用 K 出的题，假服务器什么也拿不到（软 SIM 测过，<code>e2e_test.sh</code> 第 3 项）</td></tr>
+<tr><td>谁来运营</td><td>微软自己运营整套系统</td><td>Verifier 必须是持有 K 的一方，也就是运营商。实验室里我们自己扮演；接 AT&amp;T 的话现实中只能拿到号码验证（CAMARA / TS.43），拿不到 AKA 的值</td></tr>
+<tr><td>离线备用</td><td>有 TOTP 验证码</td><td>没有</td></tr>
+</table></div>
+
+<div class="note warn">
+  <p><b>一句要老实说的话</b>：RES* 是手机软件（ME）用 CK‖IK 算的，不是 SIM 卡里面算的（TS 33.501 §6.1.3.2.0）。所以"SIM 给设备密钥作保"严格说是"算 RES* 的那段代码在那一刻能访问 SIM"。能碰到 SIM 的代码（root、运营商特权的 App、读卡器）都能绑自己的密钥。</p>
+</div>
+
+<h2>已有的类似东西</h2>
+<ul>
+  <li><b>GBA Push</b>（TS 33.223）：服务器推送、SIM 回答 AKA 题，是最接近的标准方案。</li>
+  <li><b>AKMA</b>（TS 33.535）和它的后续研究：AKMA+（USENIX Security 2025，作者里有 Purdue 的 Bertino）、E2E-AKMA（USENIX Security 2026）。</li>
+  <li><b>商用号码验证</b>：AT&amp;T、T-Mobile、Verizon 通过 Aduna 上线了 CAMARA Number Verification；Android 有 TS.43 的号码验证 API。</li>
+  <li>没有搜到"每次登录推送一次 AKA，并把设备公钥绑进 AKA 结果"的工作。只说明没搜到，不能证明不存在。</li>
+</ul>
+
+<footer>LiteAKA · 2026-10-07 · 左边按 learn.microsoft.com 核对；右边只有标"已跑通"的在软 SIM 原型里实际跑过，其余是设计。</footer>
+</div>
+</body>
+</html>
