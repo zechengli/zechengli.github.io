@@ -176,8 +176,8 @@ table.keys td.drop { color: var(--red); }
   <div class="tw"><table class="keys">
   <tr><th>K</th><th>全称</th><th>来源</th><th>去向</th><th>作用</th><th>AI 建议</th><th>ZC 决定</th></tr>
   <tr><td><b>K</b></td><td>长期密钥</td><td>开卡时写入卡和 UDR（Unified Data Repository，统一数据存储库）</td><td>不出卡；进 f1–f5</td><td>认证的根：注册的时候用到，每一次认证的时候也用到，认证完之后的流程间接用到（用的是从 K 派生的密钥，K 本身不再参与）</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
-  <tr><td><b>CK</b></td><td>Cipher Key</td><td>f3(K, RAND)</td><td>RES*、K<sub>AUSF</sub> 的 key</td><td>5G 里只是中间值</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
-  <tr><td><b>IK</b></td><td>Integrity Key</td><td>f4(K, RAND)</td><td>同 CK</td><td>同 CK</td><td class="keep">保留</td><td></td></tr>
+  <tr><td><b>CK</b></td><td>Cipher Key（加密密钥）</td><td>f3(K, RAND)</td><td>和 IK 拼成 CK‖IK，当 RES*、K<sub>AUSF</sub> 的 key</td><td>3G：给 f8（加密算法）用，加密空口数据；5G：不单独用，只是 CK‖IK 的一半</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
+  <tr><td><b>IK</b></td><td>Integrity Key（完整性密钥）</td><td>f4(K, RAND)</td><td>和 CK 拼成 CK‖IK，当 RES*、K<sub>AUSF</sub> 的 key</td><td>3G：给 f9（完整性算法）用，给信令算 MAC；5G：不单独用，只是 CK‖IK 的一半</td><td class="keep">保留</td><td></td></tr>
   <tr><td><b>AK</b></td><td>Anonymity Key</td><td>f5(K, RAND)</td><td>盖住 SQN</td><td>防 SQN 被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>AK*</b></td><td>重同步 AK</td><td>f5*(K, RAND)</td><td>盖住 AUTS 里的 SQN<sub>MS</sub></td><td>重同步时保护 SQN</td><td class="keep">保留</td><td></td></tr>
   <tr><td><b>AK**</b></td><td>可选的重同步 AK</td><td>f5**（33.102 附录 J）</td><td>同 AK*</td><td>可代替 AK*</td><td class="drop">去掉</td><td></td></tr>
