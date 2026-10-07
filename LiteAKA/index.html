@@ -6,7 +6,17 @@
 <title>LiteAKA · 总览</title>
 <meta name="description" content="LiteAKA: registering first, authentication once a while, no further encryption on communication.">
 <link rel="stylesheet" href="style.css">
-<style>.step { font-family: Verdana, Arial, sans-serif; font-weight: bold; color: var(--accent); font-size: 1rem; margin: 26px 0 4px; }</style>
+<style>.step { font-family: Verdana, Arial, sans-serif; font-weight: bold; color: var(--accent); font-size: 1rem; margin: 26px 0 4px; }.basis { display: grid; gap: 12px; margin: 10px 0 30px; }
+.bi { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--red); border-radius: 8px; padding: 10px 16px;
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
+.bi.g { border-left-color: var(--green); }
+.bi h4 { grid-column: 1 / -1; margin: 2px 0 4px; font-size: 1rem; color: var(--red); }
+.bi.g h4 { color: var(--green); }
+.bi p { margin: 4px 0; font-size: .92rem; }
+.bi p[lang="en"] { color: var(--muted); }
+.bi .ref { grid-column: 1 / -1; font-family: Verdana, Arial, sans-serif; font-size: .72rem; color: var(--muted); margin-top: 4px; }
+@media (max-width: 720px) { .bi { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -97,23 +107,23 @@
 
     <!-- 去掉的：一直在用 -->
     <line class="r" x1="245" y1="115" x2="994" y2="115"/>
-    <text class="lr" x="330" y="104">K<tspan class="sub" dy="5">AMF</tspan><tspan dy="-5">：注册期间一直存着，反复派生下面的密钥</tspan></text>
+    <text class="lr" x="330" y="104">K<tspan class="sub" dy="5">AMF</tspan><tspan dy="-5">：一直存着，反复派生下面的密钥</tspan></text>
     <line class="r" x1="253" y1="155" x2="994" y2="155"/>
-    <text class="lr" x="330" y="144">K<tspan class="sub" dy="5">NASenc</tspan><tspan dy="-5"> / K</tspan><tspan class="sub" dy="5">NASint</tspan><tspan dy="-5">：每条 NAS 消息加密 + 完整性</tspan></text>
+    <text class="lr" x="330" y="144">K<tspan class="sub" dy="5">NASenc</tspan><tspan dy="-5"> / K</tspan><tspan class="sub" dy="5">NASint</tspan><tspan dy="-5">：每条 NAS 消息完整性保护（加密可选）</tspan></text>
     <line class="r" x1="262" y1="195" x2="420" y2="195"/>
-    <line class="r" x1="655" y1="195" x2="705" y2="195"/>
-    <line class="r" x1="735" y1="195" x2="900" y2="195"/>
-    <text class="lr" x="330" y="184">K<tspan class="sub" dy="5">gNB</tspan><tspan dy="-5"> → RRC / UP 密钥：连接期间每个包（PDCP）</tspan></text>
+    <line class="r" x1="935" y1="195" x2="994" y2="195"/>
+    <line class="r" x1="735" y1="195" x2="880" y2="195"/>
+    <text class="lr" x="330" y="184">K<tspan class="sub" dy="5">gNB</tspan><tspan dy="-5"> → RRC / UP 密钥：连接期间一直用，回空闲态就删</tspan></text>
     <!-- 去掉的：一直存着，偶尔用 -->
     <line class="rd" x1="245" y1="235" x2="752" y2="235"/>
     <line class="rd" x1="768" y1="235" x2="994" y2="235"/>
-    <text class="lr" x="330" y="224">K<tspan class="sub" dy="5">AUSF</tspan><tspan dy="-5">：存到下次认证，只在 SoR / UPU / AKMA 时用</tspan></text>
+    <text class="lr" x="330" y="224">K<tspan class="sub" dy="5">AUSF</tspan><tspan dy="-5">：UE 存到下次认证；只在 SoR / UPU / AKMA 时用</tspan></text>
     <!-- 去掉的：只在那一刻 -->
     <circle class="dotr" cx="245" cy="280" r="8"/><circle class="dotr" cx="760" cy="280" r="8"/>
-    <text class="lr" x="330" y="286">K<tspan class="sub" dy="5">SEAF</tspan><tspan dy="-5">：认证那一刻，只用来派生 K</tspan><tspan class="sub" dy="5">AMF</tspan></text>
-    <circle class="dotr" cx="253" cy="320" r="8"/><circle class="dotr" cx="655" cy="320" r="6"/>
+    <text class="lr" x="330" y="286">K<tspan class="sub" dy="5">SEAF</tspan><tspan dy="-5">：只用来派生 K</tspan><tspan class="sub" dy="5">AMF</tspan><tspan dy="-5">，网络侧用完就删</tspan></text>
+    <circle class="dotr" cx="253" cy="320" r="8"/><circle class="dotr" cx="935" cy="320" r="6"/>
     <circle class="dotr" cx="735" cy="320" r="6"/><circle class="dotr" cx="768" cy="320" r="8"/>
-    <text class="lr" x="330" y="326">SMC：NAS 一次；AS 每次连接一次</text>
+    <text class="lr" x="330" y="326">SMC：NAS 认证后一次；AS 从空闲态连接时一次</text>
     <circle class="dotr" cx="245" cy="360" r="8"/>
     <text class="lr" x="330" y="366">SUCI：只在发永久身份时（t1 用 5G-GUTI，不需要）</text>
 
@@ -137,6 +147,51 @@
     <text class="dim" x="995" y="622" text-anchor="end">时间</text>
   </svg>
   </figure>
+  <div class="step">第二步的依据 · Basis for step 2</div>
+  <p class="dim">下面每一条都是我们用自己的话写的总结，不是原文。核对的版本：TS 33.501 V18.12.0（2026-07）、TS 33.535 V18.8.0、TS 33.102 V18.0.0、TS 24.501 V18.14.0。<br>
+  Each item below is our own summary, not spec text. Checked against TS 33.501 V18.12.0 (2026-07), TS 33.535 V18.8.0, TS 33.102 V18.0.0 and TS 24.501 V18.14.0.</p>
+  <div class="basis">
+    <div class="bi r"><h4>K<sub>AMF</sub> · 一直在用 / always in use</h4>
+      <p>K<sub>AMF</sub> 由 K<sub>SEAF</sub> 派生，放在 AMF 和 UE 的 5G NAS 安全上下文里。NAS 密钥、每次进入连接态的 K<sub>gNB</sub>、切换用的 NH 都从它派生。每次主认证都会换一个新的 K<sub>AMF</sub>；注销以后这个上下文也可以留着，下次注册接着用。</p>
+      <p lang="en">K<sub>AMF</sub> is derived from K<sub>SEAF</sub> and kept by the AMF and the UE in the 5G NAS security context. The NAS keys, a new K<sub>gNB</sub> for every move to connected mode, and NH for handover are all derived from it. Each primary authentication yields a new K<sub>AMF</sub>, and the context may be kept after deregistration for the next registration.</p>
+      <div class="ref">TS 33.501 §3.1, §6.2.2.1, §6.8.1.1, Annex A.7–A.10</div></div>
+    <div class="bi r"><h4>K<sub>NASenc</sub> / K<sub>NASint</sub> · 一直在用 / always in use</h4>
+      <p>NAS SMC 之后，UE 和 AMF 之间的每条 NAS 消息都必须做完整性保护，没有保护的消息不再接受（少数例外列在 TS 24.501 §4.4.4）。加密也会打开，但标准允许选空加密算法 NEA0，所以加密是可选的，完整性不是。</p>
+      <p lang="en">After the NAS SMC, every NAS message between UE and AMF must be integrity protected, and unprotected ones are rejected (the few exceptions are listed in TS 24.501 4.4.4). Ciphering is switched on as well, but the null algorithm NEA0 is allowed, so confidentiality is optional while integrity is not.</p>
+      <div class="ref">TS 33.501 §5.5, §6.4.3, §6.4.4; TS 24.501 §4.4.2.5, §4.4.4, §4.4.5</div></div>
+    <div class="bi r"><h4>K<sub>gNB</sub> → RRC / UP 密钥 · 连接期间一直用 / always in use while connected</h4>
+      <p>UE 从空闲态进入连接态时，AMF 和 UE 用 K<sub>AMF</sub> 和这次的上行 NAS COUNT 算出新的 K<sub>gNB</sub>，再派生 RRC 和用户面的密钥。连接期间 RRC 消息必须做完整性保护；RRC 加密、用户面的加密和完整性都是可选的，按策略决定。回到空闲态时 AS 密钥全部删掉，下次连接重新算。进入 RRC_INACTIVE 时只保留一部分。</p>
+      <p lang="en">Each time the UE goes from idle to connected, the AMF and the UE derive a fresh K<sub>gNB</sub> from K<sub>AMF</sub> and the uplink NAS COUNT, and from it the RRC and user-plane keys. While connected, RRC messages must be integrity protected; RRC ciphering and user-plane ciphering/integrity are optional and set by policy. On return to idle all AS keys are deleted and re-derived at the next connection; RRC_INACTIVE keeps only part of them.</p>
+      <div class="ref">TS 33.501 §5.3, §6.5, §6.6, §6.8.1.2.2, §6.8.1.2.4, §6.8.2.1.2, Annex A.8, A.9</div></div>
+    <div class="bi r"><h4>K<sub>AUSF</sub> · 一直存着，偶尔用 / stored, used now and then</h4>
+      <p>每次主认证成功后，UE 必须存下最新的 K<sub>AUSF</sub>。AUSF 存不存由运营商决定，只有在用 SoR、UPU 或 AKMA 时必须存。SoR 和 UPU 用它给归属网络下发的配置算 MAC；AKMA 用它派生 K<sub>AKMA</sub>，再给每个应用单独派生 K<sub>AF</sub>。平时的 NAS 和空口消息都不用它。</p>
+      <p lang="en">After each successful primary authentication the UE must store the latest K<sub>AUSF</sub>; the AUSF may store it (operator choice) and must do so when SoR, UPU or AKMA is used. SoR and UPU use it to compute a MAC over configuration data sent by the home network; AKMA derives K<sub>AKMA</sub> from it and then a separate K<sub>AF</sub> for each application. Ordinary NAS and radio traffic never uses it.</p>
+      <div class="ref">TS 33.501 §6.1.1.1, §6.2.2.1, §6.2.2.2, §6.14, §6.15; TS 33.535 §6.1, Annex A.2–A.4</div></div>
+    <div class="bi r"><h4>K<sub>SEAF</sub> · 只在那一刻 / only at that moment</h4>
+      <p>认证成功后，AUSF 从 K<sub>AUSF</sub> 算出 K<sub>SEAF</sub> 交给 SEAF。SEAF 马上用它算出 K<sub>AMF</sub>，然后删掉 K<sub>SEAF</sub>，也不能转给别的网元。标准里以 K<sub>SEAF</sub> 为输入的派生只有 K<sub>AMF</sub> 这一个。注意 UE 侧会把 K<sub>SEAF</sub> 存着。</p>
+      <p lang="en">After a successful authentication the AUSF derives K<sub>SEAF</sub> from K<sub>AUSF</sub> and gives it to the SEAF, which immediately derives K<sub>AMF</sub>, then deletes K<sub>SEAF</sub> and never forwards it. K<sub>AMF</sub> is the only key derived from K<sub>SEAF</sub>. The UE side, however, does keep K<sub>SEAF</sub> stored.</p>
+      <div class="ref">TS 33.501 §6.2.2.1, §6.2.2.2, Annex A.6, A.7</div></div>
+    <div class="bi r"><h4>Security Mode Command · 只在那一刻 / only at that moment</h4>
+      <p>NAS SMC 是一来一回两条消息，作用是启用一套新的 NAS 安全上下文：主认证之后必须做一次，换算法或换密钥时再做。AS SMC 只在从 RRC 空闲态建立连接（初始上下文建立）时做；从 RRC_INACTIVE 恢复、切换、重建连接都不用 AS SMC。</p>
+      <p lang="en">The NAS SMC is one command/complete exchange that takes a new NAS security context into use. It must follow a primary authentication and is repeated only when algorithms or keys change. The AS SMC is used only at initial context setup from RRC idle; resume from RRC_INACTIVE, handover and re-establishment do not use it.</p>
+      <div class="ref">TS 33.501 §6.7.2, §6.7.4, §6.7.3; TS 24.501 §5.4.2</div></div>
+    <div class="bi r"><h4>SUCI · 只在那一刻 / only at that moment</h4>
+      <p>UE 只在三种 NAS 消息里发 SUCI：手上没有 5G-GUTI 时的初始注册；网络来要身份时的 Identity Response；还没拿到 5G-GUTI 就注销时的 De-Registration Request。其余时候都用 5G-GUTI，所以 t1 的再认证一般用不到 SUCI。</p>
+      <p lang="en">The UE sends a SUCI in only three NAS messages: an initial registration when it holds no 5G-GUTI, an Identity Response when the network asks for its identity, and a de-registration before any 5G-GUTI has been assigned. Otherwise it uses the 5G-GUTI, so a later re-authentication normally needs no SUCI.</p>
+      <div class="ref">TS 33.501 §6.12.2, §6.12.3; TS 24.501 §5.5.1.2.2</div></div>
+    <div class="bi g"><h4>RAND · AUTN · RES* / XRES* · 只在那一刻 / only at that moment</h4>
+      <p>每次认证，UDM 生成一组向量：RAND、AUTN（= SQN⊕AK ‖ AMF ‖ MAC）、XRES*、K<sub>AUSF</sub>。USIM 先验 MAC 再查 SQN；手机用 CK‖IK 当 key 算出 RES*。SEAF 比较 HRES* 和 HXRES*，AUSF 比较 RES* 和 XRES*。5G 里网络不能一次要多组向量备用，AUSF 也只临时保存 XRES*。</p>
+      <p lang="en">For each run the UDM produces one vector: RAND, AUTN (= SQN⊕AK ‖ AMF ‖ MAC), XRES* and K<sub>AUSF</sub>. The USIM checks the MAC and then SQN; the phone computes RES* keyed with CK‖IK. The SEAF compares HRES* with HXRES*, and the AUSF compares RES* with XRES*. In 5G the serving network may not fetch several vectors in advance, and the AUSF keeps XRES* only temporarily.</p>
+      <div class="ref">TS 33.501 §6.1.3.2 (NOTE 1), Annex A.4, A.5; TS 33.102 §6.3.2, §6.3.3</div></div>
+    <div class="bi g"><h4>AUTS 重同步 · 只在 SQN 对不上时 / only when SQN is out of sync</h4>
+      <p>MAC 对但 SQN 不在可接受范围内时，USIM 返回 AUTS = (SQN<sub>MS</sub> ⊕ f5*(RAND)) ‖ MAC-S，其中 MAC-S 用 f1* 算、AMF 取全 0。手机把它放在 Authentication Failure 里发回；UDM 先看自己的 SQN 是否已经在范围内，不在就验 AUTS、把 SQN 对齐，然后发一组新向量重新认证。几种认证失败里只有"同步失败"带 AUTS。</p>
+      <p lang="en">If the MAC is valid but SQN is out of range, the USIM returns AUTS = (SQN<sub>MS</sub> ⊕ f5*(RAND)) ‖ MAC-S, where MAC-S comes from f1* with AMF set to zero. The phone sends it in an Authentication Failure; the UDM checks whether its own SQN is already in range, and if not verifies AUTS and realigns SQN, then issues a new vector for a fresh run. Of the authentication failure causes, only synch failure carries AUTS.</p>
+      <div class="ref">TS 33.102 §6.3.3, §6.3.5; TS 33.501 §6.1.3.3; TS 24.501 §5.4.1.3.6</div></div>
+    <div class="bi g"><h4>认证状态 · 一直在 / always there</h4>
+      <p>这一项不在 3GPP 标准里，是 LiteAKA 自己加的。在 5G 里，"之后的消息确实来自认证过的那一方"靠上面三条一直在用的密钥逐条保护来保证。LiteAKA 去掉了这些密钥，换成一个状态让后续功能来查；这个状态本身不对每条消息做密码学验证。</p>
+      <p lang="en">This item is not in the 3GPP specs; LiteAKA adds it. In 5G, "later messages really come from the authenticated party" is guaranteed by the three always-in-use keys above, protecting message by message. LiteAKA removes those keys and keeps a state that later functions check instead; the state itself does not cryptographically verify each message.</p>
+      <div class="ref">LiteAKA 自己的设计 / LiteAKA's own design</div></div>
+  </div>
 </header>
 </div>
 </body>
