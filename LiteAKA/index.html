@@ -397,10 +397,6 @@ table.keys span.keep { color: var(--green); }
     <li><b>① 开卡时预置</b>：K 和 OPc 写进卡和 UDR；SUCI 用的归属网络公钥 / 私钥也是预先配好的。</li>
     <li><b>② 每次认证时</b>：K 和 RAND 进 f1–f5，得到 MAC-A、RES、CK、IK、AK；SQN 不同步时卡再用 f1*、f5* 算 MAC-S 和 AK*。这一层就是初始认证本身，除了可选的 f5**，全部保留。</li>
     <li><b>③ 认证成功以后</b>：从 CK‖IK 派生 K<sub>AUSF</sub>，再往下分三支：K<sub>SEAF</sub> → K<sub>AMF</sub> → NAS / 空口 / 切换 / 非 3GPP / 4G 互通的密钥（加密那条链）；SoR / UPU 的 MAC（运营商下发配置）；AKMA（给别的应用）。LiteAKA 只留 AKMA 这一支。</li>
-    <li><b class="ylw">黄色要讨论的</b>：
-      EAP-AKA'（另一种主认证，LiteAKA 目前只做 5G AKA，第 2 组讨论）；
-      SUCI 那一列（保护身份隐私，和认证本身无关，但不用就是明文发 IMSI，第 3 组讨论）；
-      K<sub>AKMA</sub>、K<sub>AF</sub>、应用会话密钥（K<sub>AUSF</sub> 已经决定保留给 AKMA，具体留到哪一层，第 4 组讨论）。</li>
     <li><b>红色里还没定的</b>：K<sub>N3IWF</sub> 等非 3GPP 接入密钥、K'<sub>ASME</sub>（4G 互通），先按 AI 建议标红，到第 6、7 组再定。</li>
   </ul>
   <h3 class="grp">第 1 组：AKA 主链</h3>
