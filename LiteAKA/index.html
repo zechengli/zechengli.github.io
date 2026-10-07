@@ -26,7 +26,7 @@
 .treenote li { margin: 5px 0; }
 .ylw { color: var(--yellow); }
 .scope { font-size: .92rem; }
-.scope ol { padding-left: 24px; margin: 8px 0; }
+.scope ol, .scope ul { padding-left: 24px; margin: 8px 0; }
 .scope li { margin: 4px 0; }
 .sg { color: var(--green); }
 .sy { color: var(--yellow); }
@@ -368,6 +368,27 @@ table.keys span.keep { color: var(--green); }
     <li><b>红色里还没定的</b>：K<sub>N3IWF</sub> 等非 3GPP 接入密钥、K'<sub>ASME</sub>（4G 互通），先按 AI 建议标红，到第 6、7 组再定。</li>
   </ul>
   <h3 class="grp">5G AKA 和 LiteAKA：子集和边界</h3>
+  <div class="scope cat">
+    <p>5G AKA 跑一次，做的不只是认证：它同时完成<b>认证</b>、<b>密钥协商</b>，并为之后的通信建立<b>保护</b>。LiteAKA 只取认证这一块，所以它是 5G AKA 的子集。
+    下面按功能分三类：<span class="sg">绿色 = LiteAKA 保留（子集）</span>，<span class="sy">黄色 = 在边界上（只留一部分，或暂时不考虑）</span>，<span class="sr">红色 = 不要</span>。</p>
+    <ul>
+      <li class="sg"><b>双向认证</b>：网络用 RES* / XRES* 确认卡是真的；卡用 AUTN 里的 MAC-A 确认网络是真的。</li>
+      <li class="sg"><b>防重放</b>：SQN 保证每道题只能用一次；卡和网络的 SQN 对不上时，用 AUTS 重同步。</li>
+      <li class="sg"><b>隐藏 SQN</b>：AK、AK* 把来回传的 SQN 盖住，别人没法靠 SQN 追踪同一张卡。</li>
+      <li class="sg"><b>绑定服务网络</b>：RES* 的输入里带着服务网络的名字，认证结果只对这个网络有效。</li>
+      <li class="sy"><b>K<sub>AUSF</sub></b>：保留，但只留给 AKMA；它的另外两个用途（往下派生 K<sub>SEAF</sub>、SoR / UPU）不要。</li>
+      <li class="sy"><b>CK、IK</b>：保留，但只当算 RES* 的中间值，不再像 3G 那样直接加密；卡里会一直存到下一次认证。</li>
+      <li class="sy"><b>给别的应用复用认证结果（AKMA）</b>：方向已经定了，具体留到哪一层暂时不考虑。</li>
+      <li class="sy"><b>EAP-AKA'</b>：卡里跑的是同一个 AKA，只是换了一种封装，暂时不考虑。</li>
+      <li class="sy"><b>身份隐私（SUCI / 5G-GUTI）</b>：和认证本身无关，但不做就要明文发 IMSI，暂时不考虑。</li>
+      <li class="sr"><b>密钥协商</b>：K<sub>SEAF</sub> → K<sub>AMF</sub> 往下的整套密钥层级。</li>
+      <li class="sr"><b>后续通信保护</b>：NAS、RRC、用户面的加密和完整性保护，以及开启它们的 Security Mode Command。</li>
+      <li class="sr"><b>移动时的密钥延续</b>：切换（NH、K<sub>NG-RAN</sub>*）、换 AMF（K'<sub>AMF</sub>）、从 RRC_INACTIVE 恢复。</li>
+      <li class="sr"><b>归属网络下发配置的保护</b>：SoR、UPU。</li>
+      <li class="sr"><b>和 4G、非 3GPP 接入（如 Wi-Fi）互通时的密钥</b>。</li>
+    </ul>
+  </div>
+  <h3 class="grp">从一个 K 开始，一步一步走</h3>
   <div class="scope">
     <p>假设你手上有一个 K，从开卡一直走到认证之后，看每一步 5G AKA 做了什么、LiteAKA 留不留：
     <span class="sg">绿色 = LiteAKA 保留（子集）</span>，<span class="sy">黄色 = 在边界上（只留一部分，或暂时不考虑）</span>，<span class="sr">红色 = 不要</span>。</p>
