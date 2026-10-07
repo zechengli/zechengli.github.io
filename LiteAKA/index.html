@@ -19,11 +19,40 @@
 <header>
   <div class="eyebrow">LiteAKA · 第 1 页 · 2026-10-06</div>
   <h1>LiteAKA：只开始认证一次，不做后续加密</h1>
-  <div class="lede">
-    <p><strong>一句话：</strong>从 5G AKA 里只拿认证要用的部分：RAND、AUTN（里面有 SQN 和 MAC）、RES*，加上 SQN 重同步。
-    K<sub>AUSF</sub> 往下的密钥树、Security Mode Command、加密和完整性保护都不要。
-    认证成功这件事本身留成一个<strong>状态</strong>，之后的功能只查这个状态，不再重新认证。</p>
-  </div>
+  <figure class="venn">
+  <svg viewBox="0 0 640 450" role="img" aria-label="大圆是 5G AKA，里面的小圆是 LiteAKA，两圆之间是去掉的部分">
+    <style>
+      .venn svg { width: 100%; max-width: 600px; display: block; margin: 8px auto; }
+      .venn .big { fill: var(--red); fill-opacity: .10; stroke: var(--red); stroke-width: 2; }
+      .venn .small { fill: var(--green); fill-opacity: .16; stroke: var(--green); stroke-width: 2.5; }
+      .venn text { fill: var(--text); font-size: 15px; text-anchor: middle; font-family: Georgia, 'Songti SC', serif; }
+      .venn .t-big { fill: var(--red); font-size: 20px; font-weight: bold; }
+      .venn .t-small { fill: var(--green); font-size: 22px; font-weight: bold; }
+      .venn .rm { fill: var(--red); }
+      .venn .mono { font-family: 'SF Mono', Menlo, monospace; font-size: 13.5px; }
+      .venn .dim { fill: var(--muted); font-size: 13px; }
+    </style>
+    <circle class="big" cx="320" cy="225" r="215"/>
+    <circle class="small" cx="320" cy="282" r="125"/>
+    <text class="t-big" x="320" y="48">5G AKA</text>
+    <text class="dim" x="320" y="70">去掉的部分（两圆之间）</text>
+    <text class="rm" x="320" y="98">K<tspan baseline-shift="sub" font-size="10">AUSF</tspan> → K<tspan baseline-shift="sub" font-size="10">SEAF</tspan> → K<tspan baseline-shift="sub" font-size="10">AMF</tspan> 密钥树</text>
+    <text class="rm" x="320" y="120">K<tspan baseline-shift="sub" font-size="10">gNB</tspan>、NAS / RRC / UP 密钥</text>
+    <text class="rm" x="320" y="142">Security Mode Command</text>
+    <text class="rm" x="154" y="200">NAS / PDCP</text>
+    <text class="rm" x="154" y="220">加密</text>
+    <text class="rm" x="154" y="240">完整性保护</text>
+    <text class="rm" x="486" y="210">SUCI</text>
+    <text class="rm" x="486" y="230">隐私保护</text>
+    <text class="t-small" x="320" y="205">LiteAKA</text>
+    <text class="dim" x="320" y="226">只认证一次</text>
+    <text class="mono" x="320" y="256">RAND</text>
+    <text class="mono" x="320" y="280">AUTN = SQN⊕AK ‖ AMF ‖ MAC</text>
+    <text class="mono" x="320" y="304">RES* / XRES*</text>
+    <text class="mono" x="320" y="328">SQN 重同步（AUTS）</text>
+    <text x="320" y="362" style="font-weight:bold">→ 认证状态</text>
+  </svg>
+  </figure>
 </header>
 
 <h2>1. 实机版：跑出来的结果</h2>
