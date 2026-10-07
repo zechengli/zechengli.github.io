@@ -180,7 +180,7 @@ table.keys td.drop { color: var(--red); }
   <tr><td><b>IK</b></td><td>Integrity Key（完整性密钥）</td><td>f4(K, RAND)</td><td>和 CK 拼成 CK‖IK，当 RES*、K<sub>AUSF</sub> 的 key</td><td>3G：给 f9（完整性算法）用，给信令算 MAC；5G：不单独用，只是 CK‖IK 的一半</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>AK</b></td><td>Anonymity Key</td><td>f5(K, RAND)，服务器和卡各算一次</td><td>盖住 SQN</td><td>服务器 → 客户端：盖住 AUTN 里的 SQN<sub>HE</sub>，防止被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>AK*</b></td><td>重同步 AK</td><td>f5*(K, RAND)，卡和服务器各算一次</td><td>盖住 AUTS 里的 SQN<sub>MS</sub></td><td>客户端 → 服务器：盖住 AUTS 里的 SQN<sub>MS</sub>，重同步时防止被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
-  <tr><td><b>AK**</b></td><td>可选的重同步 AK</td><td>f5**(K, RAND, MAC-S)，TS 33.102 附录 J（可选）</td><td>同 AK*</td><td>客户端 → 服务器：可以代替 AK*，作用相同</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>AK**</b></td><td>可选的重同步 AK</td><td>f5**(K, RAND, MAC-S)，TS 33.102 附录 J（可选）</td><td>同 AK*</td><td>客户端 → 服务器：可以代替 AK*，作用相同</td><td class="drop">去掉</td><td class="drop"><b>去掉</b></td></tr>
   <tr><td><b>K<sub>AUSF</sub></b></td><td>Key for AUSF</td><td>CK‖IK 派生（A.2）</td><td>K<sub>SEAF</sub>、SoR/UPU、AKMA</td><td>归属网络锚点</td><td>待讨论</td><td>待定</td></tr>
   <tr><td><b>K<sub>SEAF</sub></b></td><td>Key for SEAF</td><td>K<sub>AUSF</sub>（A.6）</td><td>K<sub>AMF</sub>，用完即删</td><td>服务网络锚点</td><td class="drop">去掉</td><td></td></tr>
   <tr><td><b>K<sub>AMF</sub></b></td><td>Key for AMF</td><td>K<sub>SEAF</sub>（A.7）</td><td>NAS 密钥、K<sub>gNB</sub>、NH</td><td>后续保护的根</td><td class="drop">去掉</td><td></td></tr>
