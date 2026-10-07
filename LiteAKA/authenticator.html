@@ -54,7 +54,7 @@
   <h2>Microsoft Authenticator</h2>
   <h3>角色</h3>
   <p><b>浏览器</b>（用户在网站登录）· <b>Authenticator App</b>（手机）· <b>Entra ID</b>（微软的身份服务，也是最后给网站发 token 的人）。</p>
-  <p><b>信任根</b>：App 在手机上生成的一把设备密钥，加上手机在 Entra 里注册过。私钥存在哪里（Secure Enclave / Keystore / TEE）微软没有写明 <span class="tag unv">未核实</span>。</p>
+  <p><b>信任根</b>：微软的原话是"绑在这台手机上的用户凭据"（key-based，类比 Windows Hello for Business），用 PIN 或生物识别解锁；手机还要在每个要登录的租户里注册过。一台手机可以给多个账号分别开通，是不是每个账号一把密钥、密钥什么时候生成，微软没写 <span class="tag unv">未核实</span>。私钥存在哪里（Secure Enclave / Keystore / TEE）也没写 <span class="tag unv">未核实</span>；不过微软的 <code>amr</code> 表给手机登录标的是 <code>swk</code>（RFC 8176：软件保护的密钥），给 Windows Hello 标的是 <code>hwk</code>（硬件密钥），说明微软自己也把它当软件密钥。</p>
 
   <h3>注册（一次）</h3>
   <svg viewBox="0 0 620 340" class="sq ms" role="img">
@@ -69,9 +69,9 @@
 <line class="ar v" x1="100" y1="112" x2="512" y2="112" marker-end="url(#ams)"/>
 <text class="st v" x="310.0" y="106">2. Entra 显示二维码</text>
 <line class="ar v" x1="310" y1="156" x2="108" y2="156" marker-end="url(#ams)"/>
-<text class="st v" x="205.0" y="150">3. App 扫二维码（内容未公开）</text>
+<text class="st v" x="205.0" y="150">3. App 扫二维码（码 + URL）</text>
 <line class="ar v" x1="310" y1="200" x2="512" y2="200" marker-end="url(#ams)"/>
-<text class="st v" x="415.0" y="194">4. 注册设备，上传设备公钥</text>
+<text class="st v" x="415.0" y="194">4. 开通无密码登录：设备注册</text>
 <line class="ar v" x1="520" y1="244" x2="318" y2="244" marker-end="url(#ams)"/>
 <text class="st v" x="415.0" y="238">5. 测试推送 + 数字匹配</text>
 <line class="ar v" x1="310" y1="288" x2="512" y2="288" marker-end="url(#ams)"/>
@@ -79,8 +79,8 @@
 </svg>
   <ol>
     <li>用户登录 <code>mysignins.microsoft.com/security-info</code>，点"添加登录方法 → Microsoft Authenticator"。</li>
-    <li>页面显示二维码。微软说扫码是为了确认"手机确实在你手里"。二维码里装了什么，微软没有公开 <span class="tag unv">未核实</span>。</li>
-    <li>App 扫码。如果要用无密码登录，手机还要做设备注册，成为 Entra registered 设备；这时生成设备密钥，公钥存到 Entra。推送用的 APNS / FCM token 应该也是这时上传的，但微软没写明 <span class="tag unv">未核实</span>。</li>
+    <li>页面显示二维码。微软说扫码是为了确认"手机确实在你手里"。二维码的格式微软没公开，但它给的替代方式是"手动输入一个码和一个 URL"，数据文档里把这一步叫 activation；这个码是不是一次性密钥、有效期多长，没写 <span class="tag unv">未核实</span>。</li>
+    <li>App 扫码，账号加进 App（这一步只拿到 MFA 推送）。要用无密码登录，用户还要在 App 里点这个账号 →"Set up Passwordless sign-in requests"，前提是管理员允许、手机有锁屏 PIN / 生物识别；这一步会做设备注册，手机成为 Entra registered 设备。微软只说这是"基于密钥的用户凭据"、登录时 Entra 做公私钥校验，密钥什么时候生成、公钥什么时候传给 Entra 没写 <span class="tag unv">未核实</span>。微软的数据存留文档写了服务端保存 Authenticator 的 "device token" 和它的变更（保留 90 天），但没说这就是 APNS / FCM 的推送令牌、也没说是在哪一步上传的 <span class="tag unv">未核实</span>。</li>
     <li>最后必须批准一次测试推送，并输入屏幕上的数字。</li>
   </ol>
 
@@ -95,7 +95,7 @@
 <line class="ll" x1="520" y1="36" x2="520" y2="414"/>
 <line class="ar v" x1="100" y1="68" x2="512" y2="68" marker-end="url(#ams)"/>
 <text class="st v" x="310.0" y="62">1. 输入用户名</text>
-<rect class="self v" x="440" y="98" width="160" height="28" rx="6"/><text class="st v" x="520" y="116">2. 识别强凭据；网页显示数字</text>
+<rect class="self v" x="440" y="98" width="160" height="28" rx="6"/><text class="st v" x="520" y="116">2. 识别强凭据，启动 Strong Credential 流程</text>
 <line class="ar v" x1="520" y1="156" x2="318" y2="156" marker-end="url(#ams)"/>
 <text class="st v" x="415.0" y="150">3. 推送（APNS / FCM）</text>
 <rect class="self v" x="230" y="186" width="160" height="28" rx="6"/><text class="st v" x="310" y="204">4. 用户打开 App</text>
@@ -109,19 +109,20 @@
 </svg>
   <ol>
     <li>用户在网站输入用户名。</li>
-    <li>Entra 识别出这个账号有强凭据，启动 Strong Credential 流程；网页上显示一个数字。</li>
-    <li>Entra 通过 APNS（iOS）/ FCM（Android）推送到 App。推送里可以带网站名和大概位置，但默认关着。</li>
+    <li>Entra 识别出这个账号有强凭据，启动 Strong Credential 流程。</li>
+    <li>Entra 通过 APNS（iOS）/ FCM（Android）推送到 App。推送里可以显示发起登录的应用名（Entra 里注册的应用名，不一定是网站域名）和按 IP 推的大概位置；这两项默认由微软管理，目前定为关，管理员可以开。</li>
     <li>用户打开 App。</li>
     <li>App 向 Entra 取一个"在场证明"挑战和 nonce。</li>
     <li>用户输入网页上的数字，用生物识别或 PIN 解锁设备私钥。</li>
     <li>App 用私钥签 nonce，发回 Entra。</li>
     <li>Entra 用注册时存的公钥验签，给网站发 token。</li>
   </ol>
-  <p>数字匹配从 2023 年 5 月起对所有推送强制开启，用户不能关掉，原因是防"MFA 疲劳轰炸"。数字是几位，微软现在的页面没写 <span class="tag unv">未核实</span>。</p>
+  <p>微软的 8 步协议图里没有数字匹配这一步；数字匹配是另一页讲的用户体验：网页出现一个数字，用户在 App 里输入 → Approve → PIN / 生物识别。数字在哪一步生成，微软没写。第一次用时用户还要先选 "Approve a request on my Authenticator app"。</p>
+  <p>无密码手机登录从一开始就带数字匹配，用户不能关。2023-05-08 起微软把 MFA 推送（原来点 Approve / Deny 那种）也全部改成数字匹配，原因是防"MFA 疲劳轰炸"；这个日期来自微软博客和文档旧版本，现在的 Learn 页面已不写日期。例外：同一台手机上登录 Teams / Outlook 等微软 App 时只回答 Yes / No，不输数字；NPS 扩展、没打补丁的 AD FS、旧的 MFA Server 和手表不走数字匹配。数字是两位：Learn 文档页没写位数，是微软 Entra 博客《Defend your users from MFA fatigue attacks》（2022-09-28）写的 two-digit code。</p>
 
   <h3>网站拿到什么</h3>
   <p>标准的 OIDC ID token（签名的 JWT）：<code>iss</code>、<code>aud</code>、<code>nonce</code>、每个网站不同的 <code>sub</code>。
-  用了什么方法写在 <code>amr</code> 里，例如 <code>["mfa","rsa","pwd"]</code>，其中 <code>rsa</code> 就是"用 Authenticator 的密钥证明过"。</p>
+  用了什么方法写在 <code>amr</code> 里。按微软的表，无密码手机登录发 <code>["swk","rsa","mfa"]</code>；密码 + Authenticator 推送是 <code>["rsa","ngcmfa","mfa"]</code> 加 <code>pwd</code>。<code>rsa</code> 表示"用一把 RSA 密钥证明过"，Authenticator 是其中一种（证书认证也会发 <code>rsa</code>）；手机登录特有的标记是 <code>swk</code>。<code>amr</code> 在 v2.0 token 里要网站自己申请（optional claim）才有，v1.0 默认带。</p>
 
   <h3>安全等级（微软自己的分类）</h3>
   <p>手机登录算 <b>Passwordless MFA</b>，<b>不算抗钓鱼</b>（Phishing-resistant）。抗钓鱼那一档只有 passkey（FIDO2）等。</p>
@@ -217,10 +218,10 @@
 <h2>两边最关键的区别</h2>
 <div class="tw"><table class="diff">
 <tr><th></th><th>Microsoft Authenticator</th><th>LiteAKA</th></tr>
-<tr><td>信任从哪来</td><td>App 自己生成的设备密钥；靠"扫码时你已登录"来认它</td><td>运营商写在 SIM 里的 K，注册时给设备密钥作保，之后随时可以要求再验一次。所以能发现换卡（SIM swap），微软看不到 SIM</td></tr>
-<tr><td>手机能不能验服务器</td><td>不能，只靠 TLS</td><td>能：SIM 只回答用 K 出的题，假服务器什么也拿不到（软 SIM 测过，<code>e2e_test.sh</code> 第 3 项）</td></tr>
-<tr><td>谁来运营</td><td>微软自己运营整套系统</td><td>Verifier 必须是持有 K 的一方，也就是运营商。实验室里我们自己扮演；接 AT&amp;T 的话现实中只能拿到号码验证（CAMARA / TS.43），拿不到 AKA 的值</td></tr>
-<tr><td>离线备用</td><td>有 TOTP 验证码</td><td>没有</td></tr>
+<tr><td>信任从哪来</td><td>App 自己生成的设备密钥；靠"扫码时你刚通过 MFA 登录（已有 MFA 方法的用户 10 分钟内要做一次）"加设备注册来认它</td><td>运营商写在 SIM 里的 K，注册时给设备密钥作保，之后随时可以要求再验一次。所以能发现换卡（SIM swap），微软看不到 SIM</td></tr>
+<tr><td>手机能不能验服务器</td><td>微软没写，只能推断是靠 TLS <span class="tag unv">未核实</span>；微软自己只说手机登录不属于"方法和登录界面有交互"的抗钓鱼那一档</td><td>能：SIM 只回答用 K 出的题，假服务器什么也拿不到（软 SIM 测过，<code>e2e_test.sh</code> 第 3 项）</td></tr>
+<tr><td>谁来运营</td><td>微软运营 Entra ID；推送要经 Apple APNS / Google FCM 转一手（中国大陆 Android 推送不通）</td><td>Verifier 必须是持有 K 的一方，也就是运营商。实验室里我们自己扮演；接 AT&amp;T 的话现实中只能拿到号码验证（CAMARA / TS.43），拿不到 AKA 的值</td></tr>
+<tr><td>离线备用</td><td>有 TOTP 验证码，但要管理员开 "Allow use of Microsoft Authenticator OTP"，而且是密码 + 验证码：离线时退回有密码的登录</td><td>没有</td></tr>
 </table></div>
 
 <div class="note warn">
@@ -235,7 +236,7 @@
   <li>没有搜到"每次登录推送一次 AKA，并把设备公钥绑进 AKA 结果"的工作。只说明没搜到，不能证明不存在。</li>
 </ul>
 
-<footer>LiteAKA · 2026-10-07 · 左边按 learn.microsoft.com 核对；右边只有标"已跑通"的在软 SIM 原型里实际跑过，其余是设计。</footer>
+<footer>LiteAKA · 2026-10-07 · 左边按 learn.microsoft.com 核对，并由 3 个独立复核各挑错一轮后修正；右边只有标"已跑通"的在软 SIM 原型里实际跑过，其余是设计。</footer>
 </div>
 </body>
 </html>
