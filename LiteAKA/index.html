@@ -6,7 +6,9 @@
 <title>LiteAKA · 总览</title>
 <meta name="description" content="LiteAKA: registering first, authentication once a while, no further encryption on communication.">
 <link rel="stylesheet" href="style.css">
-<style>.step { font-family: Verdana, Arial, sans-serif; font-weight: bold; color: var(--accent); font-size: 1rem; margin: 26px 0 4px; }.basis { display: grid; gap: 12px; margin: 10px 0 30px; }
+<style>:root { --yellow: #a67a12; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --yellow: #e3b84d; } }
+.step { font-family: Verdana, Arial, sans-serif; font-weight: bold; color: var(--accent); font-size: 1rem; margin: 26px 0 4px; }.basis { display: grid; gap: 12px; margin: 10px 0 30px; }
 .bi { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--red); border-radius: 8px; padding: 10px 16px;
   display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
 .bi.g { border-left-color: var(--green); }
@@ -18,6 +20,11 @@
 .tslist { margin: 8px 0 16px; padding-left: 22px; font-size: .92rem; }
 .tslist li { margin: 8px 0; }
 .tslist .en { color: var(--muted); }
+.kt { margin: 6px 0; }
+.kt svg { width: 100%; display: block; }
+.treenote { font-size: .9rem; padding-left: 22px; margin: 6px 0 18px; }
+.treenote li { margin: 5px 0; }
+.ylw { color: var(--yellow); }
 .grp { margin: 14px 0 6px; }
 table.keys { font-size: .86rem; min-width: 720px; }
 table.keys td:first-child { min-width: 96px; }
@@ -173,6 +180,236 @@ table.keys span.keep { color: var(--green); }
       <span class="en">The 5G NAS protocol</span></li>
   </ul>
   <div class="step">第三步 · 每个 K 留不留</div>
+  <h3 class="grp">全部 K 的派生树（按时间从上往下）</h3>
+  <figure class="kt">
+<svg viewBox="0 0 1000 1080" role="img" aria-label="5G AKA 全部密钥的派生树：从开卡预置，到每次认证，再到认证成功后的 5G 后续用途；绿色保留，红色去掉，黄色待讨论">
+<style>
+.kt text{font-size:13px;fill:var(--text);font-family:Georgia,'Songti SC',serif;text-anchor:middle}
+.kt .sb{font-size:10px}
+.kt .bg{fill:var(--bg)}
+.kt .g .bx{fill:var(--green);fill-opacity:.16;stroke:var(--green);stroke-width:1.6}
+.kt .r .bx{fill:var(--red);fill-opacity:.12;stroke:var(--red);stroke-width:1.6}
+.kt .y .bx{fill:var(--yellow);fill-opacity:.18;stroke:var(--yellow);stroke-width:1.8}
+.kt .v .bx{stroke-dasharray:5 4}
+.kt .fn .bx{fill-opacity:.05}
+.kt .l2{font-size:11px;fill:var(--muted)}
+.kt .e{stroke:var(--muted);stroke-width:1.3;fill:none;marker-end:url(#ah)}
+.kt .e.y{stroke:var(--yellow)}
+.kt .e.dash{stroke-dasharray:5 4}
+.kt .el{font-size:11px;fill:var(--muted);text-anchor:start;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.kt .band{fill:var(--card);stroke:var(--border)}
+.kt .bl{font-size:14px;font-weight:bold;fill:var(--accent);font-family:Verdana,Arial,sans-serif;paint-order:stroke;stroke:var(--bg);stroke-width:5px}
+.kt .lg{text-anchor:start;font-size:13px}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<rect class="band" x="4" y="52" width="992" height="74" rx="8" opacity=".55"/>
+<text class="bl" x="14" y="70" style="text-anchor:start">① 开卡时预置</text>
+<rect class="band" x="4" y="136" width="992" height="410" rx="8" opacity=".55"/>
+<text class="bl" x="14" y="154" style="text-anchor:start">② 每次认证时：初始认证</text>
+<rect class="band" x="4" y="556" width="992" height="454" rx="8" opacity=".55"/>
+<text class="bl" x="14" y="574" style="text-anchor:start">③ 认证成功以后：5G 后续（运营商和其他用途）</text>
+<path class="e" d="M110,222 H770" style="marker-end:none"/>
+<text class="el" x="560" y="216">输入：K、OPc、RAND（f1 / f1* 还要 SQN、AMF）</text>
+<path class="e" d="M330,105 V222" style="marker-end:none"/><path class="e" d="M200,211 V222" style="marker-end:none"/><path class="e" d="M470,211 V222" style="marker-end:none"/>
+<path class="e" d="M140,222 V241"/>
+<path class="e" d="M220,222 V241"/>
+<path class="e" d="M300,222 V241"/>
+<path class="e" d="M380,222 V241"/>
+<path class="e" d="M460,222 V241"/>
+<path class="e" d="M560,222 V241"/>
+<path class="e" d="M640,222 V241"/>
+<path class="e" d="M730,222 V241"/>
+<path class="e " d="M140,275.0 L140,309.0"/>
+<path class="e " d="M220,275.0 L220,309.0"/>
+<path class="e " d="M300,275.0 L300,309.0"/>
+<path class="e " d="M380,275.0 L380,309.0"/>
+<path class="e " d="M460,275.0 L460,309.0"/>
+<path class="e " d="M560,275.0 L560,309.0"/>
+<path class="e " d="M640,275.0 L640,309.0"/>
+<path class="e " d="M730,275.0 L730,309.0"/>
+<path class="e " d="M140,343.0 L150,387.0"/>
+<path class="e " d="M460,343.0 L150,387.0"/>
+<path class="e " d="M300,343.0 L340,393.0"/>
+<path class="e " d="M380,343.0 L340,393.0"/>
+<path class="e " d="M220,343.0 L530,387.0"/>
+<path class="e " d="M385.0,410 L435.0,410"/>
+<path class="e " d="M560,343.0 L730,463.0"/>
+<path class="e " d="M640,343.0 L730,463.0"/>
+<path class="e y" d="M340,427.0 L180,477.0"/>
+<path class="e " d="M900,111.0 L900,167.0"/>
+<path class="e " d="M900,213.0 L900,249.0"/>
+<path class="e " d="M900,295.0 L900,331.0"/>
+<path class="e " d="M900,377.0 L900,413.0"/>
+<path class="e " d="M340,427.0 L340,589.0"/>
+<text class="el" x="348.0" y="512.0">A.2  KDF(CK‖IK, SN name, SQN⊕AK)</text>
+<path class="e y dash" d="M180,523.0 L340,589.0"/>
+<path class="e " d="M340,635.0 L160,685.0"/>
+<path class="e " d="M340,635.0 L380,679.0"/>
+<path class="e " d="M340,635.0 L650,679.0"/>
+<path class="e " d="M160,719.0 L160,775.0"/>
+<path class="e " d="M650,725.0 L650,769.0"/>
+<path class="e " d="M650,815.0 L850,859.0"/>
+<path class="e " d="M160,809.0 L100,859.0"/>
+<path class="e " d="M160,809.0 L215,859.0"/>
+<path class="e " d="M160,809.0 L322,859.0"/>
+<path class="e " d="M160,809.0 L435,859.0"/>
+<path class="e " d="M160,809.0 L553,859.0"/>
+<path class="e " d="M160,809.0 L662,859.0"/>
+<path class="e " d="M215,905.0 L200,949.0"/>
+<path class="e " d="M215,905.0 L395,949.0"/>
+<path class="e " d="M322,905.0 L395,949.0"/>
+<g class="g"><rect class="bg" x="282.0" y="65.0" width="96" height="46" rx="6"/><rect class="bx" x="282.0" y="65.0" width="96" height="46" rx="6"/>
+<text x="330" y="85">K</text><text class="l2" x="330" y="102">长期密钥</text>
+</g>
+<g class="g"><rect class="bg" x="405.0" y="65.0" width="110" height="46" rx="6"/><rect class="bx" x="405.0" y="65.0" width="110" height="46" rx="6"/>
+<text x="460" y="85">OPc</text><text class="l2" x="460" y="102">Milenage 参数</text>
+</g>
+<g class="y"><rect class="bg" x="815.0" y="65.0" width="170" height="46" rx="6"/><rect class="bx" x="815.0" y="65.0" width="170" height="46" rx="6"/>
+<text x="900" y="85">归属网络公钥 / 私钥</text><text class="l2" x="900" y="102">SUCI 用</text>
+</g>
+<g class="g v"><rect class="bg" x="135.0" y="165.0" width="130" height="46" rx="6"/><rect class="bx" x="135.0" y="165.0" width="130" height="46" rx="6"/>
+<text x="200" y="185">RAND</text><text class="l2" x="200" y="202">UDM 每次随机生成</text>
+</g>
+<g class="g v"><rect class="bg" x="395.0" y="165.0" width="150" height="46" rx="6"/><rect class="bx" x="395.0" y="165.0" width="150" height="46" rx="6"/>
+<text x="470" y="185">SQN</text><text class="l2" x="470" y="202">卡和 UDR 各记一份</text>
+</g>
+<g class="g fn"><rect class="bg" x="112.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="112.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="140" y="262.5">f1</text>
+</g>
+<g class="g fn"><rect class="bg" x="192.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="192.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="220" y="262.5">f2</text>
+</g>
+<g class="g fn"><rect class="bg" x="272.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="272.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="300" y="262.5">f3</text>
+</g>
+<g class="g fn"><rect class="bg" x="352.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="352.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="380" y="262.5">f4</text>
+</g>
+<g class="g fn"><rect class="bg" x="432.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="432.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="460" y="262.5">f5</text>
+</g>
+<g class="g fn"><rect class="bg" x="532.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="532.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="560" y="262.5">f1*</text>
+</g>
+<g class="g fn"><rect class="bg" x="612.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="612.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="640" y="262.5">f5*</text>
+</g>
+<g class="r fn"><rect class="bg" x="702.0" y="241.0" width="56" height="34" rx="6"/><rect class="bx" x="702.0" y="241.0" width="56" height="34" rx="6"/>
+<text x="730" y="262.5">f5**</text>
+</g>
+<g class="g v"><rect class="bg" x="105.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="105.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="140" y="330.5">MAC-A</text>
+</g>
+<g class="g v"><rect class="bg" x="185.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="185.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="220" y="330.5">RES</text>
+</g>
+<g class="g"><rect class="bg" x="265.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="265.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="300" y="330.5">CK</text>
+</g>
+<g class="g"><rect class="bg" x="345.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="345.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="380" y="330.5">IK</text>
+</g>
+<g class="g"><rect class="bg" x="425.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="425.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="460" y="330.5">AK</text>
+</g>
+<g class="g v"><rect class="bg" x="525.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="525.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="560" y="330.5">MAC-S</text>
+</g>
+<g class="g"><rect class="bg" x="605.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="605.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="640" y="330.5">AK*</text>
+</g>
+<g class="r"><rect class="bg" x="695.0" y="309.0" width="70" height="34" rx="6"/><rect class="bx" x="695.0" y="309.0" width="70" height="34" rx="6"/>
+<text x="730" y="330.5">AK**</text>
+</g>
+<g class="g v"><rect class="bg" x="50.0" y="387.0" width="200" height="46" rx="6"/><rect class="bx" x="50.0" y="387.0" width="200" height="46" rx="6"/>
+<text x="150" y="407">AUTN = SQN⊕AK ‖ AMF ‖ MAC-A</text><text class="l2" x="150" y="424">服务器 → 手机</text>
+</g>
+<g class="g"><rect class="bg" x="295.0" y="393.0" width="90" height="34" rx="6"/><rect class="bx" x="295.0" y="393.0" width="90" height="34" rx="6"/>
+<text x="340" y="414.5">CK‖IK</text>
+</g>
+<g class="g v"><rect class="bg" x="435.0" y="387.0" width="190" height="46" rx="6"/><rect class="bx" x="435.0" y="387.0" width="190" height="46" rx="6"/>
+<text x="530" y="407">RES* / XRES*（A.4）</text><text class="l2" x="530" y="424">KDF(CK‖IK, SN name, RAND, RES)</text>
+</g>
+<g class="g v"><rect class="bg" x="635.0" y="463.0" width="190" height="46" rx="6"/><rect class="bx" x="635.0" y="463.0" width="190" height="46" rx="6"/>
+<text x="730" y="483">AUTS = SQN_MS⊕AK* ‖ MAC-S</text><text class="l2" x="730" y="500">手机 → 服务器（SQN 不同步时）</text>
+</g>
+<g class="y"><rect class="bg" x="50.0" y="477.0" width="260" height="46" rx="6"/><rect class="bx" x="50.0" y="477.0" width="260" height="46" rx="6"/>
+<text x="180" y="497">EAP-AKA'（另一种主认证）</text><text class="l2" x="180" y="514">CK′ / IK′（A.3）→ MK → EMSK / MSK</text>
+</g>
+<g class="y"><rect class="bg" x="815.0" y="167.0" width="170" height="46" rx="6"/><rect class="bx" x="815.0" y="167.0" width="170" height="46" rx="6"/>
+<text x="900" y="187">ECIES 临时密钥对</text><text class="l2" x="900" y="204">每个 SUCI 新生成</text>
+</g>
+<g class="y"><rect class="bg" x="815.0" y="249.0" width="170" height="46" rx="6"/><rect class="bx" x="815.0" y="249.0" width="170" height="46" rx="6"/>
+<text x="900" y="269">共享密钥 Z</text><text class="l2" x="900" y="286">ECDH(临时私钥, 归属网络公钥)</text>
+</g>
+<g class="y"><rect class="bg" x="815.0" y="331.0" width="170" height="46" rx="6"/><rect class="bx" x="815.0" y="331.0" width="170" height="46" rx="6"/>
+<text x="900" y="351">EK / MK</text><text class="l2" x="900" y="368">X9.63 KDF(Z)</text>
+</g>
+<g class="y v"><rect class="bg" x="815.0" y="413.0" width="170" height="46" rx="6"/><rect class="bx" x="815.0" y="413.0" width="170" height="46" rx="6"/>
+<text x="900" y="433">SUCI</text><text class="l2" x="900" y="450">EK 加密身份，MK 算 MAC</text>
+</g>
+<g class="g"><rect class="bg" x="255.0" y="589.0" width="170" height="46" rx="6"/><rect class="bx" x="255.0" y="589.0" width="170" height="46" rx="6"/>
+<text x="340" y="609">K<tspan class="sb" dy="4">AUSF</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="340" y="626">保留：只给 AKMA</text>
+</g>
+<g class="r"><rect class="bg" x="100.0" y="685.0" width="120" height="34" rx="6"/><rect class="bx" x="100.0" y="685.0" width="120" height="34" rx="6"/>
+<text x="160" y="706.5">K<tspan class="sb" dy="4">SEAF</tspan><tspan dy="-4">​</tspan>（A.6）</text>
+</g>
+<g class="r"><rect class="bg" x="285.0" y="679.0" width="190" height="46" rx="6"/><rect class="bx" x="285.0" y="679.0" width="190" height="46" rx="6"/>
+<text x="380" y="699">SoR / UPU 的 MAC</text><text class="l2" x="380" y="716">A.17–A.20</text>
+</g>
+<g class="y"><rect class="bg" x="565.0" y="679.0" width="170" height="46" rx="6"/><rect class="bx" x="565.0" y="679.0" width="170" height="46" rx="6"/>
+<text x="650" y="699">K<tspan class="sb" dy="4">AKMA</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="650" y="716">TS 33.535 A.2</text>
+</g>
+<g class="r"><rect class="bg" x="100.0" y="775.0" width="120" height="34" rx="6"/><rect class="bx" x="100.0" y="775.0" width="120" height="34" rx="6"/>
+<text x="160" y="796.5">K<tspan class="sb" dy="4">AMF</tspan><tspan dy="-4">​</tspan>（A.7）</text>
+</g>
+<g class="y"><rect class="bg" x="565.0" y="769.0" width="170" height="46" rx="6"/><rect class="bx" x="565.0" y="769.0" width="170" height="46" rx="6"/>
+<text x="650" y="789">K<tspan class="sb" dy="4">AF</tspan><tspan dy="-4">​</tspan>（33.535 A.4）</text><text class="l2" x="650" y="806">每个应用一把</text>
+</g>
+<g class="y"><rect class="bg" x="760.0" y="859.0" width="180" height="46" rx="6"/><rect class="bx" x="760.0" y="859.0" width="180" height="46" rx="6"/>
+<text x="850" y="879">应用会话密钥</text><text class="l2" x="850" y="896">TLS PSK / OSCORE 等</text>
+</g>
+<g class="r"><rect class="bg" x="48.0" y="859.0" width="104" height="46" rx="6"/><rect class="bx" x="48.0" y="859.0" width="104" height="46" rx="6"/>
+<text x="100" y="879">K<tspan class="sb" dy="4">NASint</tspan><tspan dy="-4">​</tspan> / K<tspan class="sb" dy="4">NASenc</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="100" y="896">A.8</text>
+</g>
+<g class="r"><rect class="bg" x="169.0" y="859.0" width="92" height="46" rx="6"/><rect class="bx" x="169.0" y="859.0" width="92" height="46" rx="6"/>
+<text x="215" y="879">K<tspan class="sb" dy="4">gNB</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="215" y="896">A.9</text>
+</g>
+<g class="r"><rect class="bg" x="282.0" y="859.0" width="80" height="46" rx="6"/><rect class="bx" x="282.0" y="859.0" width="80" height="46" rx="6"/>
+<text x="322" y="879">NH</text><text class="l2" x="322" y="896">A.10</text>
+</g>
+<g class="r"><rect class="bg" x="379.0" y="859.0" width="112" height="46" rx="6"/><rect class="bx" x="379.0" y="859.0" width="112" height="46" rx="6"/>
+<text x="435" y="879">K<tspan class="sb" dy="4">N3IWF</tspan><tspan dy="-4">​</tspan> 等</text><text class="l2" x="435" y="896">A.9，非 3GPP</text>
+</g>
+<g class="r"><rect class="bg" x="507.0" y="859.0" width="92" height="46" rx="6"/><rect class="bx" x="507.0" y="859.0" width="92" height="46" rx="6"/>
+<text x="553" y="879">K'<tspan class="sb" dy="4">AMF</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="553" y="896">A.13</text>
+</g>
+<g class="r"><rect class="bg" x="610.0" y="859.0" width="104" height="46" rx="6"/><rect class="bx" x="610.0" y="859.0" width="104" height="46" rx="6"/>
+<text x="662" y="879">K'<tspan class="sb" dy="4">ASME</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="662" y="896">A.14，4G 互通</text>
+</g>
+<g class="r"><rect class="bg" x="115.0" y="949.0" width="170" height="46" rx="6"/><rect class="bx" x="115.0" y="949.0" width="170" height="46" rx="6"/>
+<text x="200" y="969">K<tspan class="sb" dy="4">RRC</tspan><tspan dy="-4">​</tspan> / K<tspan class="sb" dy="4">UP</tspan><tspan dy="-4">​</tspan> 共 4 把</text><text class="l2" x="200" y="986">A.8</text>
+</g>
+<g class="r"><rect class="bg" x="320.0" y="949.0" width="150" height="46" rx="6"/><rect class="bx" x="320.0" y="949.0" width="150" height="46" rx="6"/>
+<text x="395" y="969">K<tspan class="sb" dy="4">NG-RAN*</tspan><tspan dy="-4">​</tspan></text><text class="l2" x="395" y="986">A.11</text>
+</g>
+<text class="el" x="150" y="600">EMSK 前 256 位</text>
+<g class="g"><rect class="bx" x="20" y="1029" width="26" height="18" rx="4"/></g><text class="lg" x="54" y="1043">保留</text>
+<g class="r"><rect class="bx" x="120" y="1029" width="26" height="18" rx="4"/></g><text class="lg" x="154" y="1043">去掉</text>
+<g class="y"><rect class="bx" x="220" y="1029" width="26" height="18" rx="4"/></g><text class="lg" x="254" y="1043">有歧义 / 待讨论</text>
+<g class="g v"><rect class="bx" x="411" y="1029" width="26" height="18" rx="4"/></g><text class="lg" x="445" y="1043">虚线框：不是密钥，是认证过程里的值</text>
+</svg>
+  </figure>
+  <ul class="treenote">
+    <li><b>① 开卡时预置</b>：K 和 OPc 写进卡和 UDR；SUCI 用的归属网络公钥 / 私钥也是预先配好的。</li>
+    <li><b>② 每次认证时</b>：K 和 RAND 进 f1–f5，得到 MAC-A、RES、CK、IK、AK；SQN 不同步时卡再用 f1*、f5* 算 MAC-S 和 AK*。这一层就是初始认证本身，除了可选的 f5**，全部保留。</li>
+    <li><b>③ 认证成功以后</b>：从 CK‖IK 派生 K<sub>AUSF</sub>，再往下分三支：K<sub>SEAF</sub> → K<sub>AMF</sub> → NAS / 空口 / 切换 / 非 3GPP / 4G 互通的密钥（加密那条链）；SoR / UPU 的 MAC（运营商下发配置）；AKMA（给别的应用）。LiteAKA 只留 AKMA 这一支。</li>
+    <li><b class="ylw">黄色要讨论的</b>：
+      EAP-AKA'（另一种主认证，LiteAKA 目前只做 5G AKA，第 2 组讨论）；
+      SUCI 那一列（保护身份隐私，和认证本身无关，但不用就是明文发 IMSI，第 3 组讨论）；
+      K<sub>AKMA</sub>、K<sub>AF</sub>、应用会话密钥（K<sub>AUSF</sub> 已经决定保留给 AKMA，具体留到哪一层，第 4 组讨论）。</li>
+    <li><b>红色里还没定的</b>：K<sub>N3IWF</sub> 等非 3GPP 接入密钥、K'<sub>ASME</sub>（4G 互通），先按 AI 建议标红，到第 6、7 组再定。</li>
+  </ul>
   <h3 class="grp">第 1 组：AKA 主链</h3>
   <div class="tw"><table class="keys">
   <tr><th>K</th><th>全称</th><th>来源</th><th>去向</th><th>作用</th><th>AI 建议</th><th>ZC 决定</th></tr>
