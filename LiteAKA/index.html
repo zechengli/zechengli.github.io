@@ -176,7 +176,7 @@ table.keys td.drop { color: var(--red); }
   <div class="tw"><table class="keys">
   <tr><th>K</th><th>全称</th><th>来源</th><th>去向</th><th>作用</th><th>建议</th><th>决定</th></tr>
   <tr><td><b>K</b></td><td>长期密钥</td><td>开卡时写入卡和 UDR</td><td>不出卡；进 f1–f5</td><td>认证的根</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
-  <tr><td><b>CK</b></td><td>Cipher Key</td><td>f3(K, RAND)</td><td>RES*、K<sub>AUSF</sub> 的 key</td><td>5G 里只是中间值</td><td class="keep">保留</td><td></td></tr>
+  <tr><td><b>CK</b></td><td>Cipher Key</td><td>f3(K, RAND)</td><td>RES*、K<sub>AUSF</sub> 的 key</td><td>5G 里只是中间值</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>IK</b></td><td>Integrity Key</td><td>f4(K, RAND)</td><td>同 CK</td><td>同 CK</td><td class="keep">保留</td><td></td></tr>
   <tr><td><b>AK</b></td><td>Anonymity Key</td><td>f5(K, RAND)</td><td>盖住 SQN</td><td>防 SQN 被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
   <tr><td><b>AK*</b></td><td>重同步 AK</td><td>f5*(K, RAND)</td><td>盖住 AUTS 里的 SQN<sub>MS</sub></td><td>重同步时保护 SQN</td><td class="keep">保留</td><td></td></tr>
