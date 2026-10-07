@@ -26,7 +26,7 @@
 .treenote li { margin: 5px 0; }
 .ylw { color: var(--yellow); }
 .scope { font-size: .92rem; }
-.scope ul { padding-left: 22px; margin: 8px 0; }
+.scope ol { padding-left: 24px; margin: 8px 0; }
 .scope li { margin: 4px 0; }
 .sg { color: var(--green); }
 .sy { color: var(--yellow); }
@@ -369,26 +369,28 @@ table.keys span.keep { color: var(--green); }
   </ul>
   <h3 class="grp">5G AKA 和 LiteAKA：子集和边界</h3>
   <div class="scope">
-    <p>5G AKA 跑一次，做的不只是认证：它同时完成<b>认证</b>、<b>密钥协商</b>，并为之后的通信建立<b>保护</b>。LiteAKA 只取认证这一块，所以它是 5G AKA 的子集。
-    下面按功能分三类：<span class="sg">绿色 = LiteAKA 保留（子集）</span>，<span class="sy">黄色 = 在边界上（只留一部分，或暂时不考虑）</span>，<span class="sr">红色 = 不要</span>。</p>
-    <ul>
-      <li class="sg"><b>双向认证</b>：网络用 RES* / XRES* 确认卡是真的；卡用 AUTN 里的 MAC-A 确认网络是真的。</li>
-      <li class="sg"><b>防重放</b>：SQN 保证每道题只能用一次；卡和网络的 SQN 对不上时，用 AUTS 重同步。</li>
-      <li class="sg"><b>隐藏 SQN</b>：AK、AK* 把来回传的 SQN 盖住，别人没法靠 SQN 追踪同一张卡。</li>
-      <li class="sg"><b>绑定服务网络</b>：RES* 的输入里带着服务网络的名字，认证结果只对这个网络有效。</li>
-      <li class="sy"><b>K<sub>AUSF</sub></b>：保留，但只留给 AKMA；它的另外两个用途（往下派生 K<sub>SEAF</sub>、SoR / UPU）不要。</li>
-      <li class="sy"><b>CK、IK</b>：保留，但只当算 RES* 的中间值，不再像 3G 那样直接加密；卡里会一直存到下一次认证。</li>
-      <li class="sy"><b>给别的应用复用认证结果（AKMA）</b>：方向已经定了，具体留到哪一层暂时不考虑。</li>
-      <li class="sy"><b>EAP-AKA'</b>：卡里跑的是同一个 AKA，只是换了一种封装，暂时不考虑。</li>
-      <li class="sy"><b>身份隐私（SUCI / 5G-GUTI）</b>：和认证本身无关，但不做就要明文发 IMSI，暂时不考虑。</li>
-      <li class="sr"><b>密钥协商</b>：K<sub>SEAF</sub> → K<sub>AMF</sub> 往下的整套密钥层级。</li>
-      <li class="sr"><b>后续通信保护</b>：NAS、RRC、用户面的加密和完整性保护，以及开启它们的 Security Mode Command。</li>
-      <li class="sr"><b>移动时的密钥延续</b>：切换（NH、K<sub>NG-RAN</sub>*）、换 AMF（K'<sub>AMF</sub>）、从 RRC_INACTIVE 恢复。</li>
-      <li class="sr"><b>归属网络下发配置的保护</b>：SoR、UPU。</li>
-      <li class="sr"><b>和 4G、非 3GPP 接入（如 Wi-Fi）互通时的密钥</b>。</li>
-    </ul>
-    <p><span class="sy"><b>边界上最要紧的一点</b></span>：在 5G 里，"认证之后的每条消息都来自认证过的那一方"，是靠红色那部分逐条保护来保证的。
-    LiteAKA 去掉了它们，换成认证成功后留下的一个<b>认证状态</b>，让后续功能来查；这个状态本身不对每条消息做密码学验证。
+    <p>假设你手上有一个 K，从开卡一直走到认证之后，看每一步 5G AKA 做了什么、LiteAKA 留不留：
+    <span class="sg">绿色 = LiteAKA 保留（子集）</span>，<span class="sy">黄色 = 在边界上（只留一部分，或暂时不考虑）</span>，<span class="sr">红色 = 不要</span>。</p>
+    <ol>
+      <li><span class="sg"><b>开卡</b>：把 K 和 OPc 写进 SIM 卡，同一份存进网络侧的 UDR。</span></li>
+      <li><span class="sy"><b>手机报身份</b>：5G 里手机用归属网络公钥把 IMSI 加密成 SUCI 再发（身份隐私）。暂时不考虑，LiteAKA 现在明文发 IMSI。</span></li>
+      <li><span class="sg"><b>网络出题</b>：UDM 随机生成 RAND，把 SQN 加一，用 K 跑 f1–f5，得到 MAC-A、XRES、CK、IK、AK；拼出 AUTN = SQN⊕AK ‖ AMF ‖ MAC-A；再用 CK‖IK 算出 XRES*。</span><br>
+        <span class="sy">同时用 CK‖IK 算出 K<sub>AUSF</sub>：保留，但只给 AKMA。另一种出题方式 EAP-AKA'：暂时不考虑。</span></li>
+      <li><span class="sg"><b>题发给手机</b>：RAND 和 AUTN。</span></li>
+      <li><span class="sg"><b>卡做题</b>：用 K 算出 AK，解出 SQN；验 MAC-A，确认网络是真的；查 SQN 是不是新的，防重放。SQN 不对就用 f1*、f5* 算出 AUTS，回去重同步。都通过就算出 RES、CK、IK。</span></li>
+      <li><span class="sg"><b>手机交卷</b>：用 CK‖IK 和服务网络名字、RAND、RES 算出 RES*，发回网络。</span><br>
+        <span class="sy">CK、IK 只当这一步的中间值；卡里会一直存到下一次认证。</span></li>
+      <li><span class="sg"><b>网络判分</b>：AUSF 比较 RES* 和 XRES*，相等就认证成功。<b>认证到这里就完成了，LiteAKA 走到这一步为止。</b></span></li>
+      <li><span class="sr"><b>派生密钥</b>：K<sub>AUSF</sub> → K<sub>SEAF</sub> → K<sub>AMF</sub>，建立整套密钥层级。</span><br>
+        <span class="sr">K<sub>AUSF</sub> 还用来保护归属网络下发的配置（SoR、UPU）。</span>
+        <span class="sy">K<sub>AUSF</sub> 也可以派生 AKMA 密钥，给别的应用复用认证结果：方向定了，具体留到哪一层暂时不考虑。</span></li>
+      <li><span class="sr"><b>启用 NAS 保护</b>：NAS Security Mode Command 之后，手机和 AMF 之间每条 NAS 消息都做完整性保护和加密。</span></li>
+      <li><span class="sr"><b>每次连上基站</b>：用 K<sub>AMF</sub> 算出 K<sub>gNB</sub>，经过 AS Security Mode Command，空口的 RRC 信令和用户面数据开始加密和完整性保护。</span></li>
+      <li><span class="sr"><b>移动</b>：切换时用 NH、K<sub>NG-RAN</sub>* 换基站密钥；换 AMF 时用 K'<sub>AMF</sub>；从 RRC_INACTIVE 恢复时重新派生。</span></li>
+      <li><span class="sr"><b>其他场景</b>：和 4G 互通、从 Wi-Fi 等非 3GPP 接入时用的密钥。</span></li>
+    </ol>
+    <p><span class="sy"><b>边界上最要紧的一点</b></span>：在 5G 里，"认证之后的每条消息都来自认证过的那一方"，是靠第 8–12 步逐条保护来保证的。
+    LiteAKA 在第 7 步停下，换成认证成功后留下的一个<b>认证状态</b>，让后续功能来查；这个状态本身不对每条消息做密码学验证。
     认证状态是 LiteAKA 在 5G AKA 之外加的一层，不属于 5G AKA 本身。</p>
   </div>
   <h3 class="grp">第 1 组：AKA 主链</h3>
