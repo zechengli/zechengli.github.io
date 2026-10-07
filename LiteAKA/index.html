@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LiteAKA · 总览</title>
-<meta name="description" content="LiteAKA：只做 AKA 里的认证，不做密钥协商。认证成功留成一个状态，之后的功能只查状态。2026-10-06 的两个版本：实机版和设备绑定原型。">
+<meta name="description" content="LiteAKA：只开始认证一次，不做后续加密。认证成功留成一个状态，之后的功能只查状态。2026-10-06 的两个版本：实机版和设备绑定原型。">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
 </nav>
 <header>
   <div class="eyebrow">LiteAKA · 第 1 页 · 2026-10-06</div>
-  <h1>LiteAKA：只认证，不做密钥协商</h1>
+  <h1>LiteAKA：只开始认证一次，不做后续加密</h1>
   <div class="lede">
     <p><strong>一句话：</strong>从 5G AKA 里只拿认证要用的部分：RAND、AUTN（里面有 SQN 和 MAC）、RES*，加上 SQN 重同步。
     K<sub>AUSF</sub> 往下的密钥树、Security Mode Command、加密和完整性保护都不要。
