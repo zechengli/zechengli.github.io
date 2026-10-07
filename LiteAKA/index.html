@@ -6,6 +6,7 @@
 <title>LiteAKA · 总览</title>
 <meta name="description" content="LiteAKA: registering first, authentication once a while, no further encryption on communication.">
 <link rel="stylesheet" href="style.css">
+<style>.step { font-family: Verdana, Arial, sans-serif; font-weight: bold; color: var(--accent); font-size: 1rem; margin: 26px 0 4px; }</style>
 </head>
 <body>
 <div class="wrap">
@@ -19,6 +20,7 @@
 <header>
   <div class="eyebrow">LiteAKA · 第 1 页 · 2026-10-06</div>
   <h1>LiteAKA: registering first, authentication once a while, no further encryption on communication.</h1>
+  <div class="step">第一步</div>
   <figure class="venn">
   <svg viewBox="0 0 640 450" role="img" aria-label="大圆是 5G AKA，里面的小圆是 LiteAKA，两圆之间是去掉的部分">
     <style>
@@ -51,6 +53,88 @@
     <text class="mono" x="320" y="304">RES* / XRES*</text>
     <text class="mono" x="320" y="328">SQN 重同步（AUTS）</text>
     <text x="320" y="362" style="font-weight:bold">→ 认证状态</text>
+  </svg>
+  </figure>
+  <div class="step">第二步</div>
+  <figure class="brush">
+  <svg viewBox="0 0 1000 650" role="img" aria-label="把第一步的圆沿时间向右平移：一直在用的东西留下长条轨迹，只在认证那一刻用的东西只留下点">
+    <style>
+      .brush { margin: 0; }
+      .brush svg { width: 100%; display: block; margin: 8px auto; }
+      .brush text { fill: var(--text); font-size: 17px; font-family: Georgia, 'Songti SC', serif;
+        paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+      .brush .sweep { fill: var(--red); fill-opacity: .06; }
+      .brush .edge { stroke: var(--red); stroke-opacity: .5; stroke-width: 1.5; fill: none; }
+      .brush .bigc { fill: none; stroke: var(--red); stroke-width: 2; stroke-opacity: .8; }
+      .brush .smallc { fill: var(--green); fill-opacity: .12; stroke: var(--green); stroke-width: 2.5; }
+      .brush .r { stroke: var(--red); stroke-width: 7; stroke-linecap: round; }
+      .brush .rd { stroke: var(--red); stroke-width: 4; stroke-dasharray: 12 9; }
+      .brush .g { stroke: var(--green); stroke-width: 6; stroke-linecap: round; }
+      .brush .dotr { fill: var(--red); }
+      .brush .dotg { fill: var(--green); }
+      .brush .hollow { fill: none; stroke: var(--green); stroke-width: 2.5; stroke-dasharray: 4 3; }
+      .brush .tick { stroke: var(--green); stroke-width: 2.5; }
+      .brush .lr { fill: var(--red); }
+      .brush .lg { fill: var(--green); }
+      .brush .dim { fill: var(--muted); font-size: 15px; }
+      .brush .axis { stroke: var(--muted); stroke-width: 1.5; }
+      .brush .sub { font-size: 12px; }
+    </style>
+    <!-- 图例 -->
+    <line class="r" x1="60" y1="28" x2="100" y2="28"/><text x="110" y="34">一直在用</text>
+    <line class="rd" x1="210" y1="28" x2="250" y2="28"/><text x="260" y="34">一直存着，偶尔用</text>
+    <circle class="dotr" cx="430" cy="28" r="7"/><text x="446" y="34">只在那一刻用</text>
+    <text class="lr" x="600" y="34">红 = 去掉的</text><text class="lg" x="720" y="34">绿 = LiteAKA 保留的</text>
+
+    <!-- 大圆平移出来的轨迹 -->
+    <rect class="sweep" x="245" y="70" width="755" height="480"/>
+    <path class="sweep" d="M245,70 A240,240 0 0 0 245,550 Z"/>
+    <path class="edge" d="M245,70 H1000 M245,550 H1000"/>
+    <circle class="bigc" cx="245" cy="310" r="240"/>
+    <circle class="bigc" cx="760" cy="310" r="239" stroke-dasharray="7 6"/>
+    <circle class="smallc" cx="245" cy="462" r="80"/>
+    <circle class="smallc" cx="760" cy="462" r="80"/>
+
+    <!-- 去掉的：一直在用 -->
+    <line class="r" x1="245" y1="115" x2="994" y2="115"/>
+    <text class="lr" x="330" y="104">K<tspan class="sub" dy="5">AMF</tspan><tspan dy="-5">：注册期间一直存着，反复派生下面的密钥</tspan></text>
+    <line class="r" x1="253" y1="155" x2="994" y2="155"/>
+    <text class="lr" x="330" y="144">K<tspan class="sub" dy="5">NASenc</tspan><tspan dy="-5"> / K</tspan><tspan class="sub" dy="5">NASint</tspan><tspan dy="-5">：每条 NAS 消息加密 + 完整性</tspan></text>
+    <line class="r" x1="262" y1="195" x2="420" y2="195"/>
+    <line class="r" x1="655" y1="195" x2="705" y2="195"/>
+    <line class="r" x1="735" y1="195" x2="900" y2="195"/>
+    <text class="lr" x="330" y="184">K<tspan class="sub" dy="5">gNB</tspan><tspan dy="-5"> → RRC / UP 密钥：连接期间每个包（PDCP）</tspan></text>
+    <!-- 去掉的：一直存着，偶尔用 -->
+    <line class="rd" x1="245" y1="235" x2="752" y2="235"/>
+    <line class="rd" x1="768" y1="235" x2="994" y2="235"/>
+    <text class="lr" x="330" y="224">K<tspan class="sub" dy="5">AUSF</tspan><tspan dy="-5">：存到下次认证，只在 SoR / UPU / AKMA 时用</tspan></text>
+    <!-- 去掉的：只在那一刻 -->
+    <circle class="dotr" cx="245" cy="280" r="8"/><circle class="dotr" cx="760" cy="280" r="8"/>
+    <text class="lr" x="330" y="286">K<tspan class="sub" dy="5">SEAF</tspan><tspan dy="-5">：认证那一刻，只用来派生 K</tspan><tspan class="sub" dy="5">AMF</tspan></text>
+    <circle class="dotr" cx="253" cy="320" r="8"/><circle class="dotr" cx="655" cy="320" r="6"/>
+    <circle class="dotr" cx="735" cy="320" r="6"/><circle class="dotr" cx="768" cy="320" r="8"/>
+    <text class="lr" x="330" y="326">SMC：NAS 一次；AS 每次连接一次</text>
+    <circle class="dotr" cx="245" cy="360" r="8"/>
+    <text class="lr" x="330" y="366">SUCI：只在发永久身份时（t1 用 5G-GUTI，不需要）</text>
+
+    <!-- LiteAKA：只在那一刻 -->
+    <circle class="dotg" cx="245" cy="420" r="8"/><circle class="dotg" cx="760" cy="420" r="8"/>
+    <text class="lg" x="330" y="426">RAND · AUTN · RES* / XRES*：认证那一刻</text>
+    <circle class="hollow" cx="245" cy="460" r="8"/>
+    <text class="lg" x="330" y="466">AUTS 重同步：SQN 对不上时才有</text>
+    <!-- LiteAKA：一直在 -->
+    <line class="g" x1="245" y1="522" x2="994" y2="522"/>
+    <line class="tick" x1="460" y1="513" x2="460" y2="531"/><line class="tick" x1="600" y1="513" x2="600" y2="531"/>
+    <line class="tick" x1="690" y1="513" x2="690" y2="531"/><line class="tick" x1="930" y1="513" x2="930" y2="531"/>
+    <text class="lg" x="330" y="508" style="font-weight:bold">认证状态：一直在，之后的功能来查它（竖线 = 一次查询）</text>
+
+    <!-- 时间轴 -->
+    <line class="axis" x1="245" y1="590" x2="985" y2="590"/>
+    <path d="M985,584 L997,590 L985,596 Z" fill="var(--muted)"/>
+    <line class="axis" x1="245" y1="583" x2="245" y2="597"/><line class="axis" x1="760" y1="583" x2="760" y2="597"/>
+    <text x="245" y="622" text-anchor="middle">t0：注册 + 第一次认证</text>
+    <text x="760" y="622" text-anchor="middle">t1：隔一段时间再认证</text>
+    <text class="dim" x="995" y="622" text-anchor="end">时间</text>
   </svg>
   </figure>
 </header>
