@@ -18,6 +18,12 @@
 .tslist { margin: 8px 0 16px; padding-left: 22px; font-size: .92rem; }
 .tslist li { margin: 8px 0; }
 .tslist .en { color: var(--muted); }
+.grp { margin: 14px 0 6px; }
+table.keys { font-size: .84rem; min-width: 860px; }
+table.keys td:first-child { min-width: 96px; }
+table.keys td:last-child, table.keys td:nth-last-child(2) { min-width: 64px; }
+table.keys td.keep { color: var(--green); }
+table.keys td.drop { color: var(--red); }
 @media (max-width: 720px) { .bi { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -165,6 +171,26 @@
       5G 的 NAS 协议<br>
       <span class="en">The 5G NAS protocol</span></li>
   </ul>
+  <div class="step">第三步 · 每个 K 留不留</div>
+  <h3 class="grp">第 1 组：AKA 主链</h3>
+  <div class="tw"><table class="keys">
+  <tr><th>K</th><th>全称</th><th>来源</th><th>去向</th><th>作用</th><th>建议</th><th>决定</th></tr>
+  <tr><td><b>K</b></td><td>长期密钥 / long-term key</td><td>写卡时预置，SIM 卡和网络侧 ARPF / UDR 各存一份</td><td>不出卡，也不出 ARPF；只作为 f1–f5 的输入</td><td>一切认证的根</td><td class="keep">保留</td><td></td></tr>
+  <tr><td><b>CK</b></td><td>Cipher Key</td><td>f3(K, RAND)，卡和 ARPF 各算一份</td><td>卡交给手机；5G 里只用作算 RES* 和 K<sub>AUSF</sub> 的 key</td><td>3G 里直接用来加密；5G 里只是中间值</td><td class="keep">保留（只用来算 RES*）</td><td></td></tr>
+  <tr><td><b>IK</b></td><td>Integrity Key</td><td>f4(K, RAND)，卡和 ARPF 各算一份</td><td>同 CK</td><td>同 CK</td><td class="keep">保留（只用来算 RES*）</td><td></td></tr>
+  <tr><td><b>AK</b></td><td>Anonymity Key</td><td>f5(K, RAND)，卡和 ARPF 各算一份</td><td>不传输；只用来盖住 SQN（SQN⊕AK）</td><td>不让别人从 AUTN 里看到 SQN，防止被追踪</td><td class="keep">保留</td><td class="keep"><b>保留</b></td></tr>
+  <tr><td><b>AK*</b></td><td>重同步用的 Anonymity Key</td><td>f5*(K, RAND)</td><td>不传输；只用来盖住 AUTS 里的 SQN<sub>MS</sub></td><td>重同步时保护卡里的 SQN</td><td class="keep">保留（重同步保留了）</td><td></td></tr>
+  <tr><td><b>AK**</b></td><td>另一种可选的重同步 AK</td><td>f5**(K, RAND, MAC-S)，TS 33.102 附录 J（参考性）</td><td>同 AK*</td><td>运营商可以用它代替 AK*</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>AUSF</sub></b></td><td>Key for AUSF</td><td>ARPF 用 CK‖IK、SN name、SQN⊕AK 派生（A.2），交给 AUSF；手机也算一份</td><td>派生 K<sub>SEAF</sub>；SoR / UPU 用它算 MAC；AKMA 用它派生 K<sub>AKMA</sub></td><td>归属网络这一层的锚点</td><td class="drop">去掉（要讨论：AKMA）</td><td>待定</td></tr>
+  <tr><td><b>K<sub>SEAF</sub></b></td><td>Key for SEAF</td><td>AUSF 从 K<sub>AUSF</sub> 派生（A.6），交给 SEAF</td><td>只用来派生 K<sub>AMF</sub>；网络侧用完就删</td><td>服务网络这一层的锚点</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>AMF</sub></b></td><td>Key for AMF</td><td>SEAF 用 K<sub>SEAF</sub>、SUPI、ABBA 派生（A.7）</td><td>派生 NAS 密钥、K<sub>gNB</sub>、NH、非 3GPP 接入的密钥</td><td>后续所有保护的根</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K'<sub>AMF</sub></b></td><td>换 AMF 时的新 K<sub>AMF</sub></td><td>从旧 K<sub>AMF</sub> 横向派生（A.13）</td><td>交给新的 AMF</td><td>UE 换 AMF 时用</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>NASint</sub> / K<sub>NASenc</sub></b></td><td>NAS 完整性 / 加密密钥</td><td>从 K<sub>AMF</sub> 派生（A.8），AMF 和手机各算一份</td><td>只在 AMF 和手机之间用</td><td>保护每条 NAS 消息</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>gNB</sub></b></td><td>Key for gNB</td><td>AMF 用 K<sub>AMF</sub> 和上行 NAS COUNT 派生（A.9），交给基站</td><td>基站用它派生 RRC 和用户面的密钥</td><td>空口这一层的根</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>RRCint</sub> / K<sub>RRCenc</sub> / K<sub>UPint</sub> / K<sub>UPenc</sub></b></td><td>RRC 和用户面的完整性 / 加密密钥</td><td>从 K<sub>gNB</sub> 派生（A.8）</td><td>只在基站和手机之间用</td><td>保护空口的信令和数据</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>NH</b></td><td>Next Hop</td><td>AMF 从 K<sub>AMF</sub> 派生（A.10）</td><td>交给基站，给下一次切换用</td><td>切换时的密钥隔离</td><td class="drop">去掉</td><td></td></tr>
+  <tr><td><b>K<sub>NG-RAN</sub>*</b></td><td>切换后的新 K<sub>gNB</sub></td><td>源基站从 K<sub>gNB</sub> 或 NH，加上目标小区信息派生（A.11）</td><td>交给目标基站</td><td>切换、从 RRC_INACTIVE 恢复、LTM 时用</td><td class="drop">去掉</td><td></td></tr>
+  </table></div>
 </header>
 </div>
 </body>
