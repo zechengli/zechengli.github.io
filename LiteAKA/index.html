@@ -3,155 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiteAKA · 去掉加密</title>
-<meta name="description" content="LiteAKA：基于 5G AKA、只做双向认证、不加密。第一页：去掉了哪些东西，按 srsRAN 代码行数统计占比。">
+<title>LiteAKA · 总览</title>
+<meta name="description" content="LiteAKA：只做 AKA 里的认证，不做密钥协商。认证成功留成一个状态，之后的功能只查状态。2026-10-06 的两个版本：实机版和设备绑定原型。">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
 <nav class="top">
-  <a class="on" href="index.html">1 · 去掉加密</a>
-  <a href="flow.html">2 · Flow</a>
-  <a href="api.html">3 · API</a>
-  <a href="demo.html">4 · Demo</a>
-  <a href="open5gs.html">5 · 实机：Open5GS</a>
-  <a href="realflow.html">6 · 实机：Flow</a>
-  <a href="realapi.html">7 · 实机：API 与变量</a>
+  <a class="on" href="index.html">1 · 总览</a>
+  <a href="open5gs.html">2 · 实机：Open5GS</a>
+  <a href="realflow.html">3 · 实机：Flow</a>
+  <a href="realapi.html">4 · 实机：API 与变量</a>
+  <a href="proto.html">5 · 原型：设备绑定</a>
 </nav>
 <header>
-  <div class="eyebrow">LiteAKA · 第 1 页</div>
-  <h1>只认证、不加密：从 5G AKA 里去掉了什么</h1>
-  <div class="note good">
-  <p><strong>2026-10-06 更新：</strong>第 1–4 页是最初的设计（网络侧是自己写的 Verifier，统计的是 srsRAN UE 侧的代码）。
-  实际做出来、在真手机 + 真 SIM 上跑通的版本用的是 Open5GS，见
-  <a href="open5gs.html">第 5 页（用了 Open5GS 的哪些代码）</a>、<a href="realflow.html">第 6 页（Flow）</a>、<a href="realapi.html">第 7 页（API 与变量）</a>。</p>
-</div>
-<div class="lede">
-    <p><strong>一句话：</strong>LiteAKA 在 5G AKA 里算完 <code>RES*</code> 就停下来：只做双向认证，
-    后面的密钥派生、Security Mode Command、NAS/PDCP 加密和完整性保护全部去掉，SQN 重同步也一并去掉。</p>
-    <p>按 srsRAN_4G 里 <strong>5G UE 侧的安全代码</strong>统计：LiteAKA 保留 <strong>16.1%</strong>，
-    去掉的加密相关部分占 <strong>79.0%</strong>，另外去掉的重同步占 <strong>4.9%</strong>。统计的口径和方法见本页最后。</p>
+  <div class="eyebrow">LiteAKA · 第 1 页 · 2026-10-06</div>
+  <h1>LiteAKA：只认证，不做密钥协商</h1>
+  <div class="lede">
+    <p><strong>一句话：</strong>从 5G AKA 里只拿认证要用的部分：RAND、AUTN（里面有 SQN 和 MAC）、RES*，加上 SQN 重同步。
+    K<sub>AUSF</sub> 往下的密钥树、Security Mode Command、加密和完整性保护都不要。
+    认证成功这件事本身留成一个<strong>状态</strong>，之后的功能只查这个状态，不再重新认证。</p>
+    <p>今天有两个版本：</p>
+    <ul>
+      <li><strong>实机版</strong>（第 2–4 页）：root 过的 Android 手机 + 真 SIM 卡 + Open5GS，<strong>在真机上跑通了</strong>。</li>
+      <li><strong>原型</strong>（第 5 页）：自己写的 Verifier，状态绑定设备密钥。<strong>只用软 SIM 跑过</strong>。</li>
+    </ul>
   </div>
 </header>
 
-<h2>1. 5G AKA 在 RES* 之后还做了什么</h2>
-<p>5G AKA 认证成功以后，还会从 CK、IK 一路往下派生出一整棵密钥树，再用这些密钥保护之后的每一条消息：</p>
-<pre>
-<span style="color:var(--green)"> K, OPc, RAND
-    │  f1..f5 (Milenage)
-    ▼
- MAC, RES, CK, IK, AK
-    │
-    ├──► RES* = KDF(CK||IK, SN name, RAND, RES)      ← LiteAKA 做到这里为止</span>
-<span style="color:var(--red)">    │
-    └──► KAUSF ─► KSEAF ─► KAMF ─┬─► KNASenc / KNASint ─► NAS 消息加密 + 完整性
-                                 └─► KgNB ─┬─► KRRCenc / KRRCint ─► RRC 信令
-                                           └─► KUPenc / KUPint   ─► 用户面数据
-                                   （还有 Security Mode Command、切换时的 K*gNB、NH …）</span>
-</pre>
-<p>LiteAKA 在 <code>RES*</code> 这里停下。从 <code>KAUSF</code> 往下的整棵树、用这些密钥的三套加密和完整性算法
-（SNOW 3G / AES / ZUC），以及把它们用到 NAS 和 PDCP 消息上的代码，全部不需要。</p>
-
-<h2>2. 保留什么、去掉什么</h2>
+<h2>1. 实机版：跑出来的结果</h2>
+<p>sysmoISIM-SJA2（IMSI <code>999700000085592</code>）插在手机里，网络侧是 Open5GS v2.8.0，中间一个 Python 服务器只做转发。完整流程见 <a href="realflow.html">第 3 页</a>。</p>
 <div class="tw"><table>
-<tr><th>部分</th><th>5G AKA</th><th>LiteAKA</th><th>原因</th></tr>
-<tr><td>Milenage f1（MAC）</td><td>有</td><td class="pass">保留</td><td>客户端靠它认证服务器</td></tr>
-<tr><td>Milenage f2、f3、f4、f5</td><td>有</td><td class="pass">保留</td><td>f2 给出 RES；RES* 需要 CK（f3）和 IK（f4）；AK（f5）用来盖住 SQN。四个值在同一次 <code>f2345</code> 调用里一起算出</td></tr>
-<tr><td>RES* / XRES*</td><td>有</td><td class="pass">保留</td><td>服务器靠它认证客户端，这也是"5G" AKA 和 4G 的区别</td></tr>
-<tr><td>SQN + 窗口检查</td><td>有</td><td class="pass">保留</td><td>防重放</td></tr>
-<tr><td>重同步（f1*、f5*、AUTS、Authentication Failure）</td><td>有</td><td class="fail">去掉</td><td>只有一个 Verifier，SQN 基本不会乱；真乱了就手动重置</td></tr>
-<tr><td>密钥树（KAUSF 往下）</td><td>有</td><td class="fail">去掉</td><td>不加密，也就不需要会话密钥</td></tr>
-<tr><td>加密 / 完整性算法（EEA/EIA 1–3，SNOW 3G，ZUC）</td><td>有</td><td class="fail">去掉</td><td>同上</td></tr>
-<tr><td>Security Mode Command，NAS / PDCP 的加解密和完整性</td><td>有</td><td class="fail">去掉</td><td>同上</td></tr>
-<tr><td>HXRES*、AUSF/SEAF/AMF 拆分</td><td>有</td><td class="fail">去掉</td><td>只有一个 app，一个 Verifier，不存在 home 和 serving 的区别</td></tr>
-<tr><td>SN name</td><td>有</td><td>换成常量 <code>"liteaka:demo"</code></td><td>只有一个服务</td></tr>
+<tr><th>场景</th><th>结果</th></tr>
+<tr><td>SIM A（已登记）认证</td><td class="pass">PASS</td></tr>
+<tr><td>SIM B（没登记）认证</td><td class="fail">FAIL</td></tr>
+<tr><td>SIM A 删掉后重新登记，第一次认证</td><td class="pass">PASS</td></tr>
+<tr><td>Demo Client（别的 app）在 SIM A 通过后来查</td><td class="pass">Access granted</td></tr>
+<tr><td>Demo Client 在 SIM B 失败后来查</td><td>Access denied</td></tr>
+<tr><td>有效期到了（测试时改成 40 秒）</td><td>按时失效：t=0 granted，t=46 s denied</td></tr>
+<tr><td>先通过，再用没登记的卡失败</td><td>旧状态被清掉，查到 authenticated = 0</td></tr>
 </table></div>
-<div class="note warn">
-  <p><strong>代价：</strong>认证完以后没有任何密钥保护后续消息。认证只能证明"这一刻对面是有 K 的人"，
-  之后的请求可能被别人插进来冒充。这对 demo 没有影响，但如果要实际使用，至少应该把 KAUSF → K_int
-  这一小段加回来，用来做 HMAC。</p>
-</div>
+<p class="dim">第三行实际走了一遍重同步：数据库里的 SQN 从 0 开始，比卡里的小，卡返回 AUTS，重同步后第二次通过。表格摘自 <a href="realflow.html">第 3 页</a> 第 4 节。</p>
 
-<h2>3. 按代码量算，去掉了多少</h2>
-<div class="grid3">
-  <div class="stat"><b>2,129</b><span>5G UE 侧安全代码总行数（口径见下）</span></div>
-  <div class="stat"><b style="color:var(--green)">343 · 16.1%</b><span>LiteAKA 保留</span></div>
-  <div class="stat"><b style="color:var(--red)">1,682 · 79.0%</b><span>去掉：加密相关（密钥树 + 算法 + 消息保护）</span></div>
-  <div class="stat"><b style="color:var(--muted)">104 · 4.9%</b><span>去掉：重同步</span></div>
-</div>
+<h2>2. 原型：跑出来的结果</h2>
+<p>只用软 SIM（TS 35.208 公开测试 K/OPc）。Milenage 测试向量 9/9 对上，端到端测试 6/6 通过：正常认证、重同步、假 Verifier 被拒、
+handle 被拷到别的设备上用被拒、revoke、revoke 之后被拒。详情见 <a href="proto.html">第 5 页</a>。</p>
 
-<div class="bar" role="img" aria-label="代码占比条形图">
-  <div style="width:16.1%;background:var(--green)" title="保留 16.1%"></div>
-  <div style="width:4.9%;background:var(--muted)" title="重同步 4.9%"></div>
-  <div style="width:17.7%;background:var(--blue)" title="密钥树 17.7%"></div>
-  <div style="width:36.4%;background:var(--red)" title="加密/完整性算法 36.4%"></div>
-  <div style="width:24.9%;background:var(--accent)" title="消息保护 + SMC 24.9%"></div>
-</div>
-<div class="legend">
-  <span><i style="background:var(--green)"></i>保留 16.1%</span>
-  <span><i style="background:var(--muted)"></i>重同步 4.9%</span>
-  <span><i style="background:var(--blue)"></i>密钥树 17.7%</span>
-  <span><i style="background:var(--red)"></i>加密/完整性算法 36.4%</span>
-  <span><i style="background:var(--accent)"></i>消息保护 + SMC 24.9%</span>
-</div>
-
+<h2>3. 两个版本不一样的地方：要一起对</h2>
 <div class="tw"><table>
-<tr><th>类别</th><th class="r">行数</th><th class="r">占比</th><th>包括</th></tr>
-<tr><td class="pass">保留</td><td class="r">343</td><td class="r">16.1%</td><td>Milenage f1、f2345、OPc；RES*（及其用到的 KDF）；USIM 的 AUTN 检查；NAS 的 Authentication Request / Response / Reject</td></tr>
-<tr><td>去掉：重同步</td><td class="r">104</td><td class="r">4.9%</td><td>f1*、f5*，Authentication Failure（带 AUTS）</td></tr>
-<tr><td>去掉：密钥树</td><td class="r">376</td><td class="r">17.7%</td><td>KAUSF、KSEAF、KAMF、KgNB、K*gNB、NAS/RRC/UP 密钥、S-KgNB，以及对应的 USIM 上下文</td></tr>
-<tr><td>去掉：加密/完整性算法</td><td class="r">775</td><td class="r">36.4%</td><td>EEA1/2/3、EIA1/2/3 的实现，SNOW 3G（s3g.cc），ZUC（zuc.cc）</td></tr>
-<tr><td>去掉：消息保护 + SMC</td><td class="r">531</td><td class="r">24.9%</td><td>NAS 的加解密和完整性、Security Mode Command/Complete/Reject、安全能力；PDCP 的加解密和完整性</td></tr>
-<tr><td><strong>合计</strong></td><td class="r"><strong>2,129</strong></td><td class="r">100%</td><td></td></tr>
+<tr><th>问题</th><th>实机版</th><th>原型</th><th>要定的</th></tr>
+<tr><td>网络侧谁出题、谁判分</td><td>Open5GS（UDM 出题，AUSF 判分），服务器只转发</td><td>自己写的 Verifier（AUSF + UDM 合一）</td><td rowspan="2">要不要把设备密钥绑进认证？要绑的话，用 Open5GS 就得改 AUSF/UDM，或者在 RES* 之外另做绑定</td></tr>
+<tr><td>RES* 里的 P0</td><td>标准 SN name <code>5G:mnc070.mcc999.3gppnetwork.org</code></td><td><code>liteaka:&lt;Verifier ID&gt;:&lt;设备公钥哈希&gt;</code></td></tr>
+<tr><td>手机怎么访问 SIM</td><td>root，授予 <code>MODIFY_PHONE_STATE</code>，用逻辑通道发 APDU</td><td>（没做手机）计划在卡的 ARA-M 里写运营商特权规则</td><td>demo 用 root 够不够？想在不 root 的手机上跑，就要写 ARA-M 规则，需要卡的 ADM1</td></tr>
+<tr><td>状态存在哪</td><td>手机 App 的 SharedPreferences：SUPI、认证时间、过期时间</td><td>Verifier 端：IMSI、设备公钥、过期时间</td><td rowspan="2">别的 app 拿到 yes/no 就够了，还是它的后端也要能自己验证？</td></tr>
+<tr><td>别的 app 怎么查</td><td>ContentProvider，回 <code>authenticated = 1/0</code> 和 SUPI，要声明权限 <code>CHECK_STATE</code></td><td>设备私钥签一个一次性 nonce，再调 Verifier 的 <code>/check</code>（还没做成给别的 app 用的接口）</td></tr>
+<tr><td>状态被拷走能不能用</td><td>状态只是手机上的一个标记，没有和密钥绑定</td><td>不能：没有设备私钥查不了（测试第 4 项）</td><td>同第一行</td></tr>
+<tr><td>有效期</td><td>24 小时，按手机时钟算（<code>validFor</code>）</td><td>600 秒，按 Verifier 时钟算</td><td>以后由戒指/手表续期，两边都还没做</td></tr>
+<tr><td>重同步</td><td>保留，真卡上走过</td><td>保留，软 SIM 上走过</td><td>一致</td></tr>
+<tr><td>跑过什么</td><td>真卡、真手机</td><td>只有软 SIM</td><td>—</td></tr>
 </table></div>
 
-<details>
-<summary>展开：逐个函数的行数</summary>
-<div class="tw"><table>
-<tr><th>类别</th><th>文件</th><th>函数</th><th class="r">行数</th></tr>
-<tr><td>保留</td><td>security.cc</td><td><code>compute_opc</code>, <code>security_milenage_f1</code>, <code>security_milenage_f2345</code></td><td class="r">13</td></tr>
-<tr><td>保留</td><td>security.cc</td><td><code>security_generate_res_star</code></td><td class="r">32</td></tr>
-<tr><td>保留</td><td>security.cc</td><td><code>kdf_common</code>（三参数版，RES* 用的就是它）</td><td class="r">36</td></tr>
-<tr><td>保留</td><td>liblte_security.cc</td><td><code>liblte_security_milenage_f1</code> / <code>_f2345</code>, <code>liblte_compute_opc</code></td><td class="r">110</td></tr>
-<tr><td>保留</td><td>usim.cc</td><td><code>gen_auth_res_milenage</code>（解 SQN、验 MAC、查 SQN）</td><td class="r">40</td></tr>
-<tr><td>保留</td><td>usim.cc</td><td><code>generate_authentication_response_5g</code>（整个函数都算作保留，其中约 9 行是 KAUSF/KSEAF/KAMF，这样算偏保守）</td><td class="r">33</td></tr>
-<tr><td>保留</td><td>nas_5g.cc</td><td><code>handle_authentication_request</code>, <code>send_authentication_response</code>, <code>handle_authentication_reject</code></td><td class="r">79</td></tr>
-<tr><td>重同步</td><td>security.cc / liblte_security.cc</td><td><code>milenage_f1_star</code>, <code>milenage_f5_star</code>（两层）</td><td class="r">78</td></tr>
-<tr><td>重同步</td><td>nas_5g.cc</td><td><code>send_authentication_failure</code></td><td class="r">26</td></tr>
-<tr><td>密钥树</td><td>security.cc</td><td><code>k_ausf, k_seaf, k_amf, k_gnb, k_gnb_star, k_nb_star_common, k_nas_5g, sk_gnb, k_nr_rrc, k_nr_up</code></td><td class="r">248</td></tr>
-<tr><td>密钥树</td><td>security.cc</td><td><code>kdf_common</code>（一参数版和二参数版）</td><td class="r">51</td></tr>
-<tr><td>密钥树</td><td>usim_base.cc</td><td><code>generate_nas_keys_5g, generate_nr_as_keys, generate_nr_context, update_nr_context</code></td><td class="r">77</td></tr>
-<tr><td>算法</td><td>security.cc</td><td><code>security_128_eea1/2/3</code>, <code>security_128_eia1/2/3</code>（包装层）</td><td class="r">60</td></tr>
-<tr><td>算法</td><td>liblte_security.cc</td><td>EIA1/2/3 和 EEA1/2/3 的实现及辅助函数</td><td class="r">414</td></tr>
-<tr><td>算法</td><td>s3g.cc</td><td>SNOW 3G 的全部函数</td><td class="r">163</td></tr>
-<tr><td>算法</td><td>zuc.cc</td><td>ZUC 的全部函数</td><td class="r">138</td></tr>
-<tr><td>消息保护</td><td>nas_base.cc</td><td><code>integrity_generate/check, cipher_encrypt/decrypt, parse_security_algorithm_list</code></td><td class="r">182</td></tr>
-<tr><td>消息保护</td><td>nas_5g.cc</td><td><code>handle_security_mode_command, send_security_mode_complete/reject, fill_security_caps, check_replayed_ue_security_capabilities</code></td><td class="r">193</td></tr>
-<tr><td>消息保护</td><td>pdcp_entity_base.cc</td><td><code>config_security, integrity_generate/verify, cipher_encrypt/decrypt</code></td><td class="r">156</td></tr>
-</table></div>
-</details>
-
-<h2>4. 统计口径</h2>
-<div class="note">
-  <p><strong>代码版本：</strong>srsRAN_4G，commit <code>6bcbd9e5b</code>（2026-01-18），lab 机器 ubuntuhooray 上的那份。</p>
-  <p><strong>范围：</strong>UE 侧（srsUE）在 <strong>5G SA</strong> 下会用到的安全代码，包括 <code>lib/src/common/</code> 下的
-  <code>security.cc</code>、<code>liblte_security.cc</code>、<code>s3g.cc</code>、<code>zuc.cc</code>，
-  <code>srsue/src/stack/upper/</code> 下的 <code>usim.cc</code>、<code>usim_base.cc</code>、<code>nas_5g.cc</code>、<code>nas_base.cc</code>，
-  以及 <code>lib/src/pdcp/pdcp_entity_base.cc</code>。</p>
-  <p><strong>怎么数：</strong>用脚本找出每个函数的范围，统计其中的非空、非注释行，再按函数手动归类。
-  没有被列在上表里的函数（比如 NAS 的其他消息处理）不计入分母。</p>
-  <p><strong>没算进去的：</strong></p>
-  <ul>
-    <li>AES 本身：Milenage 和 EEA2/EIA2 都调用 mbedtls 的 AES，这部分在第三方库里，两边都要用。</li>
-    <li>真 SIM 卡路径 <code>pcsc_usim.cc</code>（1,225 行）：用真卡时 f1–f5 在卡里执行。</li>
-    <li>只在 4G 使用的函数（<code>k_asme</code>、<code>k_enb</code>、<code>k_nas</code>、<code>k_rrc</code>、<code>k_up</code> 等）、测试用的 XOR 算法、<code>security_md5</code>。</li>
-    <li><code>liblte_security.cc</code> 里的 <code>liblte_security_generate_res_star</code>：srsRAN 实际调用的是 <code>security.cc</code> 里的版本（已用 grep 确认它在 lib/srsue/srsenb/srsepc 里没有调用者）。<code>liblte_security.cc</code> 里 NR 密钥派生的几个函数是否被调用，我没有逐个确认，所以也没算。这几项如果算进去，"去掉"的比例只会更高。</li>
-    <li>网络侧（Open5GS 的 UDM/AUSF/AMF）没有统计。</li>
-  </ul>
-  <p>所以 16% / 79% 是<strong>在这个口径下</strong>的数字，换一个口径（比如把网络侧或者 AES 算进去）结果会不一样。</p>
-</div>
-
-<footer>LiteAKA · 2026-09-30 · 下一页：<a href="flow.html">2 · Flow</a></footer>
+<footer>LiteAKA · 2026-10-06 · 只写跑过或已决定的东西 · 实机版代码：<code>~/Desktop/LiteAKA</code>（server/、android/）· 下一页：<a href="open5gs.html">2 · 实机：Open5GS</a></footer>
 </div>
 </body>
 </html>

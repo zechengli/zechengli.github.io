@@ -10,24 +10,21 @@
 <body>
 <div class="wrap">
 <nav class="top">
-  <a href="index.html">1 · 去掉加密</a>
-  <a href="flow.html">2 · Flow</a>
-  <a href="api.html">3 · API</a>
-  <a href="demo.html">4 · Demo</a>
-  <a class="on" href="open5gs.html">5 · 实机：Open5GS</a>
-  <a href="realflow.html">6 · 实机：Flow</a>
-  <a href="realapi.html">7 · 实机：API 与变量</a>
+  <a href="index.html">1 · 总览</a>
+  <a class="on" href="open5gs.html">2 · 实机：Open5GS</a>
+  <a href="realflow.html">3 · 实机：Flow</a>
+  <a href="realapi.html">4 · 实机：API 与变量</a>
+  <a href="proto.html">5 · 原型：设备绑定</a>
 </nav>
 <header>
-  <div class="eyebrow">LiteAKA · 第 5 页 · 实机版</div>
+  <div class="eyebrow">LiteAKA · 第 2 页 · 实机版</div>
   <h1>只做认证，用到了 Open5GS 的哪些代码</h1>
   <div class="lede">
-    <p>第 1–4 页是一开始的设计，网络侧是自己写的一个 Verifier。实际做出来、在手机上跑通的版本（2026-10-06）不一样：
+    <p>在手机上跑通的版本（2026-10-06）：
     网络侧直接用 <strong>Open5GS v2.8.0</strong>，手机里插的是真 SIM 卡（sysmoISIM-SJA2，IMSI <code>999700000085592</code>），
     中间一个很小的 Python 服务器只负责转发。没有基站，没有 B210，srsRAN 一行都没用到。</p>
     <p>结论先说：一次认证只会走到 Open5GS 的 <strong>AUSF、UDM、UDR</strong> 三个网元（另外 NRF、SCP 负责它们之间找人和转发）。
     其余 12 个网元一个都没碰。真正和认证有关的算法和数据库代码，加起来大约 <strong>600 行</strong>。</p>
-    <p class="dim">第 1 页最后写着"网络侧（Open5GS）没有统计"，这一页补的就是这一块。</p>
   </div>
 </header>
 
@@ -137,7 +134,7 @@ UDM 和 UDR 也是一样经 SCP 转发。</p>
   </ul>
 </div>
 <div class="note warn">
-  <p><strong>和第 1 页的区别</strong>：第 1 页的设计把 SQN 重同步也去掉了。实机版保留了，而且真的用上了：
+  <p><strong>SQN 重同步保留了</strong>，而且真的用上了：
   把 SIM A 从数据库删掉、重新加进去以后，数据库里的 SQN 从 0 开始，比卡里的小，卡拒绝了第一次 challenge 并返回 AUTS，
   Open5GS 用 <code>ogs_auc_sqn</code> 重同步以后第二次就通过了。没有这一段，每次重新登记 SIM 都要手动去改数据库里的 SQN。</p>
 </div>
@@ -151,7 +148,7 @@ UDM 和 UDR 也是一样经 SCP 转发。</p>
   <li>"执行到"是按源码调用关系和这次实机的 SBI 请求判断的，没有在 Open5GS 里加覆盖率统计。</li>
 </ul>
 
-<footer>LiteAKA · 2026-10-06 · 上一页：<a href="demo.html">4 · Demo</a> · 下一页：<a href="realflow.html">6 · 实机：Flow</a></footer>
+<footer>LiteAKA · 2026-10-06 · 上一页：<a href="index.html">1 · 总览</a> · 下一页：<a href="realflow.html">3 · 实机：Flow</a></footer>
 </div>
 </body>
 </html>

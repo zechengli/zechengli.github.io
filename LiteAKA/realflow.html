@@ -10,16 +10,14 @@
 <body>
 <div class="wrap">
 <nav class="top">
-  <a href="index.html">1 · 去掉加密</a>
-  <a href="flow.html">2 · Flow</a>
-  <a href="api.html">3 · API</a>
-  <a href="demo.html">4 · Demo</a>
-  <a href="open5gs.html">5 · 实机：Open5GS</a>
-  <a class="on" href="realflow.html">6 · 实机：Flow</a>
-  <a href="realapi.html">7 · 实机：API 与变量</a>
+  <a href="index.html">1 · 总览</a>
+  <a href="open5gs.html">2 · 实机：Open5GS</a>
+  <a class="on" href="realflow.html">3 · 实机：Flow</a>
+  <a href="realapi.html">4 · 实机：API 与变量</a>
+  <a href="proto.html">5 · 原型：设备绑定</a>
 </nav>
 <header>
-  <div class="eyebrow">LiteAKA · 第 6 页 · 实机版</div>
+  <div class="eyebrow">LiteAKA · 第 3 页 · 实机版</div>
   <h1>Flow：App → SIM → App → 服务器 → Open5GS</h1>
   <div class="lede">
     <p>一共五个角色：</p>
@@ -157,7 +155,7 @@
 </table></div>
 
 <h3>Open5GS（N1–N3）</h3>
-<p>函数级的细节见 <a href="open5gs.html">第 5 页</a>。要点是：出题（N1）要经过 AUSF → UDM → UDR 三个网元；判分（N2）只在 AUSF 里比较一次；
+<p>函数级的细节见 <a href="open5gs.html">第 2 页</a>。要点是：出题（N1）要经过 AUSF → UDM → UDR 三个网元；判分（N2）只在 AUSF 里比较一次；
 N3 里的 auth-events 和 K<sub>SEAF</sub> 对 LiteAKA 没有用。</p>
 
 <h2>4. 实机跑出来的结果（2026-10-06）</h2>
@@ -172,7 +170,7 @@ N3 里的 auth-events 和 K<sub>SEAF</sub> 对 LiteAKA 没有用。</p>
 <tr><td>先通过、再用没登记的卡失败</td><td>1 → 0</td><td class="pass">旧状态被清掉</td><td>A9：失败时清掉，provider 立刻回 authenticated = 0</td></tr>
 </table></div>
 
-<footer>LiteAKA · 2026-10-06 · 上一页：<a href="open5gs.html">5 · 实机：Open5GS</a> · 下一页：<a href="realapi.html">7 · 实机：API 与变量</a></footer>
+<footer>LiteAKA · 2026-10-06 · 上一页：<a href="open5gs.html">2 · 实机：Open5GS</a> · 下一页：<a href="realapi.html">4 · 实机：API 与变量</a></footer>
 </div>
 </body>
 </html>

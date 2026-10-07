@@ -10,19 +10,17 @@
 <body>
 <div class="wrap">
 <nav class="top">
-  <a href="index.html">1 · 去掉加密</a>
-  <a href="flow.html">2 · Flow</a>
-  <a href="api.html">3 · API</a>
-  <a href="demo.html">4 · Demo</a>
-  <a href="open5gs.html">5 · 实机：Open5GS</a>
-  <a href="realflow.html">6 · 实机：Flow</a>
-  <a class="on" href="realapi.html">7 · 实机：API 与变量</a>
+  <a href="index.html">1 · 总览</a>
+  <a href="open5gs.html">2 · 实机：Open5GS</a>
+  <a href="realflow.html">3 · 实机：Flow</a>
+  <a class="on" href="realapi.html">4 · 实机：API 与变量</a>
+  <a href="proto.html">5 · 原型：设备绑定</a>
 </nav>
 <header>
-  <div class="eyebrow">LiteAKA · 第 7 页 · 实机版</div>
+  <div class="eyebrow">LiteAKA · 第 4 页 · 实机版</div>
   <h1>所有 API，和每一个变量从哪来</h1>
   <div class="lede">
-    <p>一共六组接口，按 <a href="realflow.html">第 6 页</a> 的顺序排：App ↔ SIM，App ↔ 服务器，服务器 ↔ AUSF，
+    <p>一共六组接口，按 <a href="realflow.html">第 3 页</a> 的顺序排：App ↔ SIM，App ↔ 服务器，服务器 ↔ AUSF，
     Open5GS 内部（我们不直接调，列出来方便对照），其他 App ↔ LiteAKA App，以及桌面上的登记工具。</p>
     <p>所有二进制字段在 JSON 里都是 hex 字符串。最后一节是变量表：每个变量是<strong>事先知道的</strong>还是<strong>代码生成的</strong>，
     是<strong>静态的</strong>（每次都一样）还是<strong>动态的</strong>（每次或者随时间会变）。</p>
@@ -44,7 +42,7 @@
 <tr><td>关闭逻辑通道</td><td><code>iccCloseLogicalChannel(通道号)</code></td><td>—</td></tr>
 </table></div>
 <p class="dim">代码里 SELECT / READ BINARY 用的是老式 CLA <code>A0</code>，发出去之前统一改成 <code>00</code>（逻辑通道上只认 USIM 的 CLA）。
-读 IMSI 和做认证各用一个新通道，原因见第 6 页 A2–A5。</p>
+读 IMSI 和做认证各用一个新通道，原因见第 3 页 A2–A5。</p>
 
 <h2>2. App ↔ LiteAKA 服务器（HTTP/1.1 + JSON，端口 8780）</h2>
 
@@ -202,7 +200,7 @@ subscribers.py restore &lt;备份.json&gt;            从备份恢复</pre>
   K<sub>AUSF</sub>、K<sub>SEAF</sub>、HXRES* 是 Open5GS 顺手算出来、LiteAKA 用不上的。</p>
 </div>
 
-<footer>LiteAKA · 2026-10-06 · 上一页：<a href="realflow.html">6 · 实机：Flow</a> · 代码：<code>~/Desktop/LiteAKA</code>（server/、android/）</footer>
+<footer>LiteAKA · 2026-10-06 · 上一页：<a href="realflow.html">3 · 实机：Flow</a> · 下一页：<a href="proto.html">5 · 原型：设备绑定</a> · 代码：<code>~/Desktop/LiteAKA</code>（server/、android/）</footer>
 </div>
 </body>
 </html>
