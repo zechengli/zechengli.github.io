@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5gAAA Live Demo</title>
+<meta name="description" content="Paging + 5G AKA as a replacement for MFA push and challenge, driven step by step from this page.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">5gAAA · live demo</div>
+  <h1>Paging + 5G AKA instead of an MFA push and challenge</h1>
+  <div class="lede">
+    <p>The network wakes a sleeping phone by <strong>paging</strong> it (the push notification), then
+    challenges its SIM with a fresh <strong>5G AKA</strong>: RAND and AUTN go out, RES* comes back.</p>
+    <p>The buttons below drive the real lab demo (Open5GS + UERANSIM) one radio message at a time.</p>
+  </div>
+</header>
+
+<div class="conn">
+  <span class="dot" id="dot"></span>
+  <span class="grow" id="connText">Looking for the lab PC ...</span>
+</div>
+<div class="note warn" id="howto" hidden>
+  <p><strong>Not connected.</strong> Live mode works when this page is opened on the lab PC itself:</p>
+  <p>1. On the lab PC run <code>cd /data2/work/paging-aka/demo &amp;&amp; ./paka up</code>.<br>
+  2. Reload this page on the same PC. If the browser asks to allow access to devices on your
+  local network, choose Allow.</p>
+</div>
+
+<div class="controls" id="controls">
+  <div class="row"><span class="lbl">Target phone</span>
+    <button data-cmd="who" data-arg="alice" data-group="target">Alice</button>
+    <button data-cmd="who" data-arg="bob" data-group="target">Bob</button>
+    <button data-cmd="who" data-arg="carol" data-group="target">Carol</button>
+    <span class="lbl" style="width:auto;margin-left:14px">Speed</span>
+    <button data-cmd="speed" data-arg="step" data-group="speed">step</button>
+    <button data-cmd="speed" data-arg="slow" data-group="speed">slow</button>
+    <button data-cmd="speed" data-arg="real" data-group="speed">real</button>
+    <span class="lbl" style="width:auto;margin-left:14px">Network key</span>
+    <button data-cmd="key" data-arg="real" data-group="key">real</button>
+    <button data-cmd="key" data-arg="wrong" data-group="key">wrong (FAIL)</button>
+  </div>
+  <div class="row"><span class="lbl">The challenge</span>
+    <button class="step" data-cmd="trigger">trigger<small>1 · AMF starts it</small></button>
+    <button class="step" data-cmd="page">page<small>2 · paging slot</small></button>
+    <button class="step" data-cmd="answer">answer<small>3 · Service Request</small></button>
+    <button class="step" data-cmd="challenge">challenge<small>4 · RAND + AUTN</small></button>
+    <button class="step" data-cmd="respond">respond<small>5 · RES*</small></button>
+    <button class="step" data-cmd="secure">secure<small>6 · new keys</small></button>
+    <button class="step" data-cmd="complete">complete<small>7 · confirmed</small></button>
+    <button class="step" data-cmd="accept">accept<small>8 · PASS</small></button>
+    <button class="step" data-cmd="reject">reject<small>FAIL case</small></button>
+  </div>
+  <div class="row"><span class="lbl">Tools</span>
+    <button data-cmd="next">next</button><button data-cmd="play">play</button>
+    <button data-cmd="idle">idle</button><button data-cmd="status">status</button>
+    <button data-cmd="result">result</button><button data-cmd="reset">reset</button>
+    <span class="hint" id="hint"></span>
+  </div>
+</div>
+
+<div class="pane out"><h3>Console output</h3><pre id="out"><span class="empty">Command results appear here.</span></pre></div>
+<div class="grid" style="margin-top:10px">
+  <div class="pane"><h3 id="phoneTitle">Phone</h3><pre id="phone"></pre></div>
+  <div class="pane"><h3>On the wire (NGAP / NAS / SBI, live)</h3><pre id="wire"></pre></div>
+  <div class="pane"><h3>Server (Open5GS AMF)</h3><pre id="server"></pre></div>
+</div>
+<div class="pane cell"><h3>Cell: idle phones and paging (gNB)</h3><pre id="cell"></pre></div>
+
+<h2>What maps to what</h2>
+<div class="tw"><table>
+<tr><th>Microsoft MFA</th><th>This demo</th></tr>
+<tr><td>Push notification wakes the app</td><td>Paging by 5G-S-TMSI, sent in the phone's own paging slot</td></tr>
+<tr><td>App fetches the challenge</td><td>Service Request (mobile-terminated)</td></tr>
+<tr><td>Server sends a nonce</td><td>Authentication Request: RAND, AUTN</td></tr>
+<tr><td>Device signs with its private key</td><td>SIM computes RES* with its secret key K</td></tr>
+<tr><td>Server verifies the signature</td><td>AMF checks HRES*, AUSF checks XRES*</td></tr>
+</table></div>
+<p class="hint">5G AKA uses a shared symmetric key, not a key pair. Paging in order to re-authenticate is
+this project's extension; standard 5G does not do it.</p>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
