@@ -9,11 +9,55 @@
 <body>
 
 <h2>LiteAAA on a B210</h2>
-<p><b>Status: a plan to talk through. Nothing below is built yet.</b></p>
-<p>What we have: a SIM card, a phone, a B210 and a PC.</p>
+<p><b>Status: it works. Run on 12 November 2026.</b></p>
+<p>What we have: a SIM card, a phone, a B210 and a PC. No Open5GS and no core network.</p>
 
 <h3>Design</h3>
 <p><img class="flow" src="design.svg?v=1" alt="The phone runs an app with the LiteAAA device half and asks its SIM card. The PC runs the LiteAAA network half and holds the same key. They talk through the B210 using Bluetooth packets at 2.4 GHz."></p>
+
+<h3>Where the code runs</h3>
+<table>
+  <tr><th>Where</th><th>What runs there</th><th>The key K</th></tr>
+  <tr><td>PC</td><td>the LiteAAA network half and the key store</td><td>a copy, registered by hand</td></tr>
+  <tr><td>B210</td><td>sends and receives every message as a Bluetooth packet</td><td>none</td></tr>
+  <tr><td>Phone app</td><td>the LiteAAA device half</td><td>none</td></tr>
+  <tr><td>SIM card</td><td>checks the network and makes the answer</td><td>its own copy, never shown</td></tr>
+</table>
+
+<h3>Result with the registered SIM card</h3>
+<pre>PC
+REGISTER   phone -> network   identity 620fb94e
+PAGING     network -> all phones   identity 620fb94e
+ANSWER     Phone -> network   I am here
+CHALLENGE  network -> Phone   RAND, AUTN
+RESYNC     Phone -> network   my counter is behind
+network caught its counter up; challenging again
+CHALLENGE  network -> Phone   RAND, AUTN
+RESPONSE   Phone -> network   RES
+phone verified network:  PASS   the SIM accepted AUTN
+network verified phone:  PASS   RES matched
+result: PASS
+nonce entered: PASS
+Phone is verified.
+
+Phone
+registered, identity 620fb94e
+released: idle now, only a page for me wakes me
+page for my identity: answering
+challenge received: asking the SIM card
+card says the network's counter is behind; sending resync
+challenge received: asking the SIM card
+card accepted the network; sending RES</pre>
+<p>From the page to the answer took about 1.3 seconds over the air.</p>
+
+<h3>Result with a SIM card whose key is not registered</h3>
+<pre>PAGING     network -> all phones   identity 5b9c6d9c
+ANSWER     Phone -> network   I am here
+CHALLENGE  network -> Phone   RAND, AUTN
+REFUSED    Phone -> network   MAC in AUTN is wrong
+phone verified network:  FAIL
+network verified phone:  not reached
+result: FAIL</pre>
 
 </body>
 </html>
