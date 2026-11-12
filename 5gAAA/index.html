@@ -113,16 +113,24 @@ UERANSIM is a separate open-source project (github.com/aligungr/UERANSIM). It is
 <p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
 <h3>Lines of code</h3>
 <table>
-  <tr><th>What</th><th>Lines</th></tr>
-  <tr><td>Our script (start, stop and the APIs)</td><td>597</td></tr>
-  <tr><td>Our Python: phone table 147, message log 135, bridge 179</td><td>461</td></tr>
-  <tr><td>This page: HTML, JavaScript, CSS (before this write-up was added)</td><td>196</td></tr>
-  <tr><td>AMF patch: trigger verification after a page, report the result</td><td>303</td></tr>
+  <tr><th>Written by AI and me together</th><th>Lines</th></tr>
+  <tr><td>Script: start, stop and the APIs</td><td>597</td></tr>
+  <tr><td>Python: phone table 147, message log 135, bridge 179</td><td>461</td></tr>
+  <tr><td>This page: HTML 187, JavaScript 104, CSS 38, diagram 46</td><td>375</td></tr>
+  <tr><td>AMF patch: run verification after a page, report the result</td><td>303</td></tr>
   <tr><td>Phone fix in UERANSIM</td><td>3</td></tr>
-  <tr><td>Open5GS, used as is (AMF alone is about 35,000)</td><td>about 339,000</td></tr>
-  <tr><td>UERANSIM, used as is</td><td>about 44,000</td></tr>
+  <tr><td><b>Total written</b></td><td><b>1,739</b></td></tr>
 </table>
-<p class="small">Switched off here, left from an earlier step-by-step demo: 15 of the 303 AMF lines (timer.c) and about 210 lines in the UERANSIM tree.</p>
+<br>
+<table>
+  <tr><th>Used directly, not written by us</th><th>Lines</th></tr>
+  <tr><td>Open5GS (the AMF alone is about 35,000)</td><td>about 339,000</td></tr>
+  <tr><td>UERANSIM</td><td>about 44,000</td></tr>
+  <tr><td><b>Total used directly</b></td><td><b>about 383,000</b></td></tr>
+</table>
+<p>About 0.5% of the code that runs in this demo was written for it. The rest is used as it is.</p>
+<p class="small">Also used directly and not counted: MongoDB, Wireshark (tshark), the Cloudflare tunnel client and Linux itself.
+Switched off here, left from an earlier step-by-step demo: 15 of the 303 AMF lines (timer.c) and about 210 lines in the UERANSIM tree.</p>
 
 <h3>Why this small version is enough</h3>
 <ul>
