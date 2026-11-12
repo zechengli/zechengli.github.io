@@ -9,45 +9,59 @@
 <body>
 
 <h2>LiteAAA on a B210</h2>
-<p><b>Status: step 1 of 5 works. The rest is still a plan.</b></p>
+<p><b>Status: a plan to talk through. Nothing below is built yet.</b></p>
 <p>What we have: a SIM card, a phone, a B210 and a PC. No shield box and no radio licence.</p>
 
 <h3>Design</h3>
 <p><img class="flow" src="design.svg?v=1" alt="The phone runs an app with the LiteAAA device half and asks its SIM card. The PC runs the LiteAAA network half and holds the same key. They talk through the B210 using Bluetooth packets at 2.4 GHz."></p>
 
-<h3>Why Bluetooth packets and not a 5G cell</h3>
+<h3>Drive it with the real SIM, over ZMQ first</h3>
+<p>This is a plan to talk through, not built yet. The idea: run the whole LiteAAA
+exchange with the phone's real SIM card giving the proof, and carry the radio
+samples over ZMQ, a software cable, so nothing is transmitted. No box and no
+licence are needed to build and test it this way.</p>
+<p><img class="flow" src="plan2.svg?v=1" alt="PC runs the LiteAAA network half and the key store with the SIM's key; it exchanges samples with a B210, or over ZMQ with no emission; the phone runs the device half and holds the real SIM card."></p>
+
+<h4>Who holds what</h4>
 <table>
-  <tr><th>Radio</th><th>Phone has it</th><th>B210 can do it</th><th>Without a box or a licence</th></tr>
-  <tr><td>5G cell</td><td>yes</td><td>yes</td><td>not allowed: the band belongs to a carrier</td></tr>
-  <tr><td>Bluetooth packets, 2.4 GHz</td><td>yes</td><td>yes, with our own code</td><td>the band is open to low-power use; confirm with the university</td></tr>
-  <tr><td>NFC</td><td>yes</td><td>no, the frequency is too low</td><td></td></tr>
+  <tr><th>Side</th><th>Runs</th><th>Secret</th></tr>
+  <tr><td>PC</td><td>the LiteAAA network half and the key store</td><td>a copy of the SIM's K and OPc, registered on the PC</td></tr>
+  <tr><td>Phone</td><td>the LiteAAA device half</td><td>none in the app; the real SIM card holds K and never shows it</td></tr>
 </table>
 
-<h3>What changes in LiteAAA</h3>
-<table>
-  <tr><th>Part</th><th>Now</th><th>On the B210</th></tr>
-  <tr><td>Core</td><td>the rules</td><td>the same, unchanged</td></tr>
-  <tr><td>Reach</td><td>the internet</td><td>Bluetooth packets sent and received by the B210</td></tr>
-  <tr><td>SIM</td><td>a key in memory</td><td>the real SIM card, asked by an app on the phone</td></tr>
-  <tr><td>Key store</td><td>a table in memory</td><td>the same table, holding the real card's K</td></tr>
-</table>
-
-<h3>Steps</h3>
+<h4>Registering the SIM</h4>
 <ol>
-  <li><b>Done, 12 November 2026.</b> The B210 sends a Bluetooth packet and the phone sees it.
-  In 22 seconds the phone heard 208 packets named "LiteAAA" from the B210, and none with the B210 silent.</li>
-  <li>The B210 hears a Bluetooth packet sent by the phone.</li>
-  <li>Wrap those two as the Reach plug-in.</li>
-  <li>Phone app: the device half, with the real SIM card as the SIM plug-in.</li>
-  <li>Run it: page, the SIM verifies the network, the network verifies the SIM, nonce.</li>
+  <li>Read the card's identity (IMSI) from the phone.</li>
+  <li>Put that IMSI, with the card's K and OPc, into the PC's key store. This is the only place K is typed in; the card already has its own copy.</li>
+  <li>From then on the PC can build a challenge the card will accept, and predict the answer the card will give.</li>
 </ol>
 
-<h3>Open questions</h3>
+<h4>The run, step by step</h4>
+<ol>
+  <li>The PC's network half pages the phone by its identity.</li>
+  <li>The phone answers.</li>
+  <li>The PC sends the challenge (RAND, AUTN).</li>
+  <li>The phone hands RAND and AUTN to the real SIM card. The card checks AUTN: this is the SIM verifying the network.</li>
+  <li>The card returns its answer (RES). The PC checks it: this is the network verifying the SIM.</li>
+  <li>The nonce, as before.</li>
+</ol>
+
+<h4>Why ZMQ first</h4>
+<table>
+  <tr><th>Carry the samples by</th><th>Transmitted?</th><th>Needs a box or a licence</th></tr>
+  <tr><td>ZMQ (a software cable on the PC)</td><td>no</td><td>no</td></tr>
+  <tr><td>The B210, over the air</td><td>yes</td><td>yes, unless on an open low-power band</td></tr>
+</table>
+<p>The LiteAAA code is the same either way. ZMQ lets us get the whole exchange
+working and the SIM registered with nothing leaving the PC. Only after it works
+do we decide about a real radio.</p>
+
+<h4>What we need to decide together</h4>
 <ul>
-  <li>A Bluetooth packet carries 31 bytes. The challenge is 32, so it goes in two packets.</li>
-  <li>A phone does not listen all the time, so a page may have to be repeated.</li>
-  <li>A real SIM card checks the sequence number more strictly than our software one.</li>
-  <li>The app needs special access to the SIM card. The test phone is rooted, and this was done before on it.</li>
+  <li>Which SIM card, and are we sure of its K and OPc. (The lab test card's are on file.)</li>
+  <li>How the phone reaches its SIM. The rooted test phone did this before, as a card reader to the PC.</li>
+  <li>Whether to keep LiteAAA's simple messages, or shape the paging to look more like a real cell's timing.</li>
+  <li>When, if ever, to move from ZMQ to a real radio, and on which band.</li>
 </ul>
 
 </body>
