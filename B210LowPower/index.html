@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B210 Low Power · 不用屏蔽箱的 on-air 链路验证</title>
+<meta name="description" content="USRP B210 在美国不用屏蔽箱、不申请个人 FCC 许可做 over-the-air 实验的几条正规途径，以及几米距离内低功率链路验证的设置笔记。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⭐%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f7f1e8;
+  --card: #fffaf2;
+  --text: #3f2f1f;
+  --muted: #7c6a58;
+  --accent: #b4552d;
+  --border: #e0d2bd;
+  --green: #3e7a4e;
+  --red: #b0392e;
+  --blue: #35618f;
+  --shadow: 0 1px 3px rgba(63,47,31,.08);
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', serif;
+  line-height: 1.7;
+}
+.wrap { max-width: 900px; margin: 0 auto; padding: 28px 22px 70px; }
+header { border-bottom: 3px double var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+.eyebrow {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--accent); font-weight: bold; margin-bottom: 6px;
+}
+h1 { font-size: 2.1rem; margin: 0 0 10px; line-height: 1.25; }
+h2 { font-size: 1.45rem; margin: 44px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+h3 { font-size: 1.1rem; margin: 26px 0 8px; color: var(--accent); }
+p { margin: 10px 0; }
+ul { margin: 10px 0; padding-left: 1.3em; }
+li { margin: 6px 0; }
+a { color: var(--blue); }
+.sub { color: var(--muted); margin: 0; }
+.lede, .note {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  margin: 14px 0;
+}
+.note { border-left: 4px solid var(--blue); }
+.note.warn { border-left-color: var(--red); }
+.note.good { border-left-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--card);
+  border: 1px solid var(--border); box-shadow: var(--shadow); }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: Verdana, Arial, sans-serif; font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); background: #f4ecdd; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.total td { font-weight: bold; background: #f4ecdd; }
+code {
+  font-family: 'Courier New', Courier, monospace; font-size: .88em;
+  background: #f2e9d8; border-radius: 4px; padding: 1px 5px;
+}
+.toc { font-family: Verdana, Arial, sans-serif; font-size: .82rem; }
+.toc a { margin-right: 14px; white-space: nowrap; }
+footer { margin-top: 50px; padding-top: 16px; border-top: 3px double var(--border);
+  color: var(--muted); font-size: .88rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">SDR Notes · USRP B210</div>
+  <h1>B210 Low Power：不用屏蔽箱的 on-air 链路验证</h1>
+  <p class="sub">在美国，不用屏蔽箱、不申请个人 FCC 许可，让 B210 真正 over the air 的几条正规途径，以及几米距离内验证链路的设置笔记。</p>
+</header>
+
+<div class="lede">
+  <strong>结论：</strong>“任意频段、任意功率、不要许可”的合法办法不存在。但如果目标只是在几米距离内验证链路，在 ISM 频段用很低的功率按 FCC Part 15 操作是可行的，而且链路预算非常宽裕，用不到 B210 的大功率。
+</div>
+
+<p class="toc">
+  <a href="#routes">四条途径</a>
+  <a href="#avoid">不要碰的频段</a>
+  <a href="#budget">链路预算</a>
+  <a href="#setup">建议设置</a>
+  <a href="#pitfalls">常见问题</a>
+  <a href="#first">第一步</a>
+</p>
+
+<h2 id="routes">一、四条正规途径</h2>
+
+<h3>1. Part 15 免许可：ISM 频段 + 很低的功率</h3>
+<p>FCC Part 15 允许不持有许可的发射。B210 的 70&nbsp;MHz–6&nbsp;GHz 覆盖了常用的几个 ISM 频段：</p>
+<div class="table-scroll">
+<table>
+  <tr><th>频段</th><th>常用规则</th><th>大致限制</th></tr>
+  <tr><td class="num">902–928 MHz</td><td>§15.249</td><td>3 米处场强 50 mV/m，约等于 0.75 mW EIRP（约 −1 dBm）</td></tr>
+  <tr><td class="num">2400–2483.5 MHz</td><td>§15.249</td><td>同上</td></tr>
+  <tr><td class="num">5725–5850 MHz</td><td>§15.249</td><td>同上</td></tr>
+</table>
+</div>
+<p>两个要注意的地方：</p>
+<ul>
+  <li><strong>功率。</strong>B210 满增益能输出 10 dBm 以上，再接有增益的天线就超了。要把 TX gain 调低，最好用频谱仪实测。带外和谐波也有限制，而 B210 没有输出滤波，谐波比较脏，稳妥的做法是加带通滤波器。</li>
+  <li><strong>设备认证。</strong>Part 15 的发射设备原则上要经过认证，B210 是作为测试设备销售的，没有认证。§15.23 对 home-built 设备有豁免（自用、不销售、5 台以内，仍须尽力满足技术指标），SDR 实验通常依据这一条，但它属于灰色地带。§15.247 那种最高 1 W 的数字调制规则需要认证，不适用于这里。</li>
+</ul>
+
+<h3>2. 学校的 Experimental License（Part 5）</h3>
+<p>不用自己申请，但需要所在机构持有。很多大学有 program experimental license，覆盖校园内指定频段的实验发射。可以问 PI、lab manager 或学校负责频谱管理的部门：有没有、覆盖哪些频段、需要怎么报备。做无线研究的课题组一般走的是这条路。</p>
+
+<h3>3. 远程使用现成的 on-air testbed</h3>
+<p>NSF 的 PAWR 平台（POWDER、COSMOS、AERPAW、ARA）有户外部署的 USRP 和现成的频谱许可，注册后可以远程运行真实的 over-the-air 实验。用的不是自己手里的 B210，但 UHD、GNU Radio、srsRAN 等代码基本通用。</p>
+
+<h3>4. Amateur radio license</h3>
+<p>这是一张 FCC 许可，但门槛很低：Technician 考试 35 道选择题，准备一两周即可。之后在业余频段（例如 420–450 MHz、902–928 MHz、1.2 GHz、2.3 GHz）可以合法使用瓦级功率，自制设备不需要认证。限制是不能加密、不能商用、需要报呼号。</p>
+
+<h2 id="avoid">二、不要碰的</h2>
+<div class="note warn">
+<ul>
+  <li><strong>蜂窝、GPS、航空、公共安全频段。</strong>功率再小也不行，其中很多属于 restricted bands，造成干扰会被追查。</li>
+  <li><strong>CBRS 3.5 GHz。</strong>GAA 虽然不需要个人许可，但必须使用认证过的 CBSD 并接入 SAS，B210 不符合。</li>
+  <li><strong>“功率很小、只在实验室里”不构成豁免。</strong>Part 15 的限制照样适用。</li>
+</ul>
+</div>
+
+<h2 id="budget">三、几米距离的链路预算</h2>
+<p>以 915 MHz、距离 3 米、1 MHz 带宽为例：</p>
+<div class="table-scroll">
+<table>
+  <tr><th>项目</th><th>数值</th></tr>
+  <tr><td>发射 EIRP</td><td class="num">−20 dBm（比 §15.249 约 −1 dBm 的上限低近 20 dB）</td></tr>
+  <tr><td>自由空间损耗（3 m，915 MHz）</td><td class="num">约 41 dB</td></tr>
+  <tr><td>接收功率</td><td class="num">约 −61 dBm</td></tr>
+  <tr><td>接收噪声底（1 MHz，NF 约 8 dB）</td><td class="num">约 −106 dBm</td></tr>
+  <tr class="total"><td>SNR</td><td class="num">约 45 dB</td></tr>
+</table>
+</div>
+<p>换成 2.45 GHz，自由空间损耗约 50 dB，SNR 仍有 35 dB 以上。所以发射功率可以压得很低，靠 RX gain 来补。</p>
+
+<h2 id="setup">四、建议的设置</h2>
+<div class="table-scroll">
+<table>
+  <tr><th>参数</th><th>建议</th><th>说明</th></tr>
+  <tr><td>频段</td><td>915 MHz（902–928 MHz 内）</td><td>2.4 GHz 也可以，但 Wi-Fi 和蓝牙干扰多，验证链路时容易被误导</td></tr>
+  <tr><td>天线</td><td>VERT900 / VERT2450 这类约 3 dBi 的小鞭状天线</td><td>不要用定向高增益天线</td></tr>
+  <tr><td>TX gain</td><td>从 40–50 左右开始</td><td>范围是 0–89.75 dB，输出功率没有校准且随频率变化。收不到再一点点加，不要直接拉到 80 以上</td></tr>
+  <tr><td>RX gain</td><td>从 30–40 开始</td><td>几米距离下 RX gain 太高会饱和，星座图会糊掉，看起来像链路有问题，其实是过载</td></tr>
+  <tr><td>带宽</td><td>1 MHz 以内</td><td>信号完整落在频段内，离 902 和 928 两个边缘留出余量</td></tr>
+</table>
+</div>
+
+<h2 id="pitfalls">五、实际会遇到的问题</h2>
+<ul>
+  <li><strong>功率要实测。</strong>有频谱仪的话，测一下实际输出和谐波。915 MHz 的二次、三次谐波落在 1.83 GHz 和 2.745 GHz，后者附近是 restricted band。压低功率本身能缓解；想稳妥，就在 TX 口加一个 915 MHz 带通或低通滤波器。</li>
+  <li><strong>两台 B210 之间的频偏。</strong>板载晶振精度约 ±2 ppm，在 915 MHz 上两台之间可能相差几 kHz。接收端需要做 frequency offset 估计和补偿，或者两台共用一个 10 MHz 参考（GPSDO 或外部时钟）。</li>
+  <li><strong>LO leakage。</strong>直接变频架构在中心频率处有一根本振泄漏。发射时用 offset tuning，例如 <code>uhd.tune_request(freq, lo_offset)</code>，把信号从 DC 挪开几百 kHz。</li>
+  <li><strong>不发的时候停掉 TX。</strong>不要让它长时间连续发载波。</li>
+</ul>
+
+<h2 id="first">六、建议的第一步</h2>
+<div class="note good">
+  <p>先不要上自己的波形。用 UHD 自带的例子发一个单音（例如 <code>tx_waveforms</code>，915 MHz、偏移 100 kHz 的正弦），另一台用 <code>uhd_fft</code> 看频谱。</p>
+  <p>能在预期位置看到一根干净的谱线，说明硬件、天线、增益都正常，再换成自己的调制信号。</p>
+</div>
+
+<footer>
+  <p>以上是个人对规则的理解和实验笔记，不是法律意见。具体频段和功率限制以 47 CFR Part 15 原文为准；在学校或公司实验室操作时，还要遵守所在机构的规定。</p>
+  <p>整理于 2026 年 11 月 · <a href="/Home/">返回主页</a></p>
+</footer>
+
+</div>
+</body>
+</html>
