@@ -9,72 +9,47 @@
 <body>
 
 <h2>LiteAAA on a B210</h2>
-<p><b>Status: it works. Run on 12 November 2026.</b></p>
-<p>What we have: a SIM card, a phone, a B210 and a PC. No Open5GS and no core network.</p>
+<p><b>Status: it works over a real cellular link (LTE). 12 November 2026.</b></p>
+<p>What we have: a SIM card, a phone, a B210, a PC and a shield box. The phone's
+own modem attaches to our cell over the air, and then LiteAAA runs over that
+cellular connection — with the real SIM giving the proof. Everything transmits
+inside the box.</p>
 
-<h3>Design</h3>
-<p><img class="flow" src="design.svg?v=1" alt="The phone runs an app with the LiteAAA device half and asks its SIM card. The PC runs the LiteAAA network half and holds the same key. They talk through the B210 using Bluetooth packets at 2.4 GHz."></p>
+<h3>What happens</h3>
+<ol>
+  <li>The B210 and the PC run a small 4G (LTE) cell. The phone's own modem
+  attaches to it over the air and authenticates with the real SIM card — the
+  standard mutual authentication every phone does. This gives the phone a data
+  link.</li>
+  <li>Over that data link, the LiteAAA app runs its own paging, challenge and
+  nonce — our protocol, asking the same real SIM.</li>
+</ol>
+<p class="small">We tried 5G standalone as well. This phone will only find 5G as
+an add-on to 4G, so it never camps a standalone 5G cell; 4G works.</p>
 
-<h3>Where the code runs</h3>
-<table>
-  <tr><th>Where</th><th>What runs there</th><th>The key K</th></tr>
-  <tr><td>PC</td><td>the LiteAAA network half and the key store</td><td>a copy, registered by hand</td></tr>
-  <tr><td>B210</td><td>sends and receives every message as a Bluetooth packet</td><td>none</td></tr>
-  <tr><td>Phone app</td><td>the LiteAAA device half</td><td>none</td></tr>
-  <tr><td>SIM card</td><td>checks the network and makes the answer</td><td>its own copy, never shown</td></tr>
-</table>
-
-<h3>Code structure</h3>
-<p>Two sides. The PC is Python; the phone app is Kotlin. The B210 is driven by
-the PC. The SIM card runs the real card's own code, which we did not write.</p>
-<table>
-  <tr><th>Runs on</th><th>File</th><th>Lines</th><th>What it is</th></tr>
-  <tr><td>PC</td><td>liteaaa.py</td><td>198</td><td>the core rules: page, challenge, check, nonce (network half) and the device logic</td></tr>
-  <tr><td>PC</td><td>crypto.py</td><td>160</td><td>AES and Milenage, the key store that holds the card's K and makes the challenge</td></tr>
-  <tr><td>PC</td><td>b210/ble.py</td><td>106</td><td>turns a message into a Bluetooth packet and back into samples for the B210</td></tr>
-  <tr><td>PC</td><td>b210/air.py</td><td>188</td><td>drives the B210: transmit the packets, listen for the phone, carry LiteAAA's messages</td></tr>
-  <tr><td>PC</td><td>b210/run_air.py</td><td>60</td><td>the run: register the card's K, then page and verify over the air</td></tr>
-  <tr><td>Phone</td><td>MainActivity.kt</td><td>240</td><td>the device half: hear a page, answer, ask the SIM, send the reply</td></tr>
-  <tr><td>Phone</td><td>SimCard.kt</td><td>89</td><td>hands RAND and AUTN to the real SIM card and reads its answer</td></tr>
-</table>
-<p>The challenge is 32 bytes and a Bluetooth packet holds fewer, so it goes in
-two packets. The B210 sends each message over and over for a few seconds,
-because the phone hears only some packets.</p>
-
-<h3>Result with the registered SIM card</h3>
-<pre>PC
-REGISTER   phone -> network   identity 620fb94e
-PAGING     network -> all phones   identity 620fb94e
-ANSWER     Phone -> network   I am here
-CHALLENGE  network -> Phone   RAND, AUTN
-RESYNC     Phone -> network   my counter is behind
+<h3>LiteAAA running over the LTE link</h3>
+<pre>phone connected over LTE
+REGISTER   phone -> network   identity e34f5d2e
+PAGING     network -> all phones   identity e34f5d2e
+ANSWER     phone -> network   I am here
+CHALLENGE  network -> phone   RAND, AUTN
+RESYNC     phone -> network   my counter is behind
 network caught its counter up; challenging again
-CHALLENGE  network -> Phone   RAND, AUTN
-RESPONSE   Phone -> network   RES
+CHALLENGE  network -> phone   RAND, AUTN
+RESPONSE   phone -> network   RES
 phone verified network:  PASS   the SIM accepted AUTN
 network verified phone:  PASS   RES matched
-result: PASS
-nonce entered: PASS
-Phone is verified.
+result: PASS   nonce: PASS   phone is verified.</pre>
 
-Phone
-registered, identity 620fb94e
-released: idle now, only a page for me wakes me
-page for my identity: answering
-challenge received: asking the SIM card
-card says the network's counter is behind; sending resync
-challenge received: asking the SIM card
-card accepted the network; sending RES</pre>
-<p>From the page to the answer took about 1.3 seconds over the air.</p>
-
-<h3>Result with a SIM card whose key is not registered</h3>
-<pre>PAGING     network -> all phones   identity 5b9c6d9c
-ANSWER     Phone -> network   I am here
-CHALLENGE  network -> Phone   RAND, AUTN
-REFUSED    Phone -> network   MAC in AUTN is wrong
-phone verified network:  FAIL
-network verified phone:  not reached
-result: FAIL</pre>
+<h3>Ping and throughput over the LTE link</h3>
+<table>
+  <tr><th>Test</th><th>Result</th></tr>
+  <tr><td>Ping (PC to phone, 15 packets)</td><td>0% loss, about 27 ms average (13.6 min, 37.6 max)</td></tr>
+  <tr><td>Downlink</td><td>about 37 Mbps (80 MB in 18.2 s)</td></tr>
+  <tr><td>Uplink</td><td>about 20 Mbps (40 MB in 16.6 s)</td></tr>
+</table>
+<p class="small">Band 3 (1.8 GHz), 10 MHz, one antenna, no external clock, all
+inside the shield box.</p>
 
 </body>
 </html>
