@@ -44,7 +44,7 @@
   </div>
 </div>
 
-<p>Phones: alice, bob, carol.</p>
+<p>Devices: alice, bob, carol, and any device that joins from outside (see below).</p>
 
 <form id="form">
   &gt; <input id="cmd" size="30" autocomplete="off" spellcheck="false" autofocus>
@@ -58,6 +58,14 @@
 
 <p>One small program. No cellular standard, no core network, no radio.
 One network and three phones run on one machine and talk over UDP.</p>
+
+<h3>Run a device anywhere</h3>
+<p>On any computer with Python 3. Nothing to install.</p>
+<pre>curl -O https://zechengli.github.io/LiteAAA/device.py
+python3 device.py dave</pre>
+<p>The device finds this network by itself and registers. Then use it here like the built-in phones:
+<code>status</code>, <code>idle</code>, <code>page dave</code>, <code>verify dave</code>.
+Its own window shows what it hears and what it answers.</p>
 
 <h3>Flow</h3>
 <p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
@@ -94,21 +102,23 @@ One network and three phones run on one machine and talk over UDP.</p>
 <h3>Lines of code</h3>
 <table>
   <tr><th>Written by AI and me together</th><th>Lines</th></tr>
-  <tr><td>liteaaa.py: the core rules, with no network or crypto code in it</td><td>169</td></tr>
-  <tr><td>plugins.py: the parts you swap per platform (transport, SIM, key store)</td><td>135</td></tr>
-  <tr><td>mini.py: this demo, the core wired to the simplest plug-ins</td><td>95</td></tr>
-  <tr><td>selftest.py: 13 checks any port must pass</td><td>67</td></tr>
-  <tr><td>serve.py: the web API this page talks to</td><td>114</td></tr>
+  <tr><td>liteaaa.py: the core rules, with no network or crypto code in it</td><td>185</td></tr>
+  <tr><td>crypto.py: AES and Milenage in plain Python, the SIM and the key store</td><td>128</td></tr>
+  <tr><td>plugins.py: transports you can swap</td><td>146</td></tr>
+  <tr><td>mini.py: this demo, the core wired to the simplest plug-ins</td><td>117</td></tr>
+  <tr><td>device_main.py and build_device.py: the device that runs anywhere, and the tool that makes it one file</td><td>108</td></tr>
+  <tr><td>selftest.py: 14 checks any port must pass</td><td>77</td></tr>
+  <tr><td>serve.py: the web API this page talks to, and the mailboxes for outside devices</td><td>154</td></tr>
   <tr><td>lite: start and stop</td><td>57</td></tr>
-  <tr><td>This page: HTML, JavaScript, CSS, diagram</td><td>300</td></tr>
-  <tr><td><b>Total written</b></td><td><b>937</b></td></tr>
+  <tr><td>This page: HTML, JavaScript, CSS, diagram</td><td>310</td></tr>
+  <tr><td><b>Total written</b></td><td><b>1,282</b></td></tr>
 </table>
 <br>
 <table>
-  <tr><th>Pulled from online, used directly</th><th>Lines</th></tr>
-  <tr><td>Milenage, the algorithm a SIM runs (github.com/P1sec/CryptoMobile)</td><td>565</td></tr>
+  <tr><th>Pulled from online</th><th>Lines</th></tr>
+  <tr><td>Milenage reference (github.com/P1sec/CryptoMobile), used only by the self-test to check our own</td><td>565</td></tr>
 </table>
-<p class="small">Also used directly and not counted: Python, an AES library and the Cloudflare tunnel client.</p>
+<p class="small">Also used and not counted: Python and the Cloudflare tunnel client. device.py is the one-file device (383 lines), made from the files above.</p>
 
 <script src="app.js?v=1"></script>
 </body>
