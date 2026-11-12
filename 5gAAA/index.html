@@ -59,6 +59,16 @@
 
 <h2 class="top">How this demo is built</h2>
 
+<h3>Projects</h3>
+<table>
+  <tr><th>Project</th><th>What it provides</th><th>Used here</th></tr>
+  <tr><td>Open5GS</td><td>the core network: AMF, AUSF, UDM, UDR, SMF, UPF, NRF</td><td>yes</td></tr>
+  <tr><td>UERANSIM</td><td>two programs: nr-gnb, a simulated cell, and nr-ue, a simulated phone with its SIM</td><td>yes</td></tr>
+  <tr><td>srsRAN</td><td>a real cell and phone that drive radio hardware</td><td>no, only for the over-the-air version</td></tr>
+</table>
+<p>Open5GS has no cell or phone of its own. It needs one in front of it: UERANSIM when simulating, srsRAN with a radio when on the air.
+UERANSIM is a separate open-source project (github.com/aligungr/UERANSIM). It is not part of Open5GS or srsRAN.</p>
+
 <h3>Code used</h3>
 <table>
   <tr><th>Part</th><th>Software</th><th>Code location</th></tr>
@@ -73,8 +83,8 @@
     open5gs/src/amf/namf-oam.c, lines 874-1029, new functions<br>
     open5gs/src/amf/namf-oam.h, lines 51-65
   </td></tr>
-  <tr><td>Cell (gNB)</td><td>UERANSIM nr-gnb</td><td></td></tr>
-  <tr><td>Phones and SIMs</td><td>UERANSIM nr-ue, three copies</td><td class="loc">
+  <tr><td>Cell (gNB)</td><td>nr-gnb, from UERANSIM</td><td></td></tr>
+  <tr><td>Phones and SIMs</td><td>nr-ue, from UERANSIM, three copies</td><td class="loc">
     UERANSIM/src/ue/nas/mm/security.cpp, lines 264-266, in NasMm::receiveSecurityModeCommand()
   </td></tr>
   <tr><td>Control</td><td>One shell script, three small Python files, this page</td><td class="loc">
@@ -90,8 +100,8 @@
 <h3>Roles</h3>
 <table>
   <tr><th>Role</th><th>Played by</th><th>What it does here</th></tr>
-  <tr><td>Phone + SIM</td><td>nr-ue</td><td>Holds the key K. Sleeps when idle. Answers a page. Checks the network's AUTN. Computes RES*.</td></tr>
-  <tr><td>Cell</td><td>nr-gnb</td><td>Passes the page to the phones and relays everything else.</td></tr>
+  <tr><td>Phone + SIM</td><td>nr-ue (UERANSIM)</td><td>Holds the key K. Sleeps when idle. Answers a page. Checks the network's AUTN. Computes RES*.</td></tr>
+  <tr><td>Cell</td><td>nr-gnb (UERANSIM)</td><td>Passes the page to the phones and relays everything else.</td></tr>
   <tr><td>AMF</td><td>Open5GS, patched</td><td>Knows which phones are registered and idle. Sends the page. Runs the challenge. Does the first check of the answer.</td></tr>
   <tr><td>AUSF</td><td>Open5GS</td><td>Does the final check of the phone's answer.</td></tr>
   <tr><td>UDM + UDR</td><td>Open5GS + MongoDB</td><td>Stores K for each SIM. Creates the challenge.</td></tr>
