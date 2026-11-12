@@ -15,54 +15,5 @@
 <h3>Design</h3>
 <p><img class="flow" src="design.svg?v=1" alt="The phone runs an app with the LiteAAA device half and asks its SIM card. The PC runs the LiteAAA network half and holds the same key. They talk through the B210 using Bluetooth packets at 2.4 GHz."></p>
 
-<h3>Drive it with the real SIM, over ZMQ first</h3>
-<p>This is a plan to talk through, not built yet. The idea: run the whole LiteAAA
-exchange with the phone's real SIM card giving the proof, and carry the radio
-samples over ZMQ, a software cable, so nothing is transmitted. No box and no
-licence are needed to build and test it this way.</p>
-<p><img class="flow" src="plan2.svg?v=1" alt="PC runs the LiteAAA network half and the key store with the SIM's key; it exchanges samples with a B210, or over ZMQ with no emission; the phone runs the device half and holds the real SIM card."></p>
-
-<h4>Who holds what</h4>
-<table>
-  <tr><th>Side</th><th>Runs</th><th>Secret</th></tr>
-  <tr><td>PC</td><td>the LiteAAA network half and the key store</td><td>a copy of the SIM's K and OPc, registered on the PC</td></tr>
-  <tr><td>Phone</td><td>the LiteAAA device half</td><td>none in the app; the real SIM card holds K and never shows it</td></tr>
-</table>
-
-<h4>Registering the SIM</h4>
-<ol>
-  <li>Read the card's identity (IMSI) from the phone.</li>
-  <li>Put that IMSI, with the card's K and OPc, into the PC's key store. This is the only place K is typed in; the card already has its own copy.</li>
-  <li>From then on the PC can build a challenge the card will accept, and predict the answer the card will give.</li>
-</ol>
-
-<h4>The run, step by step</h4>
-<ol>
-  <li>The PC's network half pages the phone by its identity.</li>
-  <li>The phone answers.</li>
-  <li>The PC sends the challenge (RAND, AUTN).</li>
-  <li>The phone hands RAND and AUTN to the real SIM card. The card checks AUTN: this is the SIM verifying the network.</li>
-  <li>The card returns its answer (RES). The PC checks it: this is the network verifying the SIM.</li>
-  <li>The nonce, as before.</li>
-</ol>
-
-<h4>Why ZMQ first</h4>
-<table>
-  <tr><th>Carry the samples by</th><th>Transmitted?</th><th>Needs a box or a licence</th></tr>
-  <tr><td>ZMQ (a software cable on the PC)</td><td>no</td><td>no</td></tr>
-  <tr><td>The B210, over the air</td><td>yes</td><td>yes, unless on an open low-power band</td></tr>
-</table>
-<p>The LiteAAA code is the same either way. ZMQ lets us get the whole exchange
-working and the SIM registered with nothing leaving the PC. Only after it works
-do we decide about a real radio.</p>
-
-<h4>What we need to decide together</h4>
-<ul>
-  <li>Which SIM card, and are we sure of its K and OPc. (The lab test card's are on file.)</li>
-  <li>How the phone reaches its SIM. The rooted test phone did this before, as a card reader to the PC.</li>
-  <li>Whether to keep LiteAAA's simple messages, or shape the paging to look more like a real cell's timing.</li>
-  <li>When, if ever, to move from ZMQ to a real radio, and on which band.</li>
-</ul>
-
 </body>
 </html>
