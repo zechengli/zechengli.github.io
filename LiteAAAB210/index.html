@@ -24,6 +24,23 @@
   <tr><td>SIM card</td><td>checks the network and makes the answer</td><td>its own copy, never shown</td></tr>
 </table>
 
+<h3>Code structure</h3>
+<p>Two sides. The PC is Python; the phone app is Kotlin. The B210 is driven by
+the PC. The SIM card runs the real card's own code, which we did not write.</p>
+<table>
+  <tr><th>Runs on</th><th>File</th><th>Lines</th><th>What it is</th></tr>
+  <tr><td>PC</td><td>liteaaa.py</td><td>198</td><td>the core rules: page, challenge, check, nonce (network half) and the device logic</td></tr>
+  <tr><td>PC</td><td>crypto.py</td><td>160</td><td>AES and Milenage, the key store that holds the card's K and makes the challenge</td></tr>
+  <tr><td>PC</td><td>b210/ble.py</td><td>106</td><td>turns a message into a Bluetooth packet and back into samples for the B210</td></tr>
+  <tr><td>PC</td><td>b210/air.py</td><td>188</td><td>drives the B210: transmit the packets, listen for the phone, carry LiteAAA's messages</td></tr>
+  <tr><td>PC</td><td>b210/run_air.py</td><td>60</td><td>the run: register the card's K, then page and verify over the air</td></tr>
+  <tr><td>Phone</td><td>MainActivity.kt</td><td>240</td><td>the device half: hear a page, answer, ask the SIM, send the reply</td></tr>
+  <tr><td>Phone</td><td>SimCard.kt</td><td>89</td><td>hands RAND and AUTN to the real SIM card and reads its answer</td></tr>
+</table>
+<p>The challenge is 32 bytes and a Bluetooth packet holds fewer, so it goes in
+two packets. The B210 sends each message over and over for a few seconds,
+because the phone hears only some packets.</p>
+
 <h3>Result with the registered SIM card</h3>
 <pre>PC
 REGISTER   phone -> network   identity 620fb94e
