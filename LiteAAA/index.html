@@ -62,6 +62,35 @@ One network and three phones run on one machine and talk over UDP.</p>
 <h3>Flow</h3>
 <p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
 
+<h3>Plug-ins</h3>
+<p>The core only knows the rules. These three parts are swapped to connect it to something else.</p>
+<table>
+  <tr><th>Plug-in</th><th>What it must do</th><th>In this demo</th></tr>
+  <tr><td>Reach</td><td>send to all devices, send to one device, receive</td><td>UDP on one machine</td></tr>
+  <tr><td>Key store</td><td>give a fresh challenge (RAND, AUTN) and the answer to expect</td><td>a table in memory</td></tr>
+  <tr><td>SIM</td><td>take RAND and AUTN, return RES or refuse</td><td>a key in memory</td></tr>
+</table>
+
+<h3>What it can connect to</h3>
+<p>Examples only. None of these is built yet.</p>
+<p><b>One side: the thing that is verified</b></p>
+<table>
+  <tr><th>Thing</th><th>Reach</th><th>SIM (where the key lives)</th><th>How it is paged</th></tr>
+  <tr><td>Ring</td><td>NFC or Bluetooth Low Energy</td><td>a secure chip inside the ring</td><td>wakes when a reader comes close</td></tr>
+  <tr><td>Earring</td><td>Bluetooth Low Energy</td><td>a small secure chip</td><td>sleeps, and listens for its identity at short intervals</td></tr>
+  <tr><td>Little button</td><td>Bluetooth Low Energy or another low-power radio</td><td>a microcontroller that can do AES</td><td>sleeps, and wakes on its identity or on a press</td></tr>
+  <tr><td>Phone</td><td>the cellular network, Wi-Fi or Bluetooth</td><td>its real SIM card</td><td>real paging on the cellular network</td></tr>
+</table>
+<br>
+<p><b>The other side: the thing that verifies</b></p>
+<table>
+  <tr><th>Thing</th><th>What it does</th><th>Reach</th><th>Key store</th></tr>
+  <tr><td>B210 radio with a PC</td><td>acts as the cell: sends the page and the challenge over the air</td><td>a radio link, either a 5G cell (srsRAN) or a simple signal of our own</td><td>on the PC</td></tr>
+  <tr><td>Phone</td><td>acts as the network for small devices near it</td><td>Bluetooth Low Energy or NFC</td><td>in the phone, or asked from a server</td></tr>
+  <tr><td>PC or server</td><td>what this demo uses now</td><td>UDP</td><td>a table in memory</td></tr>
+</table>
+<p>Any thing from the first table can be paired with any thing from the second, as long as both use the same Reach.</p>
+
 <h3>Lines of code</h3>
 <table>
   <tr><th>Written by AI and me together</th><th>Lines</th></tr>
@@ -71,8 +100,8 @@ One network and three phones run on one machine and talk over UDP.</p>
   <tr><td>selftest.py: 13 checks any port must pass</td><td>67</td></tr>
   <tr><td>serve.py: the web API this page talks to</td><td>114</td></tr>
   <tr><td>lite: start and stop</td><td>57</td></tr>
-  <tr><td>This page: HTML, JavaScript, CSS, diagram</td><td>271</td></tr>
-  <tr><td><b>Total written</b></td><td><b>908</b></td></tr>
+  <tr><td>This page: HTML, JavaScript, CSS, diagram</td><td>300</td></tr>
+  <tr><td><b>Total written</b></td><td><b>937</b></td></tr>
 </table>
 <br>
 <table>
