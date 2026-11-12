@@ -99,6 +99,6 @@ if (LOCAL) {
 } else {
   fetch('machine.json?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { return r.json(); })
-    .then(function (m) { start(m.url || DEFAULT_ADDR); })
-    .catch(function () { start(DEFAULT_ADDR); });
+    .then(function (m) { start(m.url || $('addr').value || DEFAULT_ADDR); })
+    .catch(function () { start($('addr').value || DEFAULT_ADDR); });
 }
