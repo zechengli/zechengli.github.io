@@ -5,10 +5,8 @@
 </defs>
 <rect width="900" height="470" fill="#fff"/>
 <rect x="250" y="14" width="400" height="44" fill="#e6e6e6" stroke="#000" stroke-width="1.5"/>
-<text x="450" y="41" text-anchor="middle" font-size="14" font-weight="bold">LiteAAA core: the rules (page, verify, nonce)</text>
+<text x="450" y="41" text-anchor="middle" font-size="14" font-weight="bold">LiteAAA core: the same rules run on both sides</text>
 <line x1="450" y1="58" x2="450" y2="170" stroke="#000" stroke-width="1.5"/>
-<text x="130" y="92" text-anchor="middle" font-size="14" font-weight="bold">The thing that is verified</text>
-<text x="770" y="92" text-anchor="middle" font-size="14" font-weight="bold">The thing that verifies</text>
 <rect x="20" y="104" width="220" height="50" fill="#fff" stroke="#000" stroke-width="1.5"/>
 <text x="130" y="125" text-anchor="middle" font-size="14" font-weight="bold">Ring</text>
 <text x="130" y="144" text-anchor="middle" font-size="13">NFC or Bluetooth</text>
