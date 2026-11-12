@@ -35,3 +35,4 @@ h3 { font-size: 17px; margin: 24px 0 8px; }
 .small { font-size: 14px; }
 li { margin: 3px 0; }
 .loc { font-family: monospace; font-size: 13px; }
+.flow { width: 100%; max-width: 900px; border: 1px solid #999; }

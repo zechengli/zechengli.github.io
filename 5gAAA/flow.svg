@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 664" font-family="Arial, Helvetica, sans-serif" fill="#000">
+<defs>
+<marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>
+<marker id="b" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M10,0 L0,4 L10,8 z"/></marker>
+</defs>
+<rect width="900" height="664" fill="#fff"/>
+<line x1="150" y1="50" x2="150" y2="656" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="55" y="14" width="190" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="150" y="37" text-anchor="middle" font-size="14" font-weight="bold">You (this page)</text>
+<line x1="450" y1="50" x2="450" y2="656" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="355" y="14" width="190" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="450" y="37" text-anchor="middle" font-size="14" font-weight="bold">Network (cell + core)</text>
+<line x1="750" y1="50" x2="750" y2="656" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="655" y="14" width="190" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="750" y="37" text-anchor="middle" font-size="14" font-weight="bold">Phone + SIM</text>
+<line x1="150" y1="88" x2="442" y2="88" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="80" text-anchor="middle" font-size="14">verify &lt;phone&gt;</text>
+<rect x="0" y="104" width="900" height="24" fill="#e6e6e6"/>
+<text x="10" y="121" text-anchor="start" font-size="14" font-weight="bold">1. Paging</text>
+<line x1="450" y1="160" x2="742" y2="160" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="600" y="152" text-anchor="middle" font-size="14">Paging (the phone's temporary identity)</text>
+<line x1="750" y1="204" x2="458" y2="204" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="600" y="196" text-anchor="middle" font-size="14">Service Request (I am here)</text>
+<rect x="0" y="222" width="900" height="24" fill="#e6e6e6"/>
+<text x="10" y="239" text-anchor="start" font-size="14" font-weight="bold">2. Double side verification</text>
+<line x1="450" y1="278" x2="742" y2="278" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="600" y="270" text-anchor="middle" font-size="14">Authentication Request (RAND, AUTN)</text>
+<rect x="596" y="292" width="300" height="28" fill="#fff" stroke="#000"/>
+<text x="746" y="311" text-anchor="middle" font-size="13">Phone verifies network: SIM checks AUTN</text>
+<line x1="750" y1="356" x2="458" y2="356" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="600" y="348" text-anchor="middle" font-size="14">Authentication Response (RES*)</text>
+<rect x="300" y="370" width="300" height="28" fill="#fff" stroke="#000"/>
+<text x="450" y="389" text-anchor="middle" font-size="13">Network verifies phone: RES* is checked</text>
+<line x1="458" y1="434" x2="742" y2="434" stroke="#000" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#b)"/>
+<text x="600" y="426" text-anchor="middle" font-size="14">Security Mode: both switch to new keys</text>
+<rect x="0" y="452" width="900" height="24" fill="#e6e6e6"/>
+<text x="10" y="469" text-anchor="start" font-size="14" font-weight="bold">3. Nonce</text>
+<line x1="450" y1="508" x2="158" y2="508" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="500" text-anchor="middle" font-size="14">nonce shown (1-99)</text>
+<line x1="150" y1="552" x2="442" y2="552" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="544" text-anchor="middle" font-size="14">nonce &lt;number&gt;</text>
+<rect x="0" y="570" width="900" height="24" fill="#e6e6e6"/>
+<text x="10" y="587" text-anchor="start" font-size="14" font-weight="bold">4. Verified</text>
+<line x1="450" y1="626" x2="158" y2="626" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="618" text-anchor="middle" font-size="14">verified</text>
+</svg>
