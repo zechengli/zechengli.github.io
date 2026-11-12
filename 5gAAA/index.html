@@ -3,134 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>5G paging demo</title>
-<meta name="description" content="A 5G paging demo with three phones: Alice, Bob and Carol.">
+<title>Paging</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>5G paging demo</h1>
+<h1>Paging</h1>
 
-<p>Paging is how a mobile network reaches a phone that is asleep. This demo
-runs a real 5G core (Open5GS) with a simulated cell and three simulated
-phones (UERANSIM): Alice, Bob and Carol.</p>
+<p>
+  Machine: <input id="addr" size="30" spellcheck="false">
+  <button id="connect">Connect</button>
+  <span id="conn">not connected</span>
+</p>
 
-<p id="conn">Looking for the demo on this computer ...</p>
-<p id="howto" hidden>To use the buttons, open this page on the lab PC and run
-<code>cd /data2/work/paging-demo &amp;&amp; ./paging up</code> there. If the
-browser asks to allow access to devices on your local network, choose Allow.
-Without that, the table below shows a recorded run.</p>
-
-<h2>The phones</h2>
-
-<div class="scroll">
 <table>
-  <thead>
-    <tr>
-      <th>Phone</th><th>IP address</th><th>State</th><th>5G-TMSI</th>
-      <th>UE_ID</th><th>Paging occasion</th><th>Actions</th>
-    </tr>
-  </thead>
-  <tbody id="phones"></tbody>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><a href="#" data-cmd="status">status</a></td><td>show the three phones</td></tr>
+  <tr><td><a href="#" data-cmd="idle">idle</a></td><td>release all radio links; every phone goes idle</td></tr>
+  <tr><td><a href="#" data-cmd="call ">call &lt;phone&gt;</a></td><td>send data to a phone; the network pages it if it is idle</td></tr>
+  <tr><td><a href="#" data-cmd="use ">use &lt;phone&gt;</a></td><td>the phone sends data itself; it wakes up without a page</td></tr>
+  <tr><td><a href="#" data-cmd="lose ">lose &lt;phone&gt;</a></td><td>take a phone out of coverage; it stops answering pages</td></tr>
+  <tr><td><a href="#" data-cmd="find ">find &lt;phone&gt;</a></td><td>bring it back; all phones end up idle</td></tr>
+  <tr><td><a href="#" data-cmd="wire">wire</a></td><td>show the last messages between core, cell and phones</td></tr>
 </table>
-</div>
 
-<p><button id="idle" disabled>Set all phones idle</button>
-<span id="busy"></span></p>
+<p>Phones: alice, bob, carol.</p>
 
-<p class="small">CONNECTED: the phone has a radio link. IDLE: the phone is
-asleep and can only be reached by paging. LOST: the phone is out of coverage
-and the network does not know it.</p>
+<form id="form">
+  &gt; <input id="cmd" size="30" autocomplete="off" spellcheck="false" autofocus>
+  <button id="run">Run</button>
+  <button type="button" id="clear">Clear</button>
+</form>
 
-<p class="small">The paging occasion is calculated from the phone's identity
-(3GPP TS 38.304 section 7.1, with T=128, N=64, Ns=2). The simulated radio
-delivers a page at once and does not wait for that moment.</p>
-
-<h2>Result of the last action</h2>
-<pre id="out">Nothing yet.</pre>
-
-<h2>On the wire</h2>
-<p class="small">Messages between the core, the cell and the phones, newest at the bottom.</p>
-<pre id="wire">Nothing yet.</pre>
-
-<h2>How paging works</h2>
-<ol>
-  <li><b>Why.</b> A phone that kept its radio link up all day would drain its
-  battery and waste the cell's capacity. After a quiet period the network
-  releases the link and the phone goes idle. It keeps its registration and
-  its IP address.</li>
-  <li><b>What starts it.</b> Data arrives for an idle phone. The core cannot
-  deliver it, so it holds the packet and asks for the phone to be paged.</li>
-  <li><b>Where.</b> The network only remembers which tracking area an idle
-  phone is in, so the page goes to every cell in that area.</li>
-  <li><b>When.</b> An idle phone wakes up briefly once per cycle, at a moment
-  worked out from its own identity. Phones with different identities wake at
-  different moments.</li>
-  <li><b>Who answers.</b> The page carries one phone's temporary identity
-  (5G-TMSI). Only that phone answers, with a Service Request. The connection
-  is rebuilt and the held packet is delivered. The phone then gets a new
-  temporary identity.</li>
-  <li><b>No answer.</b> If nobody answers within 2 seconds the network pages
-  again. After the third try it gives up and drops the packet.</li>
-</ol>
-
-<h2>Things to try</h2>
-<ol>
-  <li>Press "Set all phones idle".</li>
-  <li>Press "Call" for Alice. Only Alice becomes CONNECTED, and her 5G-TMSI changes.</li>
-  <li>Press "Use" for Carol. She wakes up by herself, with no page.</li>
-  <li>Set all phones idle, press "Lose" for Bob, then "Call" for Bob. The
-  network pages three times and gives up. This takes about 10 seconds.</li>
-  <li>Press "Find" for Bob, then "Call" for Bob again.</li>
-</ol>
-
-<h2>Recorded run</h2>
-<p class="small">Output of the real demo, recorded on 12 November 2026.</p>
-
-<h3>Data arrives for idle Alice</h3>
-<pre>64 bytes from 10.45.0.11: icmp_seq=1 ttl=64 time=4.55 ms
-64 bytes from 10.45.0.11: icmp_seq=2 ttl=64 time=0.794 ms
-64 bytes from 10.45.0.11: icmp_seq=3 ttl=64 time=0.943 ms
-3 packets transmitted, 3 received, 0% packet loss
-
-10:33:08.840  DATA    core -> Alice   downlink packet (ping)
-10:33:08.840  TRIGGER UPF -> SMF    data arrived for an IDLE phone; packet buffered
-10:33:08.841  PAGING  AMF -> gNB    5G-S-TMSI ...c0000328 = Alice
-10:33:08.842  ANSWER  Alice -> AMF   Service Request (I am here)
-10:33:08.842  SETUP   AMF -> gNB    rebuild the phone's connection
-10:33:08.843  NEW ID  AMF -> phone  fresh 5G-TMSI assigned (occasion moves)
-10:33:08.844  DATA    Alice -> core   reply delivered
-10:33:09.841  DATA    core -> Alice   downlink packet (ping)
-10:33:09.842  DATA    Alice -> core   reply delivered</pre>
-<p>The first reply took 4.55 ms and the others under 1 ms. The difference is
-the page, the answer and the connection being rebuilt.</p>
-
-<h3>Bob is out of coverage</h3>
-<pre>4 packets transmitted, 0 received, 100% packet loss
-
-10:33:13.936  DATA    core -> Bob   downlink packet (ping)
-10:33:13.936  TRIGGER UPF -> SMF    data arrived for an IDLE phone; packet buffered
-10:33:13.937  PAGING  AMF -> gNB    5G-S-TMSI ...c0000407 = Bob
-10:33:14.967  DATA    core -> Bob   downlink packet (ping)
-10:33:15.939  PAGING  AMF -> gNB    5G-S-TMSI ...c0000407 = Bob  (attempt 2: no answer, T3513 expired)
-10:33:15.995  DATA    core -> Bob   downlink packet (ping)
-10:33:17.015  DATA    core -> Bob   downlink packet (ping)
-10:33:17.940  PAGING  AMF -> gNB    5G-S-TMSI ...c0000407 = Bob  (attempt 3: no answer, T3513 expired)
-AMF: paging failed, giving up</pre>
-
-<h3>Bob comes back</h3>
-<pre>64 bytes from 10.45.0.12: icmp_seq=1 ttl=64 time=5.64 ms
-64 bytes from 10.45.0.12: icmp_seq=2 ttl=64 time=0.292 ms
-64 bytes from 10.45.0.12: icmp_seq=3 ttl=64 time=0.647 ms
-3 packets transmitted, 3 received, 0% packet loss
-
-10:33:26.224  DATA    core -> Bob   downlink packet (ping)
-10:33:26.224  TRIGGER UPF -> SMF    data arrived for an IDLE phone; packet buffered
-10:33:26.225  PAGING  AMF -> gNB    5G-S-TMSI ...c0000407 = Bob
-10:33:26.226  ANSWER  Bob -> AMF   Service Request (I am here)
-10:33:26.226  SETUP   AMF -> gNB    rebuild the phone's connection
-10:33:26.229  NEW ID  AMF -> phone  fresh 5G-TMSI assigned (occasion moves)
-10:33:26.229  DATA    Bob -> core   reply delivered</pre>
+<pre id="out"></pre>
 
 <script src="app.js"></script>
 </body>
