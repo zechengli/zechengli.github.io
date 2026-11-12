@@ -1,126 +1,123 @@
-// 5gAAA live page: talks to the PAKA bridge running on the lab PC.
-// The bridge only listens on the PC's loopback interface, so this page can
-// drive the demo only when it is opened on that same PC.
-'use strict';
+// Talks to the demo's bridge on this computer (127.0.0.1:8791). When the
+// bridge is not there, the page shows a recorded state and no buttons work.
+var LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+var BRIDGE = LOCAL ? '' : 'http://127.0.0.1:8791';
 
-const BRIDGE_PORT = 8790;
-// Served by the bridge itself (local testing): same origin. Otherwise the loopback bridge.
-const BRIDGE = location.port === String(BRIDGE_PORT) ? '' : 'http://127.0.0.1:' + BRIDGE_PORT;
+var RECORDED = [
+  { name: 'alice', ip: '10.45.0.11', state: 'IDLE', tmsi: 0xc0000328, ue_id: 808, pf: 80, i_s: 0 },
+  { name: 'bob', ip: '10.45.0.12', state: 'IDLE', tmsi: 0xc0000407, ue_id: 7, pf: 14, i_s: 0 },
+  { name: 'carol', ip: '10.45.0.13', state: 'IDLE', tmsi: 0xc0000585, ue_id: 389, pf: 10, i_s: 0 }
+];
 
-const $ = (id) => document.getElementById(id);
-const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+var live = false;
+var busy = false;
 
-// Terminal text with SGR color codes -> HTML spans
-function ansiToHtml(text) {
-  let bold = false, dim = false, fg = 0, html = '';
-  const parts = text.split(/\x1b\[([0-9;]*)m/);
-  for (let i = 0; i < parts.length; i++) {
-    if (i % 2 === 0) {
-      if (!parts[i]) continue;
-      const cls = [bold && 'a-b', dim && 'a-d', fg && 'a-' + fg].filter(Boolean).join(' ');
-      html += cls ? '<span class="' + cls + '">' + esc(parts[i]) + '</span>' : esc(parts[i]);
-      continue;
-    }
-    for (const c of (parts[i] || '0').split(';').map(Number)) {
-      if (c === 0) { bold = dim = false; fg = 0; }
-      else if (c === 1) bold = true;
-      else if (c === 2) dim = true;
-      else if (c === 22) bold = dim = false;
-      else if (c >= 30 && c <= 37) fg = c;
-      else if (c >= 90 && c <= 97) fg = c - 60;
-      else if (c === 39) fg = 0;
-    }
+function $(id) { return document.getElementById(id); }
+
+function api(path, body) {
+  var ctl = new AbortController();
+  var timer = setTimeout(function () { ctl.abort(); }, body ? 70000 : 3000);
+  var opt = { signal: ctl.signal, cache: 'no-store' };
+  if (body) {
+    opt.method = 'POST';
+    opt.headers = { 'Content-Type': 'application/json' };
+    opt.body = JSON.stringify(body);
   }
-  return html;
+  return fetch(BRIDGE + path, opt)
+    .then(function (r) { return r.json(); })
+    .finally(function () { clearTimeout(timer); });
 }
 
-async function call(path, body) {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), body ? 200000 : 4000);
-  try {
-    const r = await fetch(BRIDGE + path, body
-      ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal }
-      : { signal: ctl.signal, cache: 'no-store' });
-    return { code: r.status, data: await r.json() };
-  } finally {
-    clearTimeout(timer);
-  }
+function cell(text, cls) {
+  var td = document.createElement('td');
+  td.textContent = text;
+  if (cls) td.className = cls;
+  return td;
 }
 
-// Replace a pane's text; stay pinned to the bottom unless the reader scrolled up
-function setPane(id, text, pinBottom) {
-  const el = $(id);
-  const html = text ? ansiToHtml(text) : '<span class="empty">(nothing yet)</span>';
-  if (el.dataset.last === html) return;
-  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
-  el.innerHTML = html;
-  el.dataset.last = html;
-  if (pinBottom && atBottom) el.scrollTop = el.scrollHeight;
+function button(label, cmd, arg, enabled) {
+  var b = document.createElement('button');
+  b.textContent = label;
+  b.disabled = !enabled;
+  b.onclick = function () { run(cmd, arg); };
+  return b;
 }
 
-let busy = false;
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-function showConnection(ok, text) {
-  $('dot').className = 'dot ' + (ok ? 'on' : 'off');
-  $('connText').textContent = text;
-  $('howto').hidden = ok;
+function showPhones(phones, usable) {
+  var body = $('phones');
+  body.textContent = '';
+  phones.forEach(function (p) {
+    var tr = document.createElement('tr');
+    var st = p.state || 'OFF';
+    var has = p.tmsi !== undefined;
+    tr.appendChild(cell(cap(p.name)));
+    tr.appendChild(cell(p.ip || '-'));
+    tr.appendChild(cell(st, st.toLowerCase()));
+    tr.appendChild(cell(has ? '0x' + p.tmsi.toString(16) : '-'));
+    tr.appendChild(cell(has ? String(p.ue_id) : '-'));
+    tr.appendChild(cell(has ? 'frame ' + p.pf + ' of 128, slot ' + p.i_s : '-'));
+    var act = document.createElement('td');
+    var on = usable && !busy;
+    var up = st === 'CONNECTED' || st === 'IDLE';
+    act.appendChild(button('Call', 'call', p.name, on && (up || st === 'LOST')));
+    act.appendChild(button('Use', 'use', p.name, on && up));
+    if (st === 'LOST') act.appendChild(button('Find', 'find', p.name, on));
+    else act.appendChild(button('Lose', 'lose', p.name, on && up));
+    tr.appendChild(act);
+    body.appendChild(tr);
+  });
+  $('idle').disabled = !(usable && !busy);
 }
 
-function showState(s) {
-  if (!s.running) {
-    showConnection(false, 'Connected to the lab PC, but the demo is not running. Start it there with ./paka up');
-  } else {
-    showConnection(true, 'Live: connected to the lab PC demo · target ' + s.target + ' · speed ' + s.speed);
-  }
-  const wrong = (s.keyWrong || []).includes(s.target);
-  for (const b of document.querySelectorAll('#controls button')) {
-    const g = b.dataset.group, a = b.dataset.arg;
-    b.classList.toggle('sel', (g === 'target' && a === s.target.toLowerCase()) ||
-      (g === 'speed' && a === s.speed) || (g === 'key' && a === (wrong ? 'wrong' : 'real')));
-    b.classList.toggle('next', !g && s.running && b.dataset.cmd === s.next);
-    b.disabled = busy || s.busy || !s.running;
-  }
-  $('hint').innerHTML = !s.running ? '' : s.next === 'wait'
-    ? 'working ... (message in flight, or waiting for the paging slot)'
-    : s.next ? 'next: <b>' + esc(s.next) + '</b>' : '';
+function setConn(text, showHowto) {
+  $('conn').textContent = text;
+  $('howto').hidden = !showHowto;
 }
 
-async function poll() {
-  try {
-    const st = await call('/api/state');
-    showState(st.data);
-    if (st.data.running) {
-      const p = (await call('/api/panes')).data;
-      $('phoneTitle').textContent = p.phoneTitle || 'Phone';
-      setPane('phone', p.phone, true);
-      setPane('wire', p.wire, true);
-      setPane('server', p.server, true);
-      setPane('cell', p.cell, false);
-    }
-  } catch (e) {
-    showConnection(false, 'Not connected to the lab PC.');
-    for (const b of document.querySelectorAll('#controls button')) b.disabled = true;
-  }
-  setTimeout(poll, 700);
-}
-
-async function run(cmd, arg) {
+function run(cmd, arg) {
+  if (busy) return;
   busy = true;
-  $('out').innerHTML = '<span class="empty">running: ' + esc(cmd + (arg ? ' ' + arg : '')) + ' ...</span>';
-  try {
-    const r = await call('/api/cmd', { cmd, arg: arg || '' });
-    const text = r.data.output || r.data.error || '';
-    $('out').innerHTML = '<span class="a-d">paka&gt; ' + esc(cmd + (arg ? ' ' + arg : '')) + '</span>\n' + ansiToHtml(text);
-  } catch (e) {
-    $('out').textContent = 'Could not reach the lab PC: ' + e.message;
-  } finally {
-    busy = false;
-  }
+  $('busy').textContent = 'Working ...';
+  $('out').textContent = 'Running: ' + cmd + (arg ? ' ' + arg : '') + ' ...';
+  poll();
+  api('/api/cmd', { cmd: cmd, arg: arg || '' })
+    .then(function (r) { $('out').textContent = r.output || r.error || 'Done.'; })
+    .catch(function () { $('out').textContent = 'The demo did not answer.'; })
+    .finally(function () {
+      busy = false;
+      $('busy').textContent = '';
+      poll();
+    });
 }
 
-document.getElementById('controls').addEventListener('click', (ev) => {
-  const b = ev.target.closest('button');
-  if (b && !b.disabled) run(b.dataset.cmd, b.dataset.arg);
-});
+function poll() {
+  api('/api/state').then(function (s) {
+    live = !!s.running;
+    if (!live) {
+      setConn('The bridge is running but the demo is not. Start it with ./paging up.', false);
+      showPhones(RECORDED, false);
+      return;
+    }
+    setConn('Connected to the live demo on this computer.', false);
+    showPhones(s.phones && s.phones.length ? s.phones : RECORDED, true);
+    return api('/api/wire').then(function (w) {
+      var el = $('wire');
+      var text = w.lines.length ? w.lines.join('\n') : 'Nothing yet.';
+      if (el.textContent !== text) {
+        el.textContent = text;
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  }).catch(function () {
+    live = false;
+    setConn('Not connected to a live demo. The table shows a recorded run.', true);
+    showPhones(RECORDED, false);
+  });
+}
 
+$('idle').onclick = function () { run('idle'); };
+showPhones(RECORDED, false);
 poll();
+setInterval(poll, 1500);
