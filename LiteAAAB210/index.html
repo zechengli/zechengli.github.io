@@ -9,23 +9,12 @@
 <body>
 
 <h2>LiteAAA on a B210</h2>
-<p>What we have: a SIM card, a OnePlus 13, a B210 and a PC. The OnePlus 13's own
-modem attaches to our cell over the air, and then LiteAAA runs over that
-cellular connection — with the real SIM giving the proof.</p>
-
-<h3>LiteAAA running over the LTE link</h3>
-<pre>OnePlus 13 connected over LTE
-REGISTER   OnePlus 13 -> network   identity e34f5d2e
-PAGING     network -> all devices   identity e34f5d2e
-ANSWER     OnePlus 13 -> network   I am here
-CHALLENGE  network -> OnePlus 13   RAND, AUTN
-RESYNC     OnePlus 13 -> network   my counter is behind
-network caught its counter up; challenging again
-CHALLENGE  network -> OnePlus 13   RAND, AUTN
-RESPONSE   OnePlus 13 -> network   RES
-OnePlus 13 verified network:  PASS   the SIM accepted AUTN
-network verified OnePlus 13:  PASS   RES matched
-result: PASS   nonce: PASS   OnePlus 13 is verified.</pre>
+<h3>Device List</h3>
+<ul>
+  <li>OnePlus 13 (with a reconfigurable SIM card)</li>
+  <li>B210, enable LTE</li>
+  <li>Linux PC</li>
+</ul>
 
 <h3>Ping and throughput over the LTE link</h3>
 <table>
