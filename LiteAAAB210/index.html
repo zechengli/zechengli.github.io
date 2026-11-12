@@ -10,46 +10,46 @@
 
 <h2>LiteAAA on a B210</h2>
 <p><b>Status: it works over a real cellular link (LTE). 12 November 2026.</b></p>
-<p>What we have: a SIM card, a phone, a B210, a PC and a shield box. The phone's
-own modem attaches to our cell over the air, and then LiteAAA runs over that
-cellular connection — with the real SIM giving the proof. Everything transmits
-inside the box.</p>
-
-<h3>What happens</h3>
-<ol>
-  <li>The B210 and the PC run a small 4G (LTE) cell. The phone's own modem
-  attaches to it over the air and authenticates with the real SIM card — the
-  standard mutual authentication every phone does. This gives the phone a data
-  link.</li>
-  <li>Over that data link, the LiteAAA app runs its own paging, challenge and
-  nonce — our protocol, asking the same real SIM.</li>
-</ol>
-<p class="small">We tried 5G standalone as well. This phone will only find 5G as
-an add-on to 4G, so it never camps a standalone 5G cell; 4G works.</p>
+<p>What we have: a SIM card, a OnePlus 13, a B210 and a PC. The OnePlus 13's own
+modem attaches to our cell over the air, and then LiteAAA runs over that
+cellular connection — with the real SIM giving the proof.</p>
 
 <h3>LiteAAA running over the LTE link</h3>
-<pre>phone connected over LTE
-REGISTER   phone -> network   identity e34f5d2e
-PAGING     network -> all phones   identity e34f5d2e
-ANSWER     phone -> network   I am here
-CHALLENGE  network -> phone   RAND, AUTN
-RESYNC     phone -> network   my counter is behind
+<pre>OnePlus 13 connected over LTE
+REGISTER   OnePlus 13 -> network   identity e34f5d2e
+PAGING     network -> all devices   identity e34f5d2e
+ANSWER     OnePlus 13 -> network   I am here
+CHALLENGE  network -> OnePlus 13   RAND, AUTN
+RESYNC     OnePlus 13 -> network   my counter is behind
 network caught its counter up; challenging again
-CHALLENGE  network -> phone   RAND, AUTN
-RESPONSE   phone -> network   RES
-phone verified network:  PASS   the SIM accepted AUTN
-network verified phone:  PASS   RES matched
-result: PASS   nonce: PASS   phone is verified.</pre>
+CHALLENGE  network -> OnePlus 13   RAND, AUTN
+RESPONSE   OnePlus 13 -> network   RES
+OnePlus 13 verified network:  PASS   the SIM accepted AUTN
+network verified OnePlus 13:  PASS   RES matched
+result: PASS   nonce: PASS   OnePlus 13 is verified.</pre>
 
 <h3>Ping and throughput over the LTE link</h3>
 <table>
   <tr><th>Test</th><th>Result</th></tr>
-  <tr><td>Ping (PC to phone, 15 packets)</td><td>0% loss, about 27 ms average (13.6 min, 37.6 max)</td></tr>
+  <tr><td>Ping (PC to OnePlus 13, 15 packets)</td><td>0% loss, about 27 ms average (13.6 min, 37.6 max)</td></tr>
   <tr><td>Downlink</td><td>about 37 Mbps (80 MB in 18.2 s)</td></tr>
   <tr><td>Uplink</td><td>about 20 Mbps (40 MB in 16.6 s)</td></tr>
 </table>
-<p class="small">Band 3 (1.8 GHz), 10 MHz, one antenna, no external clock, all
-inside the shield box.</p>
+<p class="small">Band 3 (1.8 GHz), 10 MHz, one antenna, no external clock.</p>
+
+<h3>Structure</h3>
+<p><img class="flow" src="structure.svg?v=1" alt="The PC runs the LTE core, the LiteAAA network half and the key store. It drives a B210 radio over USB. The B210 talks over the air to the OnePlus 13, which holds the modem, the LiteAAA app and the SIM card."></p>
+
+<h3>What happens</h3>
+<ol>
+  <li>The B210 and the PC run a small 4G (LTE) cell. The OnePlus 13's own modem
+  attaches to it over the air and authenticates with the real SIM card — the
+  standard mutual authentication every phone does. This gives it a data link.</li>
+  <li>Over that data link, the LiteAAA app runs its own paging, challenge and
+  nonce — our protocol, asking the same real SIM.</li>
+</ol>
+<p class="small">We tried 5G standalone as well. The OnePlus 13 will only find
+5G as an add-on to 4G, so it never camps a standalone 5G cell; 4G works.</p>
 
 </body>
 </html>
