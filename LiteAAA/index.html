@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAAA</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+
+<p>
+  Machine: <input id="addr" size="60" spellcheck="false" value="">
+  <button id="connect">Connect</button>
+  <span id="conn">not connected</span>
+</p>
+
+<div class="cols">
+  <div class="col">
+    <h2>Paging</h2>
+    <table>
+      <tr><th>API</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="status">status</a></td><td>show the three phones</td></tr>
+      <tr><td><a href="#" data-cmd="idle">idle</a></td><td>release all phones; every phone goes idle</td></tr>
+      <tr><td><a href="#" data-cmd="page ">page &lt;phone&gt;</a></td><td>send the phone's identity to all phones; only that phone answers</td></tr>
+      <tr><td><a href="#" data-cmd="lose ">lose &lt;phone&gt;</a></td><td>take a phone out of coverage; it stops answering pages</td></tr>
+      <tr><td><a href="#" data-cmd="find ">find &lt;phone&gt;</a></td><td>bring it back</td></tr>
+    </table>
+  </div>
+  <div class="col">
+    <h2>Verification</h2>
+    <table>
+      <tr><th>API</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="verify ">verify &lt;phone&gt;</a></td><td>page the phone, then the phone verifies the network and the network verifies the phone</td></tr>
+      <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; wrong</a></td><td>give the network a wrong key for that phone, so verification fails</td></tr>
+      <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; real</a></td><td>put the real key back</td></tr>
+    </table>
+
+    <h2>Nonce</h2>
+    <table>
+      <tr><th>API</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="nonce ">nonce &lt;number&gt;</a></td><td>enter the nonce after a verification has passed; one try</td></tr>
+    </table>
+    <p id="nonceText"></p>
+  </div>
+</div>
+
+<p>Phones: alice, bob, carol.</p>
+
+<form id="form">
+  &gt; <input id="cmd" size="30" autocomplete="off" spellcheck="false" autofocus>
+  <button id="run">Run</button>
+  <button type="button" id="clear">Clear</button>
+</form>
+
+<pre id="out"></pre>
+
+<h2 class="top">How this is built</h2>
+
+<p>One small program. No cellular standard, no core network, no radio.
+One network and three phones run on one machine and talk over UDP.</p>
+
+<h3>Flow</h3>
+<p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
+
+<h3>Lines of code</h3>
+<table>
+  <tr><th>Written by AI and me together</th><th>Lines</th></tr>
+  <tr><td>mini.py: the network, the phones, paging, verification, nonce</td><td>246</td></tr>
+  <tr><td>serve.py: the web API this page talks to</td><td>114</td></tr>
+  <tr><td>lite: start and stop</td><td>57</td></tr>
+  <tr><td>This page: HTML, JavaScript, CSS, diagram</td><td>268</td></tr>
+  <tr><td><b>Total written</b></td><td><b>685</b></td></tr>
+</table>
+<br>
+<table>
+  <tr><th>Pulled from online, used directly</th><th>Lines</th></tr>
+  <tr><td>Milenage, the algorithm a SIM runs (github.com/P1sec/CryptoMobile)</td><td>565</td></tr>
+</table>
+<p class="small">Also used directly and not counted: Python, an AES library and the Cloudflare tunnel client.</p>
+
+<script src="app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  color: #000;
+  background: #fff;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+h2 { font-size: 20px; margin: 8px 0; }
+.col h2 + table + h2, .col table + h2 { margin-top: 24px; }
+#nonceText { font-weight: bold; }
+
+.cols { display: flex; flex-wrap: wrap; gap: 24px; }
+.col { flex: 1 1 420px; min-width: 0; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #999; padding: 4px 10px; text-align: left; vertical-align: top; }
+.cols td:first-child { font-family: monospace; white-space: nowrap; }
+td, th { overflow-wrap: anywhere; }
+
+input { font-family: monospace; font-size: 15px; max-width: 100%; }
+
+pre {
+  border: 1px solid #999;
+  padding: 8px;
+  font-size: 13px;
+  overflow: auto;
+}
+#out { min-height: 300px; max-height: 70vh; }
+
+h2.top { margin-top: 48px; border-top: 1px solid #999; padding-top: 16px; }
+h3 { font-size: 17px; margin: 24px 0 8px; }
+.small { font-size: 14px; }
+li { margin: 3px 0; }
+.loc { font-family: monospace; font-size: 13px; }
+.flow { width: 100%; max-width: 900px; border: 1px solid #999; }
