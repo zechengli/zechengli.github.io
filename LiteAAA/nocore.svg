@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 236" font-family="Arial, Helvetica, sans-serif" fill="#000">
+<defs>
+<marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>
+<marker id="b" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M10,0 L0,4 L10,8 z"/></marker>
+</defs>
+<rect width="900" height="236" fill="#fff"/>
+<rect x="60" y="40" width="250" height="110" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="185" y="68" text-anchor="middle" font-size="15" font-weight="bold">Ring or tag</text>
+<text x="185" y="98" text-anchor="middle" font-size="13">the key K</text>
+<text x="185" y="120" text-anchor="middle" font-size="13">the device half of the code</text>
+<rect x="590" y="40" width="250" height="110" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="715" y="68" text-anchor="middle" font-size="15" font-weight="bold">B210 with a PC</text>
+<text x="715" y="98" text-anchor="middle" font-size="13">the same key K</text>
+<text x="715" y="120" text-anchor="middle" font-size="13">the network half of the code</text>
+<line x1="320" y1="95" x2="580" y2="95" stroke="#000" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#b)"/>
+<text x="450" y="82" text-anchor="middle" font-size="13" font-weight="bold">the same radio on both ends</text>
+<text x="450" y="116" text-anchor="middle" font-size="13">page, challenge, answer</text>
+<text x="450" y="186" text-anchor="middle" font-size="16" font-weight="bold">No Open5GS. No core network. No SIM card.</text>
+<text x="450" y="214" text-anchor="middle" font-size="13">Bluetooth works, with extra software on the PC. NFC does not: the B210 cannot tune that low.</text>
+</svg>
