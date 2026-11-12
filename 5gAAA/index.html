@@ -132,64 +132,6 @@ UERANSIM is a separate open-source project (github.com/aligungr/UERANSIM). It is
 <p class="small">Also used directly and not counted: MongoDB, Wireshark (tshark), the Cloudflare tunnel client and Linux itself.
 Switched off here, left from an earlier step-by-step demo: 15 of the 303 AMF lines (timer.c) and about 210 lines in the UERANSIM tree.</p>
 
-<h3>Why this small version is enough</h3>
-<ul>
-  <li>We wrote none of the crypto and none of the message encoding. Paging, 5G-AKA and the key chain are the existing, standard code.</li>
-  <li>The 303 lines do one thing: when a page was asked for through the API, run a fresh 5G-AKA before accepting the phone's answer, and report pass or fail.</li>
-  <li>The messages and keys are the same ones a real network uses. Only the radio below RRC is simulated. Going on the air replaces that bottom layer and nothing above it.</li>
-  <li>Both outcomes are shown: right key passes, wrong key fails, no answer fails.</li>
-</ul>
-<p>What it does not do: real paging occasions (the simulator pages at once), more than one cell, encryption of NAS messages (NEA0), and a nonce shown on a different device from the one it is typed on.</p>
-
-<h2 class="top">Putting it on the air</h2>
-
-<h3>Hardware</h3>
-<table>
-  <tr><th>Item</th><th>Example</th><th>For</th></tr>
-  <tr><td>PC</td><td>this lab PC</td><td>runs the core and the cell software</td></tr>
-  <tr><td>Radio</td><td>USRP B210 on USB 3</td><td>the cell's transmitter and receiver</td></tr>
-  <tr><td>Antennas</td><td>two for the chosen band, or cables with attenuators</td><td>the radio link</td></tr>
-  <tr><td>Phone</td><td>a 5G standalone phone, for example OnePlus 13</td><td>the real phone</td></tr>
-  <tr><td>SIM</td><td>programmable test SIM (sysmoISIM-SJA2) and a USB card reader</td><td>holds an IMSI, K and OPc that we choose</td></tr>
-  <tr><td>Optional</td><td>GPSDO or 10 MHz reference for the B210</td><td>a steady clock; without it the link is fragile</td></tr>
-</table>
-
-<h3>Software</h3>
-<ul>
-  <li>Open5GS with the same patched AMF. No change.</li>
-  <li>srsRAN Project gNB takes the place of the simulated cell.</li>
-  <li>The simulated phones are removed. The real phone takes their place.</li>
-</ul>
-
-<h3>Flow</h3>
-<ol>
-  <li>Write IMSI, K and OPc to the SIM. Add the same subscriber to Open5GS.</li>
-  <li>Start Open5GS.</li>
-  <li>Start the srsRAN gNB on the B210 with the same network code and tracking area.</li>
-  <li>Put the SIM in the phone. It registers and gets an IP address.</li>
-  <li>Leave the phone alone until the cell releases it. It is now idle.</li>
-  <li><b>call:</b> ping the phone's IP. The page goes out over the air at the phone's real paging occasion, and the phone answers.</li>
-  <li><b>verify:</b> the same API. This time the real SIM checks the network and produces RES*.</li>
-  <li><b>nonce:</b> as now.</li>
-</ol>
-
-<h3>What changes for the APIs</h3>
-<table>
-  <tr><th>API</th><th>On the air</th></tr>
-  <tr><td>call, verify, nonce, key</td><td>the same</td></tr>
-  <tr><td>idle</td><td>wait for the cell's inactivity timer</td></tr>
-  <tr><td>lose, find</td><td>airplane mode, or a shielded box</td></tr>
-  <tr><td>use</td><td>open anything on the phone</td></tr>
-</table>
-
-<h3>Not tested yet</h3>
-<ul>
-  <li>None of the over-the-air steps have been run with this demo. On this PC the srsRAN gNB, a B210 and Open5GS have run together before, with srsUE.</li>
-  <li>A real phone may not accept a new authentication in the middle of a Service Request in the same way the simulated phone does.</li>
-  <li>After a failed verify a real phone treats its SIM as invalid until it is restarted.</li>
-  <li>Transmit only in a shielded box or over cables, unless there is a licence for the band.</li>
-</ul>
-
 <script src="app.js?v=9"></script>
 </body>
 </html>
