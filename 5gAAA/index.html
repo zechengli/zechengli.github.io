@@ -111,43 +111,6 @@ UERANSIM is a separate open-source project (github.com/aligungr/UERANSIM). It is
 
 <h3>Flows</h3>
 <p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
-<h3>Messages</h3>
-<table>
-  <tr><th>Message</th><th>From, to</th><th>Protocol</th><th>Carries</th></tr>
-  <tr><td>Session Report Request</td><td>UPF to SMF</td><td>PFCP</td><td>data is waiting for an idle phone</td></tr>
-  <tr><td>N1N2 Message Transfer</td><td>SMF to AMF</td><td>HTTP/2</td><td>please reach this phone</td></tr>
-  <tr><td>Paging</td><td>AMF to cell</td><td>NGAP</td><td>5G-S-TMSI, tracking area</td></tr>
-  <tr><td>Paging</td><td>cell to phones</td><td>RRC</td><td>5G-S-TMSI</td></tr>
-  <tr><td>Service Request</td><td>phone to AMF</td><td>NAS</td><td>5G-S-TMSI</td></tr>
-  <tr><td>Authentication Request</td><td>AMF to phone</td><td>NAS</td><td>RAND, AUTN</td></tr>
-  <tr><td>Authentication Response</td><td>phone to AMF</td><td>NAS</td><td>RES*</td></tr>
-  <tr><td>Authentication Failure</td><td>phone to AMF</td><td>NAS</td><td>cause: MAC failure</td></tr>
-  <tr><td>Security Mode Command, Complete</td><td>AMF and phone</td><td>NAS</td><td>chosen algorithms; new keys start</td></tr>
-  <tr><td>Initial Context Setup</td><td>AMF to cell</td><td>NGAP</td><td>the cell's key K_gNB</td></tr>
-  <tr><td>Configuration Update Command</td><td>AMF to phone</td><td>NAS</td><td>new temporary identity</td></tr>
-</table>
-
-<h3>Crypto: what each key depends on</h3>
-<p>Everything starts from one secret, K (128 bits), stored in the SIM and in the network's subscriber database. It is never sent.</p>
-<pre class="doc">K, OPc, RAND, SQN                 --Milenage-->   MAC, RES, CK, IK, AK
-AUTN = SQN xor AK, AMF field, MAC                 sent to the phone together with RAND
-
-CK, IK, network name, SQN xor AK  -->  K_AUSF
-CK, IK, network name, RAND, RES   -->  RES*   (phone)   =   XRES*  (network)
-RAND, XRES*          --SHA-256--> HXRES*                 the only part the AMF is given
-
-K_AUSF, network name -->  K_SEAF
-K_SEAF, SUPI, ABBA   -->  K_AMF
-K_AMF                -->  K_NASint, K_NASenc             protect phone-to-AMF messages
-K_AMF                -->  K_gNB                          protects the radio link</pre>
-<ul>
-  <li><b>Phone verifies network:</b> the SIM recomputes MAC from K, RAND and SQN and compares it with the MAC inside AUTN. Only a network that knows K can produce it.</li>
-  <li><b>Network verifies phone:</b> only a SIM that knows K can produce RES*. The AMF compares SHA-256 of it with HXRES*, and the AUSF compares RES* with XRES*.</li>
-  <li><b>Who computes what:</b> UDM: Milenage, XRES*, K_AUSF. AUSF: HXRES*, K_SEAF. AMF: K_AMF, NAS keys, K_gNB. The phone computes all of them on its side.</li>
-  <li><b>Used in this run:</b> key derivation is HMAC-SHA-256. NAS integrity is NIA2 (AES). NAS ciphering is NEA0 (none), the default order of this core.</li>
-  <li>The nonce is not part of this chain.</li>
-</ul>
-
 <h3>Lines of code</h3>
 <table>
   <tr><th>What</th><th>Lines</th></tr>
