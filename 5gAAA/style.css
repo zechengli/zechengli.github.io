@@ -3,16 +3,21 @@ body {
   font-size: 16px;
   color: #000;
   background: #fff;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 20px auto;
   padding: 0 16px;
 }
 
-table { border-collapse: collapse; }
-th, td { border: 1px solid #999; padding: 4px 10px; text-align: left; }
+h2 { font-size: 20px; margin: 8px 0; }
+
+.cols { display: flex; flex-wrap: wrap; gap: 24px; }
+.col { flex: 1 1 420px; min-width: 0; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #999; padding: 4px 10px; text-align: left; vertical-align: top; }
 td:first-child { font-family: monospace; white-space: nowrap; }
 
-input { font-family: monospace; font-size: 15px; }
+input { font-family: monospace; font-size: 15px; max-width: 100%; }
 
 pre {
   border: 1px solid #999;

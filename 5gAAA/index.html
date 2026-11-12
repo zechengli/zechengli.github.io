@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paging</title>
+<title>Paging and verification</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<h1>Paging</h1>
 
 <p>
   Machine: <input id="addr" size="30" spellcheck="false">
@@ -16,16 +14,30 @@
   <span id="conn">not connected</span>
 </p>
 
-<table>
-  <tr><th>Command</th><th>What it does</th></tr>
-  <tr><td><a href="#" data-cmd="status">status</a></td><td>show the three phones</td></tr>
-  <tr><td><a href="#" data-cmd="idle">idle</a></td><td>release all radio links; every phone goes idle</td></tr>
-  <tr><td><a href="#" data-cmd="call ">call &lt;phone&gt;</a></td><td>send data to a phone; the network pages it if it is idle</td></tr>
-  <tr><td><a href="#" data-cmd="use ">use &lt;phone&gt;</a></td><td>the phone sends data itself; it wakes up without a page</td></tr>
-  <tr><td><a href="#" data-cmd="lose ">lose &lt;phone&gt;</a></td><td>take a phone out of coverage; it stops answering pages</td></tr>
-  <tr><td><a href="#" data-cmd="find ">find &lt;phone&gt;</a></td><td>bring it back; all phones end up idle</td></tr>
-  <tr><td><a href="#" data-cmd="wire">wire</a></td><td>show the last messages between core, cell and phones</td></tr>
-</table>
+<div class="cols">
+  <div class="col">
+    <h2>Paging</h2>
+    <table>
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="status">status</a></td><td>show the three phones</td></tr>
+      <tr><td><a href="#" data-cmd="idle">idle</a></td><td>release all radio links; every phone goes idle</td></tr>
+      <tr><td><a href="#" data-cmd="call ">call &lt;phone&gt;</a></td><td>send data to a phone; the network pages it if it is idle</td></tr>
+      <tr><td><a href="#" data-cmd="use ">use &lt;phone&gt;</a></td><td>the phone sends data itself; it wakes up without a page</td></tr>
+      <tr><td><a href="#" data-cmd="lose ">lose &lt;phone&gt;</a></td><td>take a phone out of coverage; it stops answering pages</td></tr>
+      <tr><td><a href="#" data-cmd="find ">find &lt;phone&gt;</a></td><td>bring it back; all phones end up idle</td></tr>
+      <tr><td><a href="#" data-cmd="wire">wire</a></td><td>show the last messages between core, cell and phones</td></tr>
+    </table>
+  </div>
+  <div class="col">
+    <h2>Verification</h2>
+    <table>
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="verify ">verify &lt;phone&gt;</a></td><td>page the phone, then the phone verifies the network and the network verifies the phone</td></tr>
+      <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; wrong</a></td><td>give the network a wrong key for that phone, so verification fails</td></tr>
+      <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; real</a></td><td>put the real key back</td></tr>
+    </table>
+  </div>
+</div>
 
 <p>Phones: alice, bob, carol.</p>
 
