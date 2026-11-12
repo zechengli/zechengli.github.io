@@ -111,34 +111,6 @@ UERANSIM is a separate open-source project (github.com/aligungr/UERANSIM). It is
 
 <h3>Flows</h3>
 <p><img class="flow" src="flow.svg?v=1" alt="Flow: 1 paging, 2 double side verification, 3 nonce, 4 verified"></p>
-<p><b>call</b> (paging)</p>
-<ol>
-  <li>A ping to the phone's IP address reaches the UPF.</li>
-  <li>The phone is idle, so the UPF keeps the packet and tells the SMF.</li>
-  <li>The SMF asks the AMF to reach the phone.</li>
-  <li>The AMF sends Paging, with the phone's temporary identity, to the cell.</li>
-  <li>The cell sends it out. The phone with that identity answers with a Service Request.</li>
-  <li>The AMF rebuilds the connection and the UPF delivers the packet.</li>
-  <li>The AMF gives the phone a new temporary identity.</li>
-</ol>
-<p><b>verify</b> (paging, then both sides verify)</p>
-<ol>
-  <li>The API call reaches an endpoint we added to the AMF. The AMF pages the phone.</li>
-  <li>The phone answers with a Service Request.</li>
-  <li>The AMF does not accept it yet. It asks the AUSF, which asks the UDM, for a fresh challenge.</li>
-  <li>The AMF sends Authentication Request with RAND and AUTN.</li>
-  <li><b>Phone verifies network:</b> the SIM checks AUTN. If it is wrong the phone sends Authentication Failure and it ends here.</li>
-  <li>The phone sends Authentication Response with RES*.</li>
-  <li><b>Network verifies phone:</b> the AMF checks a hash of RES*, then the AUSF checks RES* itself.</li>
-  <li>Security Mode Command and Complete switch both sides to the new keys.</li>
-  <li>The AMF accepts the Service Request. Result: PASS.</li>
-</ol>
-<p><b>nonce</b></p>
-<ol>
-  <li>After a PASS the script picks a number from 1 to 99 and shows it.</li>
-  <li>One try to enter it. The network is not involved in this step.</li>
-</ol>
-
 <h3>Messages</h3>
 <table>
   <tr><th>Message</th><th>From, to</th><th>Protocol</th><th>Carries</th></tr>
