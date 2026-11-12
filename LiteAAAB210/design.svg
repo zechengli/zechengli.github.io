@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" font-family="Arial, Helvetica, sans-serif" fill="#000">
+<defs>
+<marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>
+<marker id="b" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M10,0 L0,4 L10,8 z"/></marker>
+</defs>
+<rect width="900" height="330" fill="#fff"/>
+<rect x="30" y="36" width="300" height="196" fill="#f2f2f2" stroke="#000" stroke-width="1.5"/>
+<text x="180" y="60" text-anchor="middle" font-size="15" font-weight="bold">Phone</text>
+<rect x="50" y="74" width="260" height="56" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="180" y="98" text-anchor="middle" font-size="14" font-weight="bold">App</text>
+<text x="180" y="117" text-anchor="middle" font-size="13">the LiteAAA device half</text>
+<line x1="180" y1="130" x2="180" y2="150" stroke="#000" stroke-width="1.5"/>
+<rect x="50" y="150" width="260" height="64" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="180" y="176" text-anchor="middle" font-size="14" font-weight="bold">SIM card</text>
+<text x="180" y="196" text-anchor="middle" font-size="13">holds K, checks AUTN, makes RES</text>
+<rect x="620" y="36" width="250" height="196" fill="#f2f2f2" stroke="#000" stroke-width="1.5"/>
+<text x="745" y="60" text-anchor="middle" font-size="15" font-weight="bold">PC</text>
+<rect x="640" y="74" width="210" height="56" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="745" y="98" text-anchor="middle" font-size="14" font-weight="bold">LiteAAA</text>
+<text x="745" y="117" text-anchor="middle" font-size="13">the network half</text>
+<line x1="745" y1="130" x2="745" y2="150" stroke="#000" stroke-width="1.5"/>
+<rect x="640" y="150" width="210" height="64" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="745" y="176" text-anchor="middle" font-size="14" font-weight="bold">Key store</text>
+<text x="745" y="196" text-anchor="middle" font-size="13">the same K as the SIM card</text>
+<rect x="470" y="95" width="110" height="80" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="525" y="130" text-anchor="middle" font-size="15" font-weight="bold">B210</text>
+<text x="525" y="150" text-anchor="middle" font-size="13">radio</text>
+<line x1="580" y1="135" x2="620" y2="135" stroke="#000" stroke-width="1.5"/>
+<text x="600" y="126" text-anchor="middle" font-size="13">USB</text>
+<line x1="340" y1="135" x2="460" y2="135" stroke="#000" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#b)"/>
+<text x="400" y="104" text-anchor="middle" font-size="13" font-weight="bold">Bluetooth packets</text>
+<text x="400" y="121" text-anchor="middle" font-size="13">2.4 GHz</text>
+<text x="400" y="262" text-anchor="middle" font-size="13">to the phone: page, challenge (RAND, AUTN)</text>
+<text x="400" y="282" text-anchor="middle" font-size="13">to the B210: answer, RES</text>
+<text x="450" y="316" text-anchor="middle" font-size="15" font-weight="bold">No core network. No cellular band. The real SIM card gives the proof.</text>
+</svg>

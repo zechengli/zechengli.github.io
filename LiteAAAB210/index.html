@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteAAA on a B210</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+
+<h2>LiteAAA on a B210</h2>
+<p><b>This page is a plan. Nothing on it is built yet.</b></p>
+<p>What we have: a SIM card, a phone, a B210 and a PC. No shield box and no radio licence.</p>
+
+<h3>Design</h3>
+<p><img class="flow" src="design.svg?v=1" alt="The phone runs an app with the LiteAAA device half and asks its SIM card. The PC runs the LiteAAA network half and holds the same key. They talk through the B210 using Bluetooth packets at 2.4 GHz."></p>
+
+<h3>Why Bluetooth packets and not a 5G cell</h3>
+<table>
+  <tr><th>Radio</th><th>Phone has it</th><th>B210 can do it</th><th>Without a box or a licence</th></tr>
+  <tr><td>5G cell</td><td>yes</td><td>yes</td><td>not allowed: the band belongs to a carrier</td></tr>
+  <tr><td>Bluetooth packets, 2.4 GHz</td><td>yes</td><td>yes, with our own code</td><td>the band is open to low-power use; confirm with the university</td></tr>
+  <tr><td>NFC</td><td>yes</td><td>no, the frequency is too low</td><td></td></tr>
+</table>
+
+<h3>What changes in LiteAAA</h3>
+<table>
+  <tr><th>Part</th><th>Now</th><th>On the B210</th></tr>
+  <tr><td>Core</td><td>the rules</td><td>the same, unchanged</td></tr>
+  <tr><td>Reach</td><td>the internet</td><td>Bluetooth packets sent and received by the B210</td></tr>
+  <tr><td>SIM</td><td>a key in memory</td><td>the real SIM card, asked by an app on the phone</td></tr>
+  <tr><td>Key store</td><td>a table in memory</td><td>the same table, holding the real card's K</td></tr>
+</table>
+
+<h3>Steps</h3>
+<ol>
+  <li>The B210 sends one Bluetooth packet and the phone sees it.</li>
+  <li>The B210 hears a Bluetooth packet sent by the phone.</li>
+  <li>Wrap those two as the Reach plug-in.</li>
+  <li>Phone app: the device half, with the real SIM card as the SIM plug-in.</li>
+  <li>Run it: page, the SIM verifies the network, the network verifies the SIM, nonce.</li>
+</ol>
+
+<h3>Open questions</h3>
+<ul>
+  <li>A Bluetooth packet carries 31 bytes. The challenge is 32, so it goes in two packets.</li>
+  <li>A phone does not listen all the time, so a page may have to be repeated.</li>
+  <li>A real SIM card checks the sequence number more strictly than our software one.</li>
+  <li>The app needs special access to the SIM card. The test phone is rooted, and this was done before on it.</li>
+</ul>
+
+</body>
+</html>
