@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paging and verification</title>
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -61,12 +61,30 @@
 
 <h3>Code used</h3>
 <table>
-  <tr><th>Part</th><th>Software</th><th>Changed?</th></tr>
-  <tr><td>Core network</td><td>Open5GS 2.8.0</td><td>AMF patched (303 lines). AUSF, UDM, UDR, SMF, UPF, NRF are the stock packages.</td></tr>
-  <tr><td>Cell (gNB)</td><td>UERANSIM nr-gnb</td><td>Not in demo.</td></tr>
-  <tr><td>Phones and SIMs</td><td>UERANSIM nr-ue, three copies</td><td>One 3-line fix.</td></tr>
-  <tr><td>Control</td><td>One shell script, three small Python files, this page</td><td>New.</td></tr>
-  <tr><td>srsRAN, srsUE</td><td>Not used in the simulation</td><td>srsUE has no idle mode in 5G, so it cannot be paged. The srsRAN gNB is for the over-the-air version below.</td></tr>
+  <tr><th>Part</th><th>Software</th><th>Code location</th></tr>
+  <tr><td>Core network</td><td>Open5GS 2.8.0</td><td class="loc">
+    open5gs/src/amf/context.h, lines 420-438, in struct amf_ue_s<br>
+    open5gs/src/amf/gmm-sm.c, lines 34-41<br>
+    open5gs/src/amf/gmm-sm.c, lines 939-944, in gmm_state_registered()<br>
+    open5gs/src/amf/gmm-sm.c, lines 1912-1937, in common_register_state()<br>
+    open5gs/src/amf/gmm-sm.c, lines 2153-2409 (six places), in gmm_state_authentication()<br>
+    open5gs/src/amf/gmm-sm.c, lines 2597-2721 (three places), in gmm_state_security_mode()<br>
+    open5gs/src/amf/namf-oam.c, lines 258-281, in amf_namf_oam_handler()<br>
+    open5gs/src/amf/namf-oam.c, lines 874-1029, new functions<br>
+    open5gs/src/amf/namf-oam.h, lines 51-65
+  </td></tr>
+  <tr><td>Cell (gNB)</td><td>UERANSIM nr-gnb</td><td></td></tr>
+  <tr><td>Phones and SIMs</td><td>UERANSIM nr-ue, three copies</td><td class="loc">
+    UERANSIM/src/ue/nas/mm/security.cpp, lines 264-266, in NasMm::receiveSecurityModeCommand()
+  </td></tr>
+  <tr><td>Control</td><td>One shell script, three small Python files, this page</td><td class="loc">
+    /data2/work/paging-demo/paging<br>
+    /data2/work/paging-demo/board.py<br>
+    /data2/work/paging-demo/wire.py<br>
+    /data2/work/paging-demo/bridge.py<br>
+    zechengli.github.io/5gAAA/index.html, app.js, style.css
+  </td></tr>
+  <tr><td>srsRAN, srsUE</td><td>Not used in the simulation</td><td></td></tr>
 </table>
 
 <h3>Roles</h3>
@@ -158,7 +176,7 @@ K_AMF                -->  K_gNB                          protects the radio link
   <tr><td>Open5GS, used as is (AMF alone is about 35,000)</td><td>about 339,000</td></tr>
   <tr><td>UERANSIM, used as is</td><td>about 44,000</td></tr>
 </table>
-<p class="small">The UERANSIM tree also carries about 210 lines from an earlier step-by-step demo. They are switched off here.</p>
+<p class="small">Switched off here, left from an earlier step-by-step demo: 15 of the 303 AMF lines (timer.c) and about 210 lines in the UERANSIM tree.</p>
 
 <h3>Why this small version is enough</h3>
 <ul>
