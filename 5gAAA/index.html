@@ -32,11 +32,21 @@
     <h2>Verification</h2>
     <table>
       <tr><th>API</th><th>What it does</th></tr>
-      <tr><td><a href="#" data-cmd="verify ">verify &lt;phone&gt;</a></td><td>show a nonce (1-99), page the phone, then the phone verifies the network and the network verifies the phone</td></tr>
-      <tr><td><a href="#" data-cmd="nonce ">nonce &lt;number&gt;</a></td><td>enter the nonce after verification passes; one try</td></tr>
+      <tr><td><a href="#" data-cmd="verify ">verify &lt;phone&gt;</a></td><td>page the phone, then the phone verifies the network and the network verifies the phone</td></tr>
       <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; wrong</a></td><td>give the network a wrong key for that phone, so verification fails</td></tr>
       <tr><td><a href="#" data-cmd="key ">key &lt;phone&gt; real</a></td><td>put the real key back</td></tr>
     </table>
+
+    <h2>Nonce</h2>
+    <table>
+      <tr><th>API</th><th>What it does</th></tr>
+      <tr><td><a href="#" data-cmd="nonce ">nonce &lt;number&gt;</a></td><td>enter the nonce after a verification has passed; one try</td></tr>
+    </table>
+    <p id="nonceText">No nonce yet. Run verify first.</p>
+    <form id="nonceForm">
+      Enter nonce: <input id="nonceIn" size="4" maxlength="2" inputmode="numeric" autocomplete="off">
+      <button id="nonceBtn" disabled>Enter</button>
+    </form>
   </div>
 </div>
 

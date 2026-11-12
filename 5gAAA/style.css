@@ -9,6 +9,8 @@ body {
 }
 
 h2 { font-size: 20px; margin: 8px 0; }
+.col h2 + table + h2, .col table + h2 { margin-top: 24px; }
+#nonceText { font-weight: bold; }
 
 .cols { display: flex; flex-wrap: wrap; gap: 24px; }
 .col { flex: 1 1 420px; min-width: 0; }
