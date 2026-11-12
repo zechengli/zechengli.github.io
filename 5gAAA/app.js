@@ -6,10 +6,6 @@ var busy = false;
 
 function $(id) { return document.getElementById(id); }
 
-function saved() {
-  try { return localStorage.getItem('pagingAddr'); } catch (e) { return null; }
-}
-
 function api(path, body) {
   var ctl = new AbortController();
   var timer = setTimeout(function () { ctl.abort(); }, body ? 70000 : 3000);
@@ -45,7 +41,6 @@ function poll() {
 
 function connect() {
   addr = $('addr').value.trim().replace(/\/+$/, '');
-  try { localStorage.setItem('pagingAddr', addr); } catch (e) {}
   $('conn').textContent = 'connecting ...';
   poll();
 }
@@ -88,6 +83,17 @@ Array.prototype.forEach.call(document.querySelectorAll('a[data-cmd]'), function 
   };
 });
 
-$('addr').value = LOCAL ? location.origin : (saved() || DEFAULT_ADDR);
-connect();
-setInterval(poll, 2000);
+// The lab machine publishes its current public address in machine.json.
+function start(url) {
+  $('addr').value = url;
+  connect();
+  setInterval(poll, 2000);
+}
+if (LOCAL) {
+  start(location.origin);
+} else {
+  fetch('machine.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (m) { start(m.url || DEFAULT_ADDR); })
+    .catch(function () { start(DEFAULT_ADDR); });
+}
