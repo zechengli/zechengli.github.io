@@ -41,10 +41,7 @@ function poll() {
 }
 
 function showNonce(n) {
-  $('nonceBtn').disabled = !n || busy;
-  $('nonceText').textContent = n
-    ? 'Nonce for ' + n.phone + ': ' + n.value
-    : 'No nonce yet. Run verify first.';
+  $('nonceText').textContent = n ? 'Nonce for ' + n.phone + ': ' + n.value : '';
 }
 
 function connect() {
@@ -75,12 +72,6 @@ $('form').onsubmit = function (e) {
   e.preventDefault();
   run($('cmd').value);
   $('cmd').value = '';
-};
-$('nonceForm').onsubmit = function (e) {
-  e.preventDefault();
-  var v = $('nonceIn').value.trim();
-  if (v) run('nonce ' + v);
-  $('nonceIn').value = '';
 };
 $('connect').onclick = connect;
 $('clear').onclick = function () { $('out').textContent = ''; };
