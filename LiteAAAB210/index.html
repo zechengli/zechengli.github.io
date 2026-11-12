@@ -40,16 +40,8 @@ result: PASS   nonce: PASS   OnePlus 13 is verified.</pre>
 <h3>Structure</h3>
 <p><img class="flow" src="structure.svg?v=1" alt="The PC runs the LTE core, the LiteAAA network half and the key store. It drives a B210 radio over USB. The B210 talks over the air to the OnePlus 13, which holds the modem, the LiteAAA app and the SIM card."></p>
 
-<h3>What happens</h3>
-<ol>
-  <li>The B210 and the PC run a small 4G (LTE) cell. The OnePlus 13's own modem
-  attaches to it over the air and authenticates with the real SIM card — the
-  standard mutual authentication every phone does. This gives it a data link.</li>
-  <li>Over that data link, the LiteAAA app runs its own paging, challenge and
-  nonce — our protocol, asking the same real SIM.</li>
-</ol>
-<p class="small">We tried 5G standalone as well. The OnePlus 13 will only find
-5G as an add-on to 4G, so it never camps a standalone 5G cell; 4G works.</p>
+<h3>Flow</h3>
+<p><img class="flow" src="flow.svg?v=1" alt="Sequence: first the OnePlus 13's modem attaches to the cell and authenticates with the SIM (the modem's AKA), giving a data link; then over that link the LiteAAA app pages, challenges and authenticates with the same SIM again (LiteAAA's AKA). The SIM is asked to authenticate twice."></p>
 
 </body>
 </html>

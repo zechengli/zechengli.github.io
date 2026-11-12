@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="Arial, Helvetica, sans-serif" fill="#000">
+<defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker></defs>
+<rect width="900" height="620" fill="#fff"/>
+<line x1="150" y1="56" x2="150" y2="550" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="75" y="20" width="150" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="150" y="43" text-anchor="middle" font-size="13" font-weight="bold">SIM card</text>
+<line x1="450" y1="56" x2="450" y2="550" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="375" y="20" width="150" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="450" y="43" text-anchor="middle" font-size="13" font-weight="bold">OnePlus 13</text>
+<line x1="760" y1="56" x2="760" y2="550" stroke="#888" stroke-dasharray="4 4"/>
+<rect x="660" y="20" width="200" height="36" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="760" y="43" text-anchor="middle" font-size="13" font-weight="bold">Network (PC + B210)</text>
+<rect x="0" y="72" width="900" height="24" fill="#e6e6e6"/>
+<text x="12" y="89" text-anchor="start" font-size="13" font-weight="bold">1. Cellular attach — done by the phone’s modem</text>
+<line x1="760" y1="120" x2="457" y2="120" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="113" text-anchor="middle" font-size="12">attach / radio setup</text>
+<line x1="450" y1="158" x2="157" y2="158" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="151" text-anchor="middle" font-size="12">authenticate (RAND, AUTN)</text>
+<line x1="150" y1="192" x2="443" y2="192" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="185" text-anchor="middle" font-size="12">RES</text>
+<line x1="450" y1="226" x2="753" y2="226" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="219" text-anchor="middle" font-size="12">RES  (the modem’s AKA)</text>
+<line x1="760" y1="262" x2="457" y2="262" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="255" text-anchor="middle" font-size="12">data link up</text>
+<rect x="0" y="286" width="900" height="24" fill="#e6e6e6"/>
+<text x="12" y="303" text-anchor="start" font-size="13" font-weight="bold">2. LiteAAA — done by the app, over that data link</text>
+<line x1="760" y1="334" x2="457" y2="334" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="327" text-anchor="middle" font-size="12">page</text>
+<line x1="450" y1="368" x2="753" y2="368" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="361" text-anchor="middle" font-size="12">answer</text>
+<line x1="760" y1="402" x2="457" y2="402" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="395" text-anchor="middle" font-size="12">challenge (RAND, AUTN)</text>
+<line x1="450" y1="436" x2="157" y2="436" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="429" text-anchor="middle" font-size="12">authenticate (RAND, AUTN)</text>
+<line x1="150" y1="470" x2="443" y2="470" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="463" text-anchor="middle" font-size="12">RES</text>
+<line x1="450" y1="504" x2="753" y2="504" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="497" text-anchor="middle" font-size="12">RES  (LiteAAA’s AKA)</text>
+<line x1="760" y1="538" x2="457" y2="538" stroke="#000" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="605" y="531" text-anchor="middle" font-size="12">verified  +  nonce</text>
+<text x="450" y="588" text-anchor="middle" font-size="13">The SIM is asked to authenticate twice: once for the modem (to get on the cell),</text>
+<text x="450" y="608" text-anchor="middle" font-size="13">and again for the LiteAAA app. The second one is the extra layer.</text>
+</svg>
