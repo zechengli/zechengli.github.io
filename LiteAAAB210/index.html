@@ -31,54 +31,5 @@
 <h3>Flow</h3>
 <p><img class="flow" src="flow.svg?v=1" alt="Sequence: first the OnePlus 13's modem attaches to the cell and authenticates with the SIM (the modem's AKA), giving a data link; then over that link the LiteAAA app pages, challenges and authenticates with the same SIM again (LiteAAA's AKA). The SIM is asked to authenticate twice."></p>
 
-<h3>The modem's own attach (standard LTE)</h3>
-<p>Before the LiteAAA app can say anything, the OnePlus 13's modem attaches to
-our cell on its own. This is the standard LTE attach; none of our code takes part.
-The modem and the LTE core run all of it, and the B210 only carries the radio
-signal. It is the first of the two authentications in the flow above.</p>
-
-<table>
-  <tr><th>#</th><th>Message</th><th>Between</th><th>Carried by</th></tr>
-  <tr><td>1</td><td>Random access: preamble, response, RRC Connection Request, RRC Connection Setup</td><td>modem &harr; eNB</td><td>RRC (MAC random access, then SRB0)</td></tr>
-  <tr><td>2</td><td>Attach Request + PDN Connectivity Request, with the card's IMSI</td><td>modem &rarr; MME</td><td>NAS, inside RRC Connection Setup Complete (SRB1); eNB &rarr; MME in S1AP Initial UE Message</td></tr>
-  <tr><td>3</td><td>Authentication Information Request / Answer: the MME gets RAND, AUTN, XRES and K<sub>ASME</sub></td><td>MME &harr; HSS</td><td>S6a (Diameter)</td></tr>
-  <tr><td>4</td><td>Authentication Request (RAND, AUTN)</td><td>MME &rarr; modem</td><td>NAS, in S1AP Downlink NAS Transport and RRC DLInformationTransfer</td></tr>
-  <tr><td>5</td><td>The SIM checks AUTN (the network's MAC and the counter SQN), then computes RES, CK and IK</td><td>modem &harr; SIM</td><td>inside the phone</td></tr>
-  <tr><td>6</td><td>Authentication Response (RES); the MME compares it with XRES. If the counter was behind, the modem sends Authentication Failure with AUTS instead, and the MME resynchronises with the HSS</td><td>modem &rarr; MME</td><td>NAS, in RRC ULInformationTransfer and S1AP Uplink NAS Transport</td></tr>
-  <tr><td>7</td><td>Security Mode Command / Complete: from here on NAS messages are integrity protected and ciphered</td><td>MME &harr; modem</td><td>NAS</td></tr>
-  <tr><td>8</td><td>Update Location Request / Answer: the MME fetches the subscription</td><td>MME &harr; HSS</td><td>S6a (Diameter)</td></tr>
-  <tr><td>9</td><td>Create Session Request / Response: the default bearer is made and the phone gets an IP address</td><td>MME &harr; SGW &harr; PGW</td><td>GTP-C</td></tr>
-  <tr><td>10</td><td>Initial Context Setup Request: K<sub>eNB</sub>, the bearer, and the NAS Attach Accept</td><td>MME &rarr; eNB</td><td>S1AP</td></tr>
-  <tr><td>11</td><td>RRC Security Mode Command / Complete: the radio link is now protected</td><td>eNB &harr; modem</td><td>RRC (SRB1)</td></tr>
-  <tr><td>12</td><td>RRC Connection Reconfiguration / Complete: sets up the data radio bearer and delivers Attach Accept</td><td>eNB &harr; modem</td><td>RRC (SRB1)</td></tr>
-  <tr><td>13</td><td>Attach Complete; the core points the bearer at the eNB (Modify Bearer)</td><td>modem &rarr; MME, MME &rarr; SGW</td><td>NAS in RRC (SRB2), then GTP-C</td></tr>
-</table>
-
-<p>The keys this attach produces, all from the card's K:</p>
-<pre>K (in the SIM and in the HSS)
- +- CK, IK                      computed by the SIM in step 5
-     +- K_ASME                  held by the MME
-         +- K_NASint, K_NASenc  protect NAS messages (step 7)
-         +- K_eNB               given to the eNB (step 10)
-             +- K_RRCint, K_RRCenc   protect RRC messages (step 11)
-             +- K_UPenc              ciphers user data on the radio link</pre>
-
-<p>Where each part runs:</p>
-<table>
-  <tr><th>Part</th><th>Runs on</th></tr>
-  <tr><td>UE side: RRC, NAS, the radio protocols</td><td>the OnePlus 13's modem (its baseband chip)</td></tr>
-  <tr><td>The SIM's AKA (step 5)</td><td>the SIM card</td></tr>
-  <tr><td>Radio signal at Band 3</td><td>the B210</td></tr>
-  <tr><td>eNB: RRC, PDCP, RLC, MAC, PHY</td><td>software on the Linux PC</td></tr>
-  <tr><td>MME, HSS, SGW, PGW</td><td>the LTE core on the Linux PC</td></tr>
-</table>
-
-<p><b>What LiteAAA gets from this:</b> an IP address on our cell and a data radio
-bearer. The LiteAAA app then opens a plain TCP connection to the PC
-(10.45.0.1, port 9999) over that bearer, and its own paging, challenge and nonce
-travel as ordinary user data. So LiteAAA's AKA runs on the user plane, not on
-RRC or NAS. The radio link ciphers it with K<sub>UPenc</sub>; LTE does not
-integrity protect user data.</p>
-
 </body>
 </html>
